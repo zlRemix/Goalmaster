@@ -1,18 +1,53 @@
 import React from 'react';
 import { Player, Club } from '../types';
+import { dataService } from '../services/dataService';
 
 interface DashboardProps {
   player: Player;
   club: Club | null; 
+  allClubs: Club[]; // All clubs to find the inviting club's name
   overallRating: number;
   xpProgress: number;
   xpNeeded: number;
 }
 
-export const Dashboard: React.FC<DashboardProps> = ({ player, club, overallRating, xpProgress, xpNeeded }) => {
+const InvitationBanner: React.FC<{ player: Player; allClubs: Club[] }> = ({ player, allClubs }) => {
+    if (!player.pendingClubInvitation) return null;
+
+    const invitingClub = allClubs.find(c => c.id === player.pendingClubInvitation);
+    if (!invitingClub) return null;
+
+    const handleAccept = () => {
+        dataService.acceptClubInvitation(player.id, invitingClub.id).catch(e => console.error(e));
+    };
+
+    const handleReject = () => {
+        dataService.rejectClubInvitation(player.id).catch(e => console.error(e));
+    };
+
+    return (
+        <div className="bg-gradient-to-r from-blue-600 to-indigo-700 p-5 md:p-6 rounded-3xl border-2 border-blue-400/80 shadow-2xl animate-in fade-in duration-500">
+            <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+                <div className="text-center md:text-left">
+                    <h3 className="text-xl md:text-2xl font-black text-white">Einladung erhalten!</h3>
+                    <p className="text-blue-200 font-semibold">Der Verein <span className="font-bold">{invitingClub.name}</span> hat dich eingeladen.</p>
+                </div>
+                <div className="flex gap-3 flex-shrink-0">
+                    <button onClick={handleAccept} className="bg-emerald-500 hover:bg-emerald-400 text-white font-bold py-2 px-5 rounded-lg transition-colors shadow-lg active:scale-95">Annehmen</button>
+                    <button onClick={handleReject} className="bg-slate-800 hover:bg-slate-700 text-white font-bold py-2 px-5 rounded-lg transition-colors active:scale-95">Ablehnen</button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+export const Dashboard: React.FC<DashboardProps> = ({ player, club, allClubs, overallRating, xpProgress, xpNeeded }) => {
 
   return (
     <div className="space-y-6 md:space-y-8 animate-in fade-in duration-300">
+        
+      {player.pendingClubInvitation && <InvitationBanner player={player} allClubs={allClubs} />}
+
       <header className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
         <div>
           <h1 className="text-3xl md:text-5xl font-black text-white">{player.name}</h1>

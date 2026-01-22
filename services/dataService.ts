@@ -217,6 +217,80 @@ const dataService = {
   },
 
   // =========================================================================
+  // CLUB APPLICATIONS & INVITATIONS
+  // =========================================================================
+
+  async applyToClub(playerId: string, clubId: string): Promise<void> {
+    const clubRef = doc(db, 'clubs', clubId);
+    await updateDoc(clubRef, { pendingApplications: arrayUnion(playerId) });
+  },
+
+  async cancelApplication(playerId: string, clubId: string): Promise<void> {
+    const clubRef = doc(db, 'clubs', clubId);
+    await updateDoc(clubRef, { pendingApplications: arrayRemove(playerId) });
+  },
+
+  async invitePlayer(clubId: string, playerId: string): Promise<void> {
+    const playerRef = doc(db, 'players', playerId);
+    await updateDoc(playerRef, { pendingClubInvitation: clubId });
+  },
+
+  async cancelInvitation(playerId: string): Promise<void> {
+    const playerRef = doc(db, 'players', playerId);
+    await updateDoc(playerRef, { pendingClubInvitation: null });
+  },
+
+  async rejectApplication(clubId: string, playerId: string): Promise<void> {
+    // This is the same as cancelling, so we just reuse the logic.
+    await this.cancelApplication(playerId, clubId);
+  },
+
+  async rejectClubInvitation(playerId: string): Promise<void> {
+    // This is the same as cancelling, so we just reuse the logic.
+    await this.cancelInvitation(playerId);
+  },
+
+  async acceptApplication(clubId: string, playerId: string): Promise<void> {
+    await runTransaction(db, async (transaction) => {
+      const clubRef = doc(db, 'clubs', clubId);
+      const playerRef = doc(db, 'players', playerId);
+
+      const clubDoc = await transaction.get(clubRef);
+      if (!clubDoc.exists()) throw new Error("Club not found");
+      
+      const club = clubDoc.data() as Club;
+      if ((club.players?.length || 0) >= MAX_CLUB_PLAYERS) throw new Error("Club is full");
+
+      // Add player to club and set player's clubId
+      transaction.update(clubRef, { 
+        players: arrayUnion(playerId),
+        pendingApplications: arrayRemove(playerId) // Remove the application
+      });
+      transaction.update(playerRef, { clubId: clubId });
+    });
+  },
+
+  async acceptClubInvitation(playerId: string, clubId: string): Promise<void> {
+     await runTransaction(db, async (transaction) => {
+      const clubRef = doc(db, 'clubs', clubId);
+      const playerRef = doc(db, 'players', playerId);
+
+      const clubDoc = await transaction.get(clubRef);
+      if (!clubDoc.exists()) throw new Error("Club not found");
+      
+      const club = clubDoc.data() as Club;
+      if ((club.players?.length || 0) >= MAX_CLUB_PLAYERS) throw new Error("Club is full");
+
+      // Add player to club and set player's clubId
+      transaction.update(clubRef, { players: arrayUnion(playerId) });
+      transaction.update(playerRef, { 
+        clubId: clubId,
+        pendingClubInvitation: null // Remove the invitation
+      });
+    });
+  },
+
+  // =========================================================================
   // INFRASTRUCTURE & FIXTURES
   // =========================================================================
 

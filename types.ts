@@ -67,6 +67,7 @@ export interface Player {
   activeActivities: ActiveActivity[];
   completedActivityIds: string[];
   nextActivityReset: number;
+  pendingClubInvitation?: string | null; // ID of a club that invited the player
 }
 
 export enum InfrastructureType {
@@ -96,7 +97,8 @@ export interface Club {
   budget: number;
   infrastructure: Record<InfrastructureType, InfrastructureItem>;
   pendingUpgrades?: PendingUpgrade[];
-  activeTeamTraining?: ActiveTeamTraining | null; // <-- NEW
+  activeTeamTraining?: ActiveTeamTraining | null;
+  pendingApplications?: string[]; // IDs of players who applied
 }
 
 export interface Fixture {
@@ -107,4 +109,4 @@ export interface Fixture {
   result?: string; // e.g. "2-1"
 }
 
-export type View = 'home' | 'skills' | 'club' | 'activities' | 'staff' | 'finances' | 'match' | 'leaderboard';
+export type View = 'home' | 'skills' | 'club' | 'activities' | 'staff' | 'finances' | 'match' | 'leaderboard' | 'club-search';

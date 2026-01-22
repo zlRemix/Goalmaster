@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Club, Player, InfrastructureType, UserRole, ActiveTeamTraining } from '../types';
+import { Club, Player, InfrastructureType, UserRole, ActiveTeamTraining, View } from '../types';
 import { dataService } from '../services/dataService';
 import { getSkillsForPosition } from '../utils';
-import { INFRA_UPGRADE_COSTS, INFRA_UPGRADE_TIMES, INFRA_LEVEL_BENEFITS, TEAM_TRAININGS } from '../constants';
+import { INFRA_UPGRADE_COSTS, INFRA_UPGRADE_TIMES, INFRA_LEVEL_BENEFITS, TEAM_TRAININGS, MAX_CLUB_PLAYERS } from '../constants';
+import { ClubManagement } from './ClubManagement'; // Import ClubManagement
 
+// --- HOOKS ---
 const useCountdown = (endTime: number) => {
   const calculateRemaining = () => Math.max(0, Math.floor((endTime - Date.now()) / 1000));
   const [totalSeconds, setTotalSeconds] = useState(calculateRemaining);
@@ -21,6 +23,7 @@ const useCountdown = (endTime: number) => {
   return totalSeconds;
 };
 
+// --- HELPERS ---
 const formatDuration = (totalSeconds: number) => {
     if (totalSeconds <= 0) return "00:00:00";
     const d = Math.floor(totalSeconds / 86400);
@@ -33,6 +36,7 @@ const formatDuration = (totalSeconds: number) => {
     return str;
 };
 
+// --- DATA ---
 const infrastructureInfo: Record<InfrastructureType, { name: string; icon: string; description: string; }> = {
     stadium: { name: 'Stadion', icon: '🏟️', description: 'Erhöht die Ticketeinnahmen bei Heimspielen.' },
     training_ground: { name: 'Trainingsgelände', icon: '🏋️', description: 'Verbessert die Effektivität des Trainings (TP-Gewinn).' },
@@ -41,6 +45,8 @@ const infrastructureInfo: Record<InfrastructureType, { name: string; icon: strin
     sponsorship_center: { name: 'Sponsoring-Zentrale', icon: '📈', description: 'Steigert Einnahmen aus PR- & Sponsoring-Aktivitäten.' },
 };
 
+// --- SUB-COMPONENTS ---
+
 const InfrastructureCard: React.FC<{ type: InfrastructureType; club: Club; onUpgrade: (clubId: string, type: InfrastructureType) => void; }> = ({ type, club, onUpgrade }) => {
     const info = infrastructureInfo[type];
     const currentLevel = club.infrastructure?.[type]?.level || 0;
@@ -48,7 +54,6 @@ const InfrastructureCard: React.FC<{ type: InfrastructureType; club: Club; onUpg
     const upgradeTime = currentLevel < 10 ? INFRA_UPGRADE_TIMES[currentLevel] : null;
     const pendingUpgrade = club.pendingUpgrades?.find(upg => upg.type === type);
     const remainingTime = useCountdown(pendingUpgrade?.endTime || 0);
-
     const benefits = INFRA_LEVEL_BENEFITS[type] || [];
     const currentBenefit = currentLevel > 0 ? benefits[currentLevel - 1] : "Keine Boni";
     const nextBenefit = currentLevel < benefits.length ? benefits[currentLevel] : "Voll ausgebaut";
@@ -56,14 +61,13 @@ const InfrastructureCard: React.FC<{ type: InfrastructureType; club: Club; onUpg
     return (
         <div className="bg-slate-800/80 rounded-2xl p-4 md:p-5 border border-slate-700 shadow-lg flex flex-col justify-between transition-all hover:border-slate-600/80">
             <div>
-                <div className="flex items-start justify-between gap-4 mb-4">
+                 <div className="flex items-start justify-between gap-4 mb-4">
                     <div className="text-4xl opacity-80 pt-1">{info.icon}</div>
                     <div className="flex-1 text-right">
                         <h3 className="text-lg font-black text-white">{info.name}</h3>
                         <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">{info.description}</p>
                     </div>
                 </div>
-
                 <div className="mb-5">
                     <div className="flex justify-between items-end mb-1">
                         <span className="text-xs font-bold text-amber-400 uppercase">Level {currentLevel} / 10</span>
@@ -73,7 +77,6 @@ const InfrastructureCard: React.FC<{ type: InfrastructureType; club: Club; onUpg
                         <div className="h-full bg-gradient-to-r from-amber-500 to-amber-400 rounded-full" style={{ width: `${currentLevel * 10}%` }}></div>
                     </div>
                 </div>
-
                 <div className="space-y-3 text-xs">
                    <div className="p-3 bg-slate-900/70 rounded-lg border border-slate-700/50">
                         <p className="font-semibold text-slate-400 mb-1">Aktueller Bonus:</p>
@@ -85,7 +88,6 @@ const InfrastructureCard: React.FC<{ type: InfrastructureType; club: Club; onUpg
                     </div>
                 </div>
             </div>
-
             <div className="mt-5 pt-4 border-t border-slate-700/80">
                 {pendingUpgrade ? (
                      <div className="text-center bg-slate-700/80 p-3 rounded-lg border border-slate-600">
@@ -130,7 +132,7 @@ const SquadList: React.FC<{ players: Player[] }> = ({ players }) => {
 
     return (
         <div className="bg-slate-800/80 rounded-2xl p-4 md:p-6 border border-slate-700">
-            <h3 className="text-xl md:text-2xl font-black mb-4">Kader ({players.length})</h3>
+            <h3 className="text-xl md:text-2xl font-black mb-4">Kader ({players.length} / {MAX_CLUB_PLAYERS})</h3>
             <div className="space-y-2">
                 {players.sort((a,b) => getOverall(b) - getOverall(a)).map(p => (
                     <div key={p.id} className="flex justify-between items-center bg-slate-900/50 p-2 md:p-3 rounded-lg border border-slate-700/50">
@@ -201,13 +203,21 @@ const TeamTraining: React.FC<{club: Club, player: Player, onStart: (trainingId: 
     );
 };
 
-// --- MAIN DASHBOARD COMPONENT (NOW RESPONSIVE) ---
+// --- MAIN DASHBOARD COMPONENT ---
 
-type View = 'infrastructure' | 'squad' | 'training';
+type ClubNavView = 'infrastructure' | 'squad' | 'training' | 'management';
 
-export const ClubDashboard: React.FC<{ club: Club | null; player: Player; onJoin: (clubId: string) => void; onUpgrade: (clubId: string, type: InfrastructureType) => void; availableClubs: Club[]; }> = ({ club, player, onJoin, onUpgrade, availableClubs }) => {
-    const [view, setView] = useState<View>('infrastructure');
+interface ClubDashboardProps {
+    club: Club | null;
+    player: Player;
+    onUpgrade: (clubId: string, type: InfrastructureType) => void;
+    setView: (view: View) => void;
+}
+
+export const ClubDashboard: React.FC<ClubDashboardProps> = ({ club, player, onUpgrade, setView: setAppView }) => {
+    const [clubNav, setClubNav] = useState<ClubNavView>('infrastructure');
     const [squadPlayers, setSquadPlayers] = useState<Player[]>([]);
+    const isManager = player.roles.includes(UserRole.MANAGER);
 
     useEffect(() => {
         if (club?.players) {
@@ -217,6 +227,10 @@ export const ClubDashboard: React.FC<{ club: Club | null; player: Player; onJoin
             setSquadPlayers([]);
         }
     }, [club]);
+    
+    useEffect(() => {
+      if (!isManager && clubNav === 'management') setClubNav('infrastructure');
+    }, [isManager, clubNav]);
 
     const handleStartTeamTraining = (trainingId: string) => {
         if (club) dataService.startTeamTraining(club.id, trainingId);
@@ -225,21 +239,14 @@ export const ClubDashboard: React.FC<{ club: Club | null; player: Player; onJoin
     // No Club View
     if (!club) {
         return (
-            <div>
-                <h2 className="text-2xl md:text-3xl font-black mb-4">Wähle deinen Verein</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6">
-                    {availableClubs.map(c => (
-                        <div key={c.id} className="bg-slate-800/80 p-6 rounded-2xl border border-slate-700 flex flex-col justify-between shadow-lg hover:border-slate-600 transition-all">
-                            <div>
-                                <h3 className="text-xl font-bold">{c.name}</h3>
-                                <p className="text-sm text-slate-400">{c.players?.length || 0} / 25 Spieler</p>
-                            </div>
-                            <button onClick={() => onJoin(c.id)} className="mt-4 bg-blue-600 text-white font-bold py-2 rounded-lg hover:bg-blue-500 transition-colors">
-                                Beitreten
-                            </button>
-                        </div>
-                    ))}
-                </div>
+            <div className="text-center p-10 bg-slate-800/80 rounded-2xl border border-slate-700">
+                <h2 className="text-2xl font-bold mb-2">Du bist vereinslos</h2>
+                <p className="text-slate-400 mb-6">Suche nach einem Verein, um deine Karriere voranzutreiben.</p>
+                <button 
+                    onClick={() => setAppView('club-search')} 
+                    className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 px-8 rounded-lg transition-colors shadow-lg">
+                    Verein suchen
+                </button>
             </div>
         );
     }
@@ -255,21 +262,25 @@ export const ClubDashboard: React.FC<{ club: Club | null; player: Player; onJoin
             </header>
 
             <div className="flex gap-1 md:gap-2 p-1 md:p-2 bg-slate-800 border border-slate-700 rounded-full text-sm">
-                <button onClick={() => setView('infrastructure')} className={`flex-1 text-center font-bold p-2 md:p-3 rounded-full transition-colors ${view === 'infrastructure' ? 'bg-emerald-600 text-white' : 'text-slate-300 hover:bg-slate-700'}`}>Infrastruktur</button>
-                <button onClick={() => setView('squad')} className={`flex-1 text-center font-bold p-2 md:p-3 rounded-full transition-colors ${view === 'squad' ? 'bg-emerald-600 text-white' : 'text-slate-300 hover:bg-slate-700'}`}>Kader</button>
-                <button onClick={() => setView('training')} className={`flex-1 text-center font-bold p-2 md:p-3 rounded-full transition-colors ${view === 'training' ? 'bg-emerald-600 text-white' : 'text-slate-300 hover:bg-slate-700'}`}>Training</button>
+                <button onClick={() => setClubNav('infrastructure')} className={`flex-1 text-center font-bold p-2 md:p-3 rounded-full transition-colors ${clubNav === 'infrastructure' ? 'bg-emerald-600 text-white' : 'text-slate-300 hover:bg-slate-700'}`}>Infrastruktur</button>
+                <button onClick={() => setClubNav('squad')} className={`flex-1 text-center font-bold p-2 md:p-3 rounded-full transition-colors ${clubNav === 'squad' ? 'bg-emerald-600 text-white' : 'text-slate-300 hover:bg-slate-700'}`}>Kader</button>
+                <button onClick={() => setClubNav('training')} className={`flex-1 text-center font-bold p-2 md:p-3 rounded-full transition-colors ${clubNav === 'training' ? 'bg-emerald-600 text-white' : 'text-slate-300 hover:bg-slate-700'}`}>Training</button>
+                {isManager && (
+                    <button onClick={() => setClubNav('management')} className={`flex-1 text-center font-bold p-2 md:p-3 rounded-full transition-colors ${clubNav === 'management' ? 'bg-emerald-600 text-white' : 'text-slate-300 hover:bg-slate-700'}`}>Management</button>
+                )}
             </div>
 
             <div className="animate-in fade-in duration-500">
-                {view === 'infrastructure' && (
+                {clubNav === 'infrastructure' && (
                     <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6">
                         {(Object.keys(infrastructureInfo) as InfrastructureType[]).map(type => (
                             <InfrastructureCard key={type} type={type} club={club} onUpgrade={onUpgrade} />
                         ))}
                     </div>
                 )}
-                {view === 'squad' && <SquadList players={squadPlayers} />}
-                {view === 'training' && <TeamTraining club={club} player={player} onStart={handleStartTeamTraining} />}
+                {clubNav === 'squad' && <SquadList players={squadPlayers} />}
+                {clubNav === 'training' && <TeamTraining club={club} player={player} onStart={handleStartTeamTraining} />}
+                {clubNav === 'management' && isManager && <ClubManagement club={club} />}
             </div>
         </div>
     );
