@@ -1,7 +1,7 @@
 import { collection, doc, getDoc, onSnapshot, setDoc, updateDoc, arrayUnion, arrayRemove, runTransaction, serverTimestamp, FieldValue, query, where, getDocs, writeBatch } from 'firebase/firestore';
 import { db } from './firebase';
 import { Player, Club, Fixture, PlayerPosition, UserRole, PendingUpgrade, SkillType, ActiveActivity, Reward, InfrastructureType, ActiveTeamTraining, TeamTrainingSession } from '../types';
-import { ACTIVITIES, INFRA_UPGRADE_COSTS, INFRA_UPGRADE_TIMES, TEAM_TRAININGS } from '../constants';
+import { ACTIVITIES, INFRA_UPGRADE_COSTS, INFRA_UPGRADE_TIMES, TEAM_TRAININGS, MAX_CLUB_PLAYERS } from '../constants';
 
 const getNextHourlyTimestamp = () => {
     const now = new Date();
@@ -101,14 +101,22 @@ const dataService = {
     await runTransaction(db, async (transaction) => {
         const playerRef = doc(db, 'players', playerId);
         const playerDoc = await transaction.get(playerRef);
-        if (!playerDoc.exists()) return;
 
+        if (!playerDoc.exists()) return;
         const player = playerDoc.data() as Player;
+
         const def = ACTIVITIES.find(a => a.id === activityId);
         if (!def) return;
 
         const activityInstance = player.activeActivities?.[0];
         if (!activityInstance || activityInstance.activityId !== activityId) return;
+
+        let clubRef = null;
+        let clubDoc = null;
+        if (def.reward.budgetGain && player.clubId) {
+            clubRef = doc(db, 'clubs', player.clubId);
+            clubDoc = await transaction.get(clubRef);
+        }
 
         const updates: { [key: string]: any } = {};
         updates.experience = (player.experience || 0) + (def.reward.xp || 0);
@@ -118,20 +126,14 @@ const dataService = {
                 updates[`skills.${skill}`] = ((player.skills?.[skill as SkillType]) || 0) + value;
             }
         }
-
         updates.activeActivities = []; 
         updates.completedActivityIds = arrayUnion(activityId);
 
         transaction.update(playerRef, updates);
 
-        if (def.reward.budgetGain && player.clubId) {
-            const clubRef = doc(db, 'clubs', player.clubId);
-            transaction.get(clubRef).then(clubDoc => {
-                if (clubDoc.exists()) {
-                    const currentBudget = clubDoc.data().budget || 0;
-                    transaction.update(clubRef, { budget: currentBudget + def.reward.budgetGain });
-                }
-            });
+        if (clubRef && clubDoc?.exists()) {
+            const currentBudget = clubDoc.data().budget || 0;
+            transaction.update(clubRef, { budget: currentBudget + def.reward.budgetGain });
         }
     });
   },
@@ -159,10 +161,23 @@ const dataService = {
   async addPlayerToClub(clubId: string, playerId: string): Promise<void> {
     const clubRef = doc(db, 'clubs', clubId);
     const playerRef = doc(db, 'players', playerId);
-    await Promise.all([
-      updateDoc(clubRef, { players: arrayUnion(playerId) }),
-      updateDoc(playerRef, { clubId: clubId })
-    ]);
+
+    await runTransaction(db, async (transaction) => {
+        const clubDoc = await transaction.get(clubRef);
+        if (!clubDoc.exists()) {
+            throw new Error("Club not found");
+        }
+
+        const club = clubDoc.data() as Club;
+        const playerCount = club.players?.length || 0;
+
+        if (playerCount >= MAX_CLUB_PLAYERS) {
+            throw new Error("Club is full");
+        }
+
+        transaction.update(clubRef, { players: arrayUnion(playerId) });
+        transaction.update(playerRef, { clubId: clubId });
+    });
   },
   
   async startTeamTraining(clubId: string, trainingId: string): Promise<void> {
@@ -183,12 +198,8 @@ const dataService = {
       
       const batch = writeBatch(db);
       
-      // 1. Update all players with rewards
       for (const playerId of playerIds) {
           const playerRef = doc(db, 'players', playerId);
-          // Note: In a real app, you might want to fetch player data first to avoid overwriting.
-          // For this bulk update, we assume incrementing is safe.
-          // A more robust way would be to use FieldValue.increment().
            const playerDoc = await getDoc(playerRef); 
             if (playerDoc.exists()) {
                 const player = playerDoc.data() as Player;
@@ -199,11 +210,9 @@ const dataService = {
             }
       }
       
-      // 2. Reset active training on the club
       const clubRef = doc(db, 'clubs', clubId);
       batch.update(clubRef, { activeTeamTraining: null });
       
-      // 3. Commit all changes
       await batch.commit();
   },
 

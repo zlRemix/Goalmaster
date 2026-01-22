@@ -1,6 +1,7 @@
 import { SkillType, Activity, InfrastructureType, TeamTrainingSession, UserRole } from './types';
 
 export const SKILL_UPGRADE_COST = 1;
+export const MAX_CLUB_PLAYERS = 5;
 
 export const POSITION_SKILLS: Record<string, SkillType[]> = {
   'Stürmer': ['finishing', 'shot_power', 'heading', 'long_shots', 'dribbling', 'pace'],
