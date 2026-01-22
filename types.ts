@@ -24,6 +24,7 @@ export interface Reward {
   skills?: Partial<Record<SkillType, number>>;
 }
 
+// INDIVIDUAL player activities
 export interface Activity {
   id: string;
   name: string;
@@ -39,6 +40,20 @@ export interface ActiveActivity {
   startTime: number;
 }
 
+// TEAM training sessions
+export interface TeamTrainingSession {
+  id: string;
+  name: string;
+  description: string;
+  durationSeconds: number;
+  reward: Omit<Reward, 'budgetGain'>; // Team trainings don't give budget
+}
+
+export interface ActiveTeamTraining {
+  trainingId: string;
+  startTime: number;
+}
+
 export interface Player {
   id: string;
   name: string;
@@ -48,8 +63,10 @@ export interface Player {
   trainingPoints: number;
   clubId: string | null;
   roles: UserRole[];
-  skills: { [key in SkillType]?: number }; // Garantiert, dass `skills` immer ein Objekt ist.
+  skills: { [key in SkillType]?: number };
   activeActivities: ActiveActivity[];
+  completedActivityIds: string[];
+  nextActivityReset: number;
 }
 
 export enum InfrastructureType {
@@ -74,10 +91,12 @@ export interface PendingUpgrade {
 export interface Club {
   id: string;
   name: string;
+  managerName?: string;
   players: string[];
   budget: number;
   infrastructure: Record<InfrastructureType, InfrastructureItem>;
   pendingUpgrades?: PendingUpgrade[];
+  activeTeamTraining?: ActiveTeamTraining | null; // <-- NEW
 }
 
 export interface Fixture {

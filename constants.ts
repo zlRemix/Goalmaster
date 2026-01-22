@@ -1,4 +1,4 @@
-import { SkillType, Activity, InfrastructureType, PlayerPosition, UserRole } from './types';
+import { SkillType, Activity, InfrastructureType, TeamTrainingSession, UserRole } from './types';
 
 export const SKILL_UPGRADE_COST = 1;
 
@@ -24,6 +24,39 @@ export const INFRA_LEVEL_BENEFITS: Record<InfrastructureType, string[]> = {
   scouting_department: ['Vergrößert den Scouting-Radius.', 'Liefert detailliertere Spielerberichte.', 'Erhöht die Chance, Top-Talente zu entdecken.'],
   medical_center: ['Verkürzt die Regenerationszeit nach Verletzungen.', 'Schaltet fortschrittliche medizinische Behandlungen frei.', 'Reduziert die Ausfallzeit von Spielern.'],
 };
+
+// --- NEW: TEAM TRAINING SESSIONS --- //
+export const TEAM_TRAININGS: TeamTrainingSession[] = [
+    {
+        id: 'tt_taktik',
+        name: 'Taktikschulung',
+        description: 'Verbessert das Stellungsspiel und das taktische Verständnis des gesamten Teams.',
+        durationSeconds: 3600, // 1 hour
+        reward: { xp: 100, tp: 5 }
+    },
+    {
+        id: 'tt_abschluss',
+        name: 'Abschlusstraining',
+        description: 'Fokussiert das Training auf Torschüsse und Angriffsszenarien.',
+        durationSeconds: 2700, // 45 minutes
+        reward: { xp: 80, tp: 8 }
+    },
+    {
+        id: 'tt_verteidigung',
+        name: 'Defensiv-Drill',
+        description: 'Stärkt die Abwehrreihen durch Zweikampf- und Stellungsspiel-Übungen.',
+        durationSeconds: 2700, // 45 minutes
+        reward: { xp: 80, tp: 8 }
+    },
+    {
+        id: 'tt_regeneration',
+        name: 'Regenerationseinheit',
+        description: 'Lockeres Training zur schnelleren Erholung der Spieler nach einem anstrengenden Match.',
+        durationSeconds: 1800, // 30 minutes
+        reward: { xp: 50, tp: 3 }
+    }
+];
+
 
 export const ACTIVITIES: Activity[] = [
   {

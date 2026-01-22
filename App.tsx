@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { onAuthStateChanged, signOut, User } from 'firebase/auth';
 import { Player, Club, View, SkillType, Fixture, ActiveActivity, InfrastructureType } from './types';
-import { ACTIVITIES } from './constants';
+import { ACTIVITIES, TEAM_TRAININGS } from './constants';
 import { dataService } from './services/dataService';
 import { auth } from './services/firebase';
 import { Sidebar } from './components/Sidebar';
@@ -19,6 +19,8 @@ const App: React.FC = () => {
   const [fixtures, setFixtures] = useState<Fixture[]>([]);
   const [activeView, setActiveView] = useState<View>('home');
   const [isInitializing, setIsInitializing] = useState(true);
+
+  const selectedClub = useMemo(() => clubs.find(c => c.id === player?.clubId), [clubs, player?.clubId]);
 
   // --- Core Auth Listening --- //
   useEffect(() => {
@@ -54,6 +56,7 @@ const App: React.FC = () => {
     const gameTick = setInterval(() => {
       const now = Date.now();
 
+      // 1. Check for player's individual completed activities
       if (player.activeActivities && player.activeActivities.length > 0) {
           const active = player.activeActivities[0];
           const definition = ACTIVITIES.find(a => a.id === active.activityId);
@@ -62,13 +65,26 @@ const App: React.FC = () => {
           }
       }
 
+      // 2. Check for completed infrastructure upgrades for all clubs (less frequent check could be an optimization)
       clubs.forEach(club => {
           const finishedUpgrades = club.pendingUpgrades?.filter(upg => now >= upg.endTime);
           if (finishedUpgrades && finishedUpgrades.length > 0) {
               dataService.completeInfrastructureUpgrades(club.id, finishedUpgrades);
           }
       });
+
+      // 3. Check for completed team training for the player's club
+      if (selectedClub && selectedClub.activeTeamTraining) {
+          const trainingDef = TEAM_TRAININGS.find(t => t.id === selectedClub.activeTeamTraining!.trainingId);
+          if (trainingDef) {
+              const endTime = selectedClub.activeTeamTraining!.startTime + trainingDef.durationSeconds * 1000;
+              if (now >= endTime) {
+                  dataService.completeTeamTraining(selectedClub.id, selectedClub.players, selectedClub.activeTeamTraining!);
+              }
+          }
+      }
       
+      // 4. Check for hourly activity reset
       if (now >= (player.nextActivityReset || 0)) {
         dataService.resetCompletedActivities(player.id);
       }
@@ -77,7 +93,7 @@ const App: React.FC = () => {
 
     return () => clearInterval(gameTick);
 
-  }, [player, user, clubs]);
+  }, [player, user, clubs, selectedClub]); // Added selectedClub to dependency array
 
   // --- Level-Up Logic --- //
   useEffect(() => {
@@ -121,25 +137,10 @@ const App: React.FC = () => {
         console.warn("Attempted to start an activity while one is already running.");
         return;
     }
-
-    const newActivity: ActiveActivity = {
-      activityId,
-      startTime: Date.now(),
-    };
-
-    setPlayer(prevPlayer => {
-        if (!prevPlayer) return null;
-        return {
-            ...prevPlayer,
-            activeActivities: [newActivity],
-        };
-    });
     dataService.startActivity(player.id, activityId);
   };
 
   // --- Derived State & Calculations (Memoized) --- //
-  const selectedClub = useMemo(() => clubs.find(c => c.id === player?.clubId), [clubs, player?.clubId]);
-
   const { overallRating, xpNeeded, xpProgress } = useMemo(() => {
     if (!player) return { overallRating: 0, xpNeeded: 100, xpProgress: 0 };
     

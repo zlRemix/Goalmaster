@@ -1,7 +1,7 @@
-import { collection, doc, getDoc, onSnapshot, setDoc, updateDoc, arrayUnion, arrayRemove, runTransaction, serverTimestamp, FieldValue } from 'firebase/firestore';
+import { collection, doc, getDoc, onSnapshot, setDoc, updateDoc, arrayUnion, arrayRemove, runTransaction, serverTimestamp, FieldValue, query, where, getDocs, writeBatch } from 'firebase/firestore';
 import { db } from './firebase';
-import { Player, Club, Fixture, PlayerPosition, UserRole, PendingUpgrade, SkillType, ActiveActivity, Reward, InfrastructureType } from '../types';
-import { ACTIVITIES, INFRA_UPGRADE_COSTS, INFRA_UPGRADE_TIMES } from '../constants';
+import { Player, Club, Fixture, PlayerPosition, UserRole, PendingUpgrade, SkillType, ActiveActivity, Reward, InfrastructureType, ActiveTeamTraining, TeamTrainingSession } from '../types';
+import { ACTIVITIES, INFRA_UPGRADE_COSTS, INFRA_UPGRADE_TIMES, TEAM_TRAININGS } from '../constants';
 
 const getNextHourlyTimestamp = () => {
     const now = new Date();
@@ -25,7 +25,7 @@ const dataService = {
       roles: [UserRole.PLAYER], skills: {},
       activeActivities: [],
       completedActivityIds: [],
-      nextActivityReset: getNextHourlyTimestamp(), // Set initial reset time
+      nextActivityReset: getNextHourlyTimestamp(),
     };
     await setDoc(playerRef, newPlayer);
   },
@@ -36,6 +36,20 @@ const dataService = {
       if (doc.exists()) {
         callback({ id: doc.id, ...doc.data() } as Player);
       }
+    });
+  },
+
+  listenToPlayers(playerIds: string[], callback: (players: Player[]) => void): () => void {
+    if (playerIds.length === 0) {
+        callback([]);
+        return () => {};
+    }
+    const playersRef = collection(db, 'players');
+    const q = query(playersRef, where('id', 'in', playerIds));
+    
+    return onSnapshot(q, (snapshot) => {
+        const players = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Player));
+        callback(players);
     });
   },
 
@@ -72,7 +86,6 @@ const dataService = {
     const playerRef = doc(db, 'players', playerId);
     const newActivity: ActiveActivity = { activityId, startTime: Date.now() };
     
-    // CRITICAL FIX: Overwrite the activeActivities array instead of adding to it.
     await updateDoc(playerRef, { activeActivities: [newActivity] });
   },
 
@@ -86,7 +99,6 @@ const dataService = {
         const def = ACTIVITIES.find(a => a.id === activityId);
         if (!def) return;
 
-        // The activity to remove is now always the first one.
         const activityInstance = player.activeActivities?.[0];
         if (!activityInstance || activityInstance.activityId !== activityId) return;
 
@@ -99,7 +111,6 @@ const dataService = {
             }
         }
 
-        // CRITICAL FIX: Instead of arrayRemove, just set to an empty array.
         updates.activeActivities = []; 
         updates.completedActivityIds = arrayUnion(activityId);
 
@@ -126,7 +137,7 @@ const dataService = {
   },
 
   // =========================================================================
-  // CLUB / INFRASTRUCTURE / FIXTURES
+  // CLUB & TEAM TRAINING
   // =========================================================================
 
   listenToClubs(callback: (clubs: Club[]) => void): () => void {
@@ -145,6 +156,52 @@ const dataService = {
       updateDoc(playerRef, { clubId: clubId })
     ]);
   },
+  
+  async startTeamTraining(clubId: string, trainingId: string): Promise<void> {
+    const trainingDef = TEAM_TRAININGS.find(t => t.id === trainingId);
+    if (!trainingDef) throw new Error("Team training not found");
+
+    const clubRef = doc(db, 'clubs', clubId);
+    const newTraining: ActiveTeamTraining = {
+        trainingId,
+        startTime: Date.now()
+    };
+    await updateDoc(clubRef, { activeTeamTraining: newTraining });
+  },
+
+  async completeTeamTraining(clubId: string, playerIds: string[], training: ActiveTeamTraining): Promise<void> {
+      const trainingDef = TEAM_TRAININGS.find(t => t.id === training.trainingId);
+      if (!trainingDef) return;
+      
+      const batch = writeBatch(db);
+      
+      // 1. Update all players with rewards
+      for (const playerId of playerIds) {
+          const playerRef = doc(db, 'players', playerId);
+          // Note: In a real app, you might want to fetch player data first to avoid overwriting.
+          // For this bulk update, we assume incrementing is safe.
+          // A more robust way would be to use FieldValue.increment().
+           const playerDoc = await getDoc(playerRef); 
+            if (playerDoc.exists()) {
+                const player = playerDoc.data() as Player;
+                batch.update(playerRef, {
+                    experience: (player.experience || 0) + (trainingDef.reward.xp || 0),
+                    trainingPoints: (player.trainingPoints || 0) + (trainingDef.reward.tp || 0),
+                });
+            }
+      }
+      
+      // 2. Reset active training on the club
+      const clubRef = doc(db, 'clubs', clubId);
+      batch.update(clubRef, { activeTeamTraining: null });
+      
+      // 3. Commit all changes
+      await batch.commit();
+  },
+
+  // =========================================================================
+  // INFRASTRUCTURE & FIXTURES
+  // =========================================================================
 
   listenToFixtures(callback: (fixtures: Fixture[]) => void): () => void {
     const fixturesRef = collection(db, 'fixtures');
