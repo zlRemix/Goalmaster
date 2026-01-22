@@ -1,63 +1,72 @@
-
 export enum PlayerPosition {
   ST = 'Stürmer',
   MF = 'Mittelfeld',
-  AW = 'Abwehr',
-  TW = 'Torwart'
+  DEF = 'Abwehr',
+  GK = 'Torwart',
 }
 
 export enum UserRole {
   PLAYER = 'player',
-  MANAGER = 'manager'
+  MANAGER = 'manager',
+  ADMIN = 'admin',
 }
 
-export enum SkillType {
-  Shooting = 'Abschluss',
-  Dribbling = 'Dribbling',
-  Pace = 'Schnelligkeit',
-  Heading = 'Kopfball',
-  Finishing = 'Torinstinkt',
-  Passing = 'Passspiel',
-  Vision = 'Übersicht',
-  BallControl = 'Ballkontrolle',
-  Stamina = 'Ausdauer',
-  Interception = 'Abfangen',
-  Tackling = 'Zweikampf',
-  Marking = 'Manndeckung',
-  Strength = 'Kraft',
-  SlideTackle = 'Grätsche',
-  Positioning = 'Stellungsspiel',
-  Reflexes = 'Reflexe',
-  Diving = 'Hechten',
-  Handling = 'Fangsicherheit',
-  Kicking = 'Abschlag',
-  GkPositioning = 'TW-Stellungsspiel'
+export type SkillType = 
+  | 'pace' | 'shot_power' | 'finishing' | 'passing' | 'dribbling' 
+  | 'tackling' | 'vision' | 'stamina' | 'heading' | 'long_shots' 
+  | 'marking' | 'interceptions' | 'strength' | 'aggression' 
+  | 'handling' | 'reflexes' | 'diving' | 'positioning' | 'communication' | 'kicking';
+
+export interface Reward {
+  xp?: number;
+  tp?: number;
+  budgetGain?: number;
+  skills?: Partial<Record<SkillType, number>>;
+}
+
+export interface Activity {
+  id: string;
+  name: string;
+  description: string;
+  durationSeconds: number;
+  reward: Reward;
+  requiredRole?: UserRole;
+  type: 'training' | 'fitness' | 'tactic' | 'pr' | 'social';
+}
+
+export interface ActiveActivity {
+  activityId: string;
+  startTime: number;
 }
 
 export interface Player {
   id: string;
   name: string;
-  avatar: string;
   position: PlayerPosition;
-  roles: UserRole[];
   level: number;
   experience: number;
-  skills: Partial<Record<SkillType, number>>;
   trainingPoints: number;
   clubId: string | null;
-  lastActivities?: Record<string, number>;
+  roles: UserRole[];
+  skills: { [key in SkillType]?: number }; // Garantiert, dass `skills` immer ein Objekt ist.
+  activeActivities: ActiveActivity[];
 }
 
-export interface Infrastructure {
-  stadium: number;
-  trainingGround: number;
-  medicalCenter: number;
-  youthAcademy: number;
-  marketingOffice: number;
+export enum InfrastructureType {
+  STADIUM = 'stadium',
+  TRAINING_GROUND = 'training_ground',
+  YOUTH_ACADEMY = 'youth_academy',
+  SCOUTING_DEPARTMENT = 'scouting_department',
+  MEDICAL_CENTER = 'medical_center',
+}
+
+export interface InfrastructureItem {
+  level: number;
 }
 
 export interface PendingUpgrade {
-  type: keyof Infrastructure;
+  type: InfrastructureType;
+  targetLevel: number;
   startTime: number;
   endTime: number;
 }
@@ -65,49 +74,18 @@ export interface PendingUpgrade {
 export interface Club {
   id: string;
   name: string;
-  managerName: string;
-  managerId: string;
-  logo: string;
   players: string[];
-  infrastructure: Infrastructure;
-  pendingUpgrades: PendingUpgrade[];
   budget: number;
-  trophies: number;
-  lastTeamTraining?: number; // Timestamp
+  infrastructure: Record<InfrastructureType, InfrastructureItem>;
+  pendingUpgrades?: PendingUpgrade[];
 }
 
 export interface Fixture {
   id: string;
-  homeTeamId: string;
-  awayTeamId: string;
-  date: number; // Timestamp
-  played: boolean;
-  homeScore?: number;
-  awayScore?: number;
-  commentary?: string;
-  events?: string[];
+  homeTeam: string;
+  awayTeam: string;
+  date: number; // timestamp
+  result?: string; // e.g. "2-1"
 }
 
-export interface LeagueStanding {
-  clubId: string;
-  clubName: string;
-  clubLogo: string;
-  played: number;
-  won: number;
-  drawn: number;
-  lost: number;
-  goalsFor: number;
-  goalsAgainst: number;
-  points: number;
-}
-
-export interface MatchResult {
-  homeTeam: Club;
-  awayTeam: Club;
-  homeScore: number;
-  awayScore: number;
-  events: string[];
-  commentary: string;
-}
-
-export type View = 'dashboard' | 'training' | 'club' | 'match' | 'activities' | 'management';
+export type View = 'home' | 'skills' | 'club' | 'activities' | 'staff' | 'finances' | 'match';

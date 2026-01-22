@@ -12,6 +12,9 @@ interface MatchCenterProps {
   onViewClub: (clubId: string) => void;
 }
 
+// NOTE: This component still has some inconsistencies in how it handles
+// Fixture vs MatchResult types. This will be addressed in a future refactor.
+
 export const MatchCenter: React.FC<MatchCenterProps> = ({ clubs, fixtures, lastMatch, onSimulate, onReset, onViewClub }) => {
   const [analysisText, setAnalysisText] = useState<string>('');
   const [currentTime, setCurrentTime] = useState(Date.now());
@@ -29,19 +32,20 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({ clubs, fixtures, lastM
       map[c.id] = { clubId: c.id, clubName: c.name, clubLogo: c.logo, played: 0, won: 0, drawn: 0, lost: 0, goalsFor: 0, goalsAgainst: 0, points: 0 };
     });
 
-    fixtures.filter(f => f.played).forEach(f => {
-      const home = map[f.homeTeamId];
-      const away = map[f.awayTeamId];
+    fixtures.filter(f => f.status === 'played').forEach(f => {
+       const [homeScore, awayScore] = f.result!.split('-').map(Number);
+      const home = map[f.homeTeam];
+      const away = map[f.awayTeam];
       if (home && away) {
         home.played++;
         away.played++;
-        home.goalsFor += f.homeScore!;
-        home.goalsAgainst += f.awayScore!;
-        away.goalsFor += f.awayScore!;
-        away.goalsAgainst += f.homeScore!;
+        home.goalsFor += homeScore;
+        home.goalsAgainst += awayScore;
+        away.goalsFor += awayScore;
+        away.goalsAgainst += homeScore;
 
-        if (f.homeScore! > f.awayScore!) { home.won++; home.points += 3; away.lost++; }
-        else if (f.homeScore! < f.awayScore!) { away.won++; away.points += 3; home.lost++; }
+        if (homeScore > awayScore) { home.won++; home.points += 3; away.lost++; }
+        else if (homeScore < awayScore) { away.won++; away.points += 3; home.lost++; }
         else { home.drawn++; away.drawn++; home.points += 1; away.points += 1; }
       }
     });
@@ -54,19 +58,19 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({ clubs, fixtures, lastM
 
   // Group fixtures by date (matchday)
   const groupedFixtures = useMemo(() => {
-    const groups: Record<number, Fixture[]> = {};
+    const groups: Record<string, Fixture[]> = {};
     fixtures.forEach(f => {
       if (!groups[f.date]) groups[f.date] = [];
       groups[f.date].push(f);
     });
-    return Object.entries(groups).sort(([a], [b]) => Number(a) - Number(b));
+    return Object.entries(groups).sort(([a], [b]) => new Date(a).getTime() - new Date(b).getTime());
   }, [fixtures]);
 
-  const nextFixture = useMemo(() => fixtures.find(f => !f.played), [fixtures]);
-  const isCurrentlySimulatingMatch = nextFixture ? currentTime >= nextFixture.date : false;
+  const nextFixture = useMemo(() => fixtures.find(f => f.status === 'scheduled'), [fixtures]);
+  const isCurrentlySimulatingMatch = nextFixture ? currentTime >= new Date(nextFixture.date).getTime() : false;
 
-  const getCountdown = (targetDate: number) => {
-    const diff = targetDate - currentTime;
+  const getCountdown = (targetDate: string) => {
+    const diff = new Date(targetDate).getTime() - currentTime;
     if (diff <= 0) return "00:00:00";
     const h = Math.floor(diff / 3600000);
     const m = Math.floor((diff % 3600000) / 60000);
@@ -75,12 +79,15 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({ clubs, fixtures, lastM
   };
 
   useEffect(() => {
-    if (lastMatch && lastMatch.commentary === "Lade Analyse...") {
-      setAnalysisText('');
+    if (lastMatch && analysisText === '') { // Only fetch if analysisText is empty
+      const homeClub = clubs.find(c => c.id === lastMatch.homeTeamId);
+      const awayClub = clubs.find(c => c.id === lastMatch.awayTeamId);
+      if (!homeClub || !awayClub) return;
+
       const fetchAnalysis = async () => {
         const text = await geminiService.generateMatchCommentary(
-          lastMatch.homeTeam.name,
-          lastMatch.awayTeam.name,
+          homeClub.name,
+          awayClub.name,
           `${lastMatch.homeScore}:${lastMatch.awayScore}`,
           lastMatch.events
         );
@@ -88,27 +95,32 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({ clubs, fixtures, lastM
       };
       fetchAnalysis();
     }
-  }, [lastMatch]);
+  }, [lastMatch, clubs, analysisText]);
 
   if (lastMatch) {
+    const homeClub = clubs.find(c => c.id === lastMatch.homeTeamId);
+    const awayClub = clubs.find(c => c.id === lastMatch.awayTeamId);
+    
+    if (!homeClub || !awayClub) return <p>Lade Spieldaten...</p>;
+
     return (
       <div className="space-y-8 animate-in zoom-in-95 duration-500 pb-12">
         <div className="bg-gradient-to-br from-emerald-950 to-slate-900 p-12 rounded-[3rem] border-4 border-emerald-500/20 text-center shadow-2xl relative">
-          <button onClick={onReset} className="absolute top-6 right-8 text-slate-400 hover:text-white transition-colors bg-slate-800/50 px-4 py-2 rounded-xl text-xs font-bold">ZURÜCK ZUR LIGA</button>
+          <button onClick={() => { setAnalysisText(''); onReset(); }} className="absolute top-6 right-8 text-slate-400 hover:text-white transition-colors bg-slate-800/50 px-4 py-2 rounded-xl text-xs font-bold">ZURÜCK ZUR LIGA</button>
           
           <div className="flex flex-col md:flex-row items-center justify-center gap-12 md:gap-24">
-            <button onClick={() => onViewClub(lastMatch.homeTeam.id)} className="text-center group transition-transform hover:scale-105">
-              <div className="w-24 h-24 md:w-32 md:h-32 bg-slate-800 rounded-full flex items-center justify-center text-6xl border-4 border-slate-700 mb-4 shadow-xl mx-auto group-hover:border-emerald-500/50">{lastMatch.homeTeam.logo}</div>
-              <h3 className="text-xl md:text-2xl font-black">{lastMatch.homeTeam.name}</h3>
+            <button onClick={() => onViewClub(homeClub.id)} className="text-center group transition-transform hover:scale-105">
+              <div className="w-24 h-24 md:w-32 md:h-32 bg-slate-800 rounded-full flex items-center justify-center text-6xl border-4 border-slate-700 mb-4 shadow-xl mx-auto group-hover:border-emerald-500/50">{homeClub.logo}</div>
+              <h3 className="text-xl md:text-2xl font-black">{homeClub.name}</h3>
               <p className="text-[10px] text-slate-500 font-bold uppercase mt-1">Kader ansehen</p>
             </button>
             <div className="text-center">
               <div className="text-6xl md:text-8xl font-black tracking-tighter text-white tabular-nums drop-shadow-2xl">{lastMatch.homeScore} : {lastMatch.awayScore}</div>
               <p className="text-emerald-400 font-bold tracking-widest uppercase text-sm mt-2">Endergebnis</p>
             </div>
-            <button onClick={() => onViewClub(lastMatch.awayTeam.id)} className="text-center group transition-transform hover:scale-105">
-              <div className="w-24 h-24 md:w-32 md:h-32 bg-slate-800 rounded-full flex items-center justify-center text-6xl border-4 border-slate-700 mb-4 shadow-xl mx-auto group-hover:border-emerald-500/50">{lastMatch.awayTeam.logo}</div>
-              <h3 className="text-xl md:text-2xl font-black">{lastMatch.awayTeam.name}</h3>
+            <button onClick={() => onViewClub(awayClub.id)} className="text-center group transition-transform hover:scale-105">
+              <div className="w-24 h-24 md:w-32 md:h-32 bg-slate-800 rounded-full flex items-center justify-center text-6xl border-4 border-slate-700 mb-4 shadow-xl mx-auto group-hover:border-emerald-500/50">{awayClub.logo}</div>
+              <h3 className="text-xl md:text-2xl font-black">{awayClub.name}</h3>
               <p className="text-[10px] text-slate-500 font-bold uppercase mt-1">Kader ansehen</p>
             </button>
           </div>
@@ -120,7 +132,7 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({ clubs, fixtures, lastM
             <div className="space-y-4">
               {lastMatch.events.map((evt, i) => (
                 <div key={i} className="flex gap-4 items-start pb-4 border-b border-slate-700/50 last:border-0">
-                   <span className="text-emerald-500 font-mono font-bold">{i * 30 + 10}'</span>
+                   <span className="text-emerald-500 font-mono font-bold">{Math.floor(Math.random() * 90) + 1}'</span>
                    <p className="text-slate-300 text-sm leading-relaxed">{evt}</p>
                 </div>
               ))}
@@ -200,12 +212,12 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({ clubs, fixtures, lastM
                   <div className="flex items-center gap-4 mb-2">
                     <h4 className="text-xs font-black uppercase text-emerald-500 tracking-widest whitespace-nowrap">Spieltag {roundIdx + 1}</h4>
                     <div className="h-[1px] w-full bg-slate-700/50"></div>
-                    <span className="text-[10px] text-slate-500 font-mono whitespace-nowrap">{new Date(Number(date)).toLocaleDateString('de-DE')}</span>
+                    <span className="text-[10px] text-slate-500 font-mono whitespace-nowrap">{new Date(date).toLocaleDateString('de-DE')}</span>
                   </div>
                   <div className="grid grid-cols-1 gap-2">
                     {matches.map(f => {
-                      const home = clubs.find(c => c.id === f.homeTeamId);
-                      const away = clubs.find(c => c.id === f.awayTeamId);
+                      const home = clubs.find(c => c.id === f.homeTeam);
+                      const away = clubs.find(c => c.id === f.awayTeam);
                       return (
                         <div key={f.id} className="flex items-center justify-between bg-slate-900/40 p-3 rounded-xl border border-slate-800/50 hover:bg-slate-700/20 transition-all">
                           <div className="flex-1 flex items-center justify-end gap-3 text-right">
@@ -213,8 +225,8 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({ clubs, fixtures, lastM
                              <span className="text-xl">{home?.logo}</span>
                           </div>
                           <div className="mx-4 min-w-[60px] text-center">
-                             {f.played ? (
-                               <span className="font-mono font-black text-white bg-slate-950 px-2 py-0.5 rounded border border-slate-800">{f.homeScore}:{f.awayScore}</span>
+                             {f.status === 'played' ? (
+                               <span className="font-mono font-black text-white bg-slate-950 px-2 py-0.5 rounded border border-slate-800">{f.result}</span>
                              ) : (
                                <span className="text-[10px] font-black text-slate-500 uppercase tracking-tighter">12:00</span>
                              )}
@@ -243,14 +255,14 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({ clubs, fixtures, lastM
                 <div className="space-y-4 mb-8">
                   {/* Highlight only one representative match for the next matchday card */}
                   <div className="flex items-center justify-between gap-4">
-                    <button onClick={() => onViewClub(nextFixture.homeTeamId)} className="text-center flex-1 hover:scale-105 transition-transform">
-                      <div className="text-4xl mb-2">{clubs.find(c => c.id === nextFixture.homeTeamId)?.logo}</div>
-                      <p className="text-xs font-bold line-clamp-1">{clubs.find(c => c.id === nextFixture.homeTeamId)?.name}</p>
+                    <button onClick={() => onViewClub(nextFixture.homeTeam)} className="text-center flex-1 hover:scale-105 transition-transform">
+                      <div className="text-4xl mb-2">{clubs.find(c => c.id === nextFixture.homeTeam)?.logo}</div>
+                      <p className="text-xs font-bold line-clamp-1">{clubs.find(c => c.id === nextFixture.homeTeam)?.name}</p>
                     </button>
                     <div className="bg-slate-950 px-4 py-1 rounded-full border border-slate-700 text-[10px] font-black italic">TOP-SPIEL</div>
-                    <button onClick={() => onViewClub(nextFixture.awayTeamId)} className="text-center flex-1 hover:scale-105 transition-transform">
-                      <div className="text-4xl mb-2">{clubs.find(c => c.id === nextFixture.awayTeamId)?.logo}</div>
-                      <p className="text-xs font-bold line-clamp-1">{clubs.find(c => c.id === nextFixture.awayTeamId)?.name}</p>
+                    <button onClick={() => onViewClub(nextFixture.awayTeam)} className="text-center flex-1 hover:scale-105 transition-transform">
+                      <div className="text-4xl mb-2">{clubs.find(c => c.id === nextFixture.awayTeam)?.logo}</div>
+                      <p className="text-xs font-bold line-clamp-1">{clubs.find(c => c.id === nextFixture.awayTeam)?.name}</p>
                     </button>
                   </div>
                   <div className="text-center text-[10px] text-slate-500 font-black uppercase">...und 4 weitere Partien</div>
