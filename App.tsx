@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { onAuthStateChanged, signOut, User } from 'firebase/auth';
 import { Player, Club, View, SkillType, Fixture, ActiveActivity, InfrastructureType } from './types';
-import { ACTIVITIES, SKILL_UPGRADE_COST } from './constants';
+import { ACTIVITIES } from './constants';
 import { dataService } from './services/dataService';
 import { auth } from './services/firebase';
 import { Sidebar } from './components/Sidebar';
@@ -47,12 +47,42 @@ const App: React.FC = () => {
     return () => { playerUnsubscribe(); clubsUnsubscribe(); fixturesUnsubscribe(); };
   }, [user, isInitializing]);
 
-  // --- Game Logic Side Effects --- //
+  // --- Game Logic Side Effects (Ticks & Updates) --- //
   useEffect(() => {
     if (!player || !user) return;
 
-    // 1. LEVEL-UP LOGIC
-    if (player.experience != null && player.level != null) {
+    const gameTick = setInterval(() => {
+      const now = Date.now();
+
+      if (player.activeActivities && player.activeActivities.length > 0) {
+          const active = player.activeActivities[0];
+          const definition = ACTIVITIES.find(a => a.id === active.activityId);
+          if (definition && now >= active.startTime + definition.durationSeconds * 1000) {
+              dataService.completeActivity(player.id, active.activityId);
+          }
+      }
+
+      clubs.forEach(club => {
+          const finishedUpgrades = club.pendingUpgrades?.filter(upg => now >= upg.endTime);
+          if (finishedUpgrades && finishedUpgrades.length > 0) {
+              dataService.completeInfrastructureUpgrades(club.id, finishedUpgrades);
+          }
+      });
+      
+      if (now >= (player.nextActivityReset || 0)) {
+        dataService.resetCompletedActivities(player.id);
+      }
+
+    }, 1000);
+
+    return () => clearInterval(gameTick);
+
+  }, [player, user, clubs]);
+
+  // --- Level-Up Logic --- //
+  useEffect(() => {
+      if (!player || !user || player.experience == null || player.level == null) return;
+      
       let xpNeededForLevelUp = 100 + (player.level - 1) * 50;
       if (player.experience >= xpNeededForLevelUp) {
           let playerAfterLevelUp = { ...player };
@@ -64,44 +94,13 @@ const App: React.FC = () => {
           }
           dataService.updatePlayer(user.uid, playerAfterLevelUp);
       }
-    }
-
-    // 2. ACTIVITY COMPLETION
-    const activityTick = setInterval(() => {
-      const now = Date.now();
-      const finishedActivity = player.activeActivities?.find(active => {
-          const definition = ACTIVITIES.find(a => a.id === active.activityId);
-          return definition && now >= active.startTime + definition.durationSeconds * 1000;
-      });
-      if (finishedActivity) {
-          dataService.completeActivity(player.id, finishedActivity.activityId);
-      }
-    }, 1000);
-
-    // 3. CLUB UPGRADE COMPLETION
-    const upgradeTick = setInterval(() => {
-        const now = Date.now();
-        clubs.forEach(club => {
-            const finishedUpgrades = club.pendingUpgrades?.filter(upg => now >= upg.endTime);
-            if (finishedUpgrades && finishedUpgrades.length > 0) {
-                dataService.completeInfrastructureUpgrades(club.id, finishedUpgrades);
-            }
-        });
-    }, 5000);
-
-
-    return () => {
-        clearInterval(activityTick);
-        clearInterval(upgradeTick);
-    }
-
-  }, [player, user, clubs]);
+  }, [player?.experience, player?.level]);
 
 
   // --- UI Handlers --- //
   const handleSetView = (view: View) => setActiveView(view);
   const handleLogout = () => signOut(auth);
-  
+
   const handleJoinClub = (clubId: string) => {
     if(!user || !player) return;
     dataService.addPlayerToClub(clubId, player.id);
@@ -118,7 +117,23 @@ const App: React.FC = () => {
   };
 
   const startActivity = (activityId: string) => {
-    if (!player) return;
+    if (!player || (player.activeActivities && player.activeActivities.length > 0)) {
+        console.warn("Attempted to start an activity while one is already running.");
+        return;
+    }
+
+    const newActivity: ActiveActivity = {
+      activityId,
+      startTime: Date.now(),
+    };
+
+    setPlayer(prevPlayer => {
+        if (!prevPlayer) return null;
+        return {
+            ...prevPlayer,
+            activeActivities: [newActivity],
+        };
+    });
     dataService.startActivity(player.id, activityId);
   };
 
@@ -129,12 +144,8 @@ const App: React.FC = () => {
     if (!player) return { overallRating: 0, xpNeeded: 100, xpProgress: 0 };
     
     const relevantSkills = getSkillsForPosition(player.position as string);
-    
-    // Safely calculate total skill, ensuring player.skills and individual skills exist
     const totalSkill = relevantSkills.reduce((sum, s) => sum + ((player.skills && player.skills[s]) || 0), 0);
-    
     const overall = relevantSkills.length > 0 ? Math.round(totalSkill / relevantSkills.length) : 0;
-    
     const level = player.level || 1;
     const experience = player.experience || 0;
     const needed = 100 + (level - 1) * 50;
@@ -150,7 +161,6 @@ const App: React.FC = () => {
 
   return (
     <div className="flex h-screen bg-slate-950 text-slate-100 overflow-hidden font-sans">
-      {/* CRASH FIX: Provide a default empty array for roles if it's null/undefined */}
       <Sidebar activeView={activeView} setView={handleSetView} roles={player.roles || []} onLogout={handleLogout} />
       <main className="flex-1 overflow-y-auto p-4 md:p-8 bg-slate-900">
         <div className="max-w-7xl mx-auto space-y-8">
