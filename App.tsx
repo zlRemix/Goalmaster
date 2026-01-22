@@ -9,6 +9,7 @@ import { Dashboard } from './components/Dashboard';
 import { TrainingCenter } from './components/TrainingCenter';
 import { ClubDashboard } from './components/ClubDashboard';
 import { Activities as ActivitiesComponent } from './components/Activities';
+import { Leaderboard } from './components/Leaderboard';
 import Login from './components/Login';
 import { getSkillsForPosition } from './utils';
 import { Menu, X } from 'lucide-react'; // Using icons for the menu button
@@ -147,6 +148,7 @@ const App: React.FC = () => {
               />
             }
             {activeView === 'activities' && <ActivitiesComponent player={player} onStart={startActivity} />}
+            {activeView === 'leaderboard' && <Leaderboard />}
           </div>
         </main>
       </div>

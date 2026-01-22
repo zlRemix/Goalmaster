@@ -53,6 +53,14 @@ const dataService = {
     });
   },
 
+  listenToAllPlayers(callback: (players: Player[]) => void): () => void {
+    const playersRef = collection(db, 'players');
+    return onSnapshot(playersRef, (snapshot) => {
+        const players = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Player));
+        callback(players);
+    });
+  },
+
   async updatePlayer(uid: string, updates: Partial<Player>): Promise<void> {
     const playerRef = doc(db, 'players', uid);
     await updateDoc(playerRef, updates);

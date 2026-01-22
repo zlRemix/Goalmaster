@@ -61,6 +61,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeView, setView, roles, on
               <NavItem label="Skills" view="skills" activeView={activeView} setView={setView} icon="⚡" onClick={handleNavItemClicked} />
               <NavItem label="Club" view="club" activeView={activeView} setView={setView} icon="🛡️" onClick={handleNavItemClicked} />
               <NavItem label="Aktivitäten" view="activities" activeView={activeView} setView={setView} icon="🤸" onClick={handleNavItemClicked} />
+              <NavItem label="Rangliste" view="leaderboard" activeView={activeView} setView={setView} icon="🏆" onClick={handleNavItemClicked} />
               {/* <NavItem label="Transfers" view="transfers" activeView={activeView} setView={setView} icon="🔄" onClick={handleNavItemClicked} />
               <NavItem label="Liga" view="league" activeView={activeView} setView={setView} icon="🏆" onClick={handleNavItemClicked} /> */}
               {/* {canManageClub && <NavItem label="Management" view="management" activeView={activeView} setView={setView} icon="💼" onClick={handleNavItemClicked} />} */}
