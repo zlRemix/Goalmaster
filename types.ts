@@ -70,11 +70,11 @@ export interface Player {
 }
 
 export enum InfrastructureType {
-  STADIUM = 'stadium',
-  TRAINING_GROUND = 'training_ground',
-  YOUTH_ACADEMY = 'youth_academy',
-  SCOUTING_DEPARTMENT = 'scouting_department',
-  MEDICAL_CENTER = 'medical_center',
+    STADIUM = 'stadium',
+    TRAINING_GROUND = 'training_ground',
+    FAN_SHOP = 'fan_shop',
+    ANALYTICS_CENTER = 'analytics_center',
+    SPONSORSHIP_CENTER = 'sponsorship_center',
 }
 
 export interface InfrastructureItem {
@@ -107,4 +107,4 @@ export interface Fixture {
   result?: string; // e.g. "2-1"
 }
 
-export type View = 'home' | 'skills' | 'club' | 'activities' | 'staff' | 'finances' | 'match';
+export type View = 'home' | 'skills' | 'club' | 'activities' | 'staff' | 'finances' | 'match' | 'leaderboard';

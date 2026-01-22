@@ -18,12 +18,13 @@ export const INFRA_UPGRADE_TIMES = [
 ];
 
 export const INFRA_LEVEL_BENEFITS: Record<InfrastructureType, string[]> = {
-  stadium: ['Erhöht die Ticketeinnahmen pro Spiel.', 'Schaltet neue Sponsoren-Deals frei.', 'Verbessert das Fan-Engagement.'],
-  training_ground: ['Erhöht die Effektivität des Trainings.', 'Schaltet neue Trainingsmethoden frei.', 'Verringert die Verletzungsgefahr.'],
-  youth_academy: ['Zieht talentiertere Jugendspieler an.', 'Verbessert die Entwicklung der Jugendspieler.', 'Erhöht die Erfolgsquote beim Scouting.'],
-  scouting_department: ['Vergrößert den Scouting-Radius.', 'Liefert detailliertere Spielerberichte.', 'Erhöht die Chance, Top-Talente zu entdecken.'],
-  medical_center: ['Verkürzt die Regenerationszeit nach Verletzungen.', 'Schaltet fortschrittliche medizinische Behandlungen frei.', 'Reduziert die Ausfallzeit von Spielern.'],
+    stadium: Array.from({ length: 10 }, (_, i) => `+${(i + 1) * 500} Ticketeinnahmen pro Heimspiel.`),
+    training_ground: Array.from({ length: 10 }, (_, i) => `+${(i + 1) * 2}% Bonus auf Trainings-TP.`),
+    fan_shop: Array.from({ length: 10 }, (_, i) => `Generiert ${(i + 1) * 250}€ passives Einkommen pro Stunde.`),
+    analytics_center: Array.from({ length: 10 }, (_, i) => `+${(i + 1) * 1}% Bonus auf alle erhaltenen Erfahrungspunkte (XP).`),
+    sponsorship_center: Array.from({ length: 10 }, (_, i) => `+${(i + 1) * 2}% Bonus auf Budget-Einnahmen aus Aktivitäten.`),
 };
+
 
 // --- NEW: TEAM TRAINING SESSIONS --- //
 export const TEAM_TRAININGS: TeamTrainingSession[] = [

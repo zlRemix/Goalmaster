@@ -2,16 +2,19 @@ import React, { useState, useEffect } from 'react';
 import { Club, Player, InfrastructureType, UserRole, ActiveTeamTraining } from '../types';
 import { dataService } from '../services/dataService';
 import { getSkillsForPosition } from '../utils';
-import { INFRA_UPGRADE_COSTS, INFRA_LEVEL_BENEFITS, TEAM_TRAININGS } from '../constants';
+import { INFRA_UPGRADE_COSTS, INFRA_UPGRADE_TIMES, INFRA_LEVEL_BENEFITS, TEAM_TRAININGS } from '../constants';
 
-// --- HOOKS & HELPERS ---
 const useCountdown = (endTime: number) => {
   const calculateRemaining = () => Math.max(0, Math.floor((endTime - Date.now()) / 1000));
   const [totalSeconds, setTotalSeconds] = useState(calculateRemaining);
 
   useEffect(() => {
-    setTotalSeconds(calculateRemaining());
-    const timer = setInterval(() => setTotalSeconds(prev => Math.max(0, prev - 1)), 1000);
+    if (endTime <= 0) { setTotalSeconds(0); return; }
+    const timer = setInterval(() => {
+      const remaining = calculateRemaining();
+      setTotalSeconds(remaining);
+      if (remaining <= 0) clearInterval(timer);
+    }, 1000);
     return () => clearInterval(timer);
   }, [endTime]);
 
@@ -19,57 +22,100 @@ const useCountdown = (endTime: number) => {
 };
 
 const formatDuration = (totalSeconds: number) => {
-    const h = Math.floor(totalSeconds / 3600);
+    if (totalSeconds <= 0) return "00:00:00";
+    const d = Math.floor(totalSeconds / 86400);
+    const h = Math.floor((totalSeconds % 86400) / 3600);
     const m = Math.floor((totalSeconds % 3600) / 60);
     const s = Math.floor(totalSeconds % 60);
-    return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    let str = '';
+    if (d > 0) str += `${d}T `;
+    str += `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    return str;
 };
 
 const infrastructureInfo: Record<InfrastructureType, { name: string; icon: string; description: string; }> = {
-    stadium: { name: 'Stadion', icon: '🏟️', description: 'Erhöht die Einnahmen durch Ticketverkäufe und steigert das Prestige.' },
-    training_ground: { name: 'Trainingsgelände', icon: '🏋️', description: 'Verbessert die Effektivität aller Trainingseinheiten.' },
-    medical_center: { name: 'Medizinisches Zentrum', icon: '⚕️', description: 'Verringert Regenerationszeit und Verletzungsrisiken.' },
-    youth_academy: { name: 'Jugendakademie', icon: '👶', description: 'Generiert regelmäßig neue, talentierte Jugendspieler.' },
-    scouting_department: { name: 'Scouting-Abteilung', icon: ' scouting_department ', description: 'Verbessert die Qualität von Gegner- und Transfer-Informationen.' },
+    stadium: { name: 'Stadion', icon: '🏟️', description: 'Erhöht die Ticketeinnahmen bei Heimspielen.' },
+    training_ground: { name: 'Trainingsgelände', icon: '🏋️', description: 'Verbessert die Effektivität des Trainings (TP-Gewinn).' },
+    fan_shop: { name: 'Fan-Shop', icon: '🛍️', description: 'Generiert passives Einkommen durch Merchandising.' },
+    analytics_center: { name: 'Analysezentrum', icon: '📊', description: 'Erhöht den Gewinn von XP für alle Spieler.' },
+    sponsorship_center: { name: 'Sponsoring-Zentrale', icon: '📈', description: 'Steigert Einnahmen aus PR- & Sponsoring-Aktivitäten.' },
 };
-
-// --- CHILD COMPONENTS (NOW RESPONSIVE) ---
 
 const InfrastructureCard: React.FC<{ type: InfrastructureType; club: Club; onUpgrade: (clubId: string, type: InfrastructureType) => void; }> = ({ type, club, onUpgrade }) => {
     const info = infrastructureInfo[type];
     const currentLevel = club.infrastructure?.[type]?.level || 0;
-    const upgradeCost = currentLevel < INFRA_UPGRADE_COSTS.length ? INFRA_UPGRADE_COSTS[currentLevel] : null;
-    const benefits = INFRA_LEVEL_BENEFITS[type] || [];
-    const nextBenefit = currentLevel < benefits.length ? benefits[currentLevel] : "Voll ausgebaut";
+    const upgradeCost = currentLevel < 10 ? INFRA_UPGRADE_COSTS[currentLevel] : null;
+    const upgradeTime = currentLevel < 10 ? INFRA_UPGRADE_TIMES[currentLevel] : null;
     const pendingUpgrade = club.pendingUpgrades?.find(upg => upg.type === type);
+    const remainingTime = useCountdown(pendingUpgrade?.endTime || 0);
+
+    const benefits = INFRA_LEVEL_BENEFITS[type] || [];
+    const currentBenefit = currentLevel > 0 ? benefits[currentLevel - 1] : "Keine Boni";
+    const nextBenefit = currentLevel < benefits.length ? benefits[currentLevel] : "Voll ausgebaut";
 
     return (
-        <div className="bg-slate-800/80 rounded-2xl p-4 md:p-6 border border-slate-700 shadow-lg flex flex-col justify-between transition-all hover:border-slate-600">
+        <div className="bg-slate-800/80 rounded-2xl p-4 md:p-5 border border-slate-700 shadow-lg flex flex-col justify-between transition-all hover:border-slate-600/80">
             <div>
-                <div className="flex items-center gap-4 mb-4">
-                    <div className="text-4xl md:text-5xl opacity-80">{info.icon}</div>
-                    <div>
-                        <h3 className="text-lg md:text-xl font-black text-white">{info.name}</h3>
-                        <p className="text-sm font-bold text-amber-400">Level {currentLevel}</p>
+                <div className="flex items-start justify-between gap-4 mb-4">
+                    <div className="text-4xl opacity-80 pt-1">{info.icon}</div>
+                    <div className="flex-1 text-right">
+                        <h3 className="text-lg font-black text-white">{info.name}</h3>
+                        <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">{info.description}</p>
                     </div>
                 </div>
-                <p className="text-xs md:text-sm text-slate-400 mb-4 h-12">{info.description}</p>
-                <div className="bg-slate-900/70 p-3 rounded-lg border border-slate-700/50 mb-6">
-                    <p className="text-xs text-slate-400 font-semibold">Nächstes Level:</p>
-                    <p className="text-sm font-bold text-emerald-400">{nextBenefit}</p>
+
+                <div className="mb-5">
+                    <div className="flex justify-between items-end mb-1">
+                        <span className="text-xs font-bold text-amber-400 uppercase">Level {currentLevel} / 10</span>
+                        {pendingUpgrade && <span className="text-xs font-bold text-cyan-400 animate-pulse">Upgrade läuft...</span>}
+                    </div>
+                    <div className="h-2.5 w-full bg-slate-900 rounded-full border border-slate-800 p-0.5">
+                        <div className="h-full bg-gradient-to-r from-amber-500 to-amber-400 rounded-full" style={{ width: `${currentLevel * 10}%` }}></div>
+                    </div>
+                </div>
+
+                <div className="space-y-3 text-xs">
+                   <div className="p-3 bg-slate-900/70 rounded-lg border border-slate-700/50">
+                        <p className="font-semibold text-slate-400 mb-1">Aktueller Bonus:</p>
+                        <p className="font-bold text-emerald-300">{currentBenefit}</p>
+                    </div>
+                     <div className="p-3 bg-slate-900/70 rounded-lg border border-slate-700/50">
+                        <p className="font-semibold text-slate-400 mb-1">Bonus auf Level {currentLevel + 1}:</p>
+                        <p className="font-bold text-cyan-300">{nextBenefit}</p>
+                    </div>
                 </div>
             </div>
-            <div className="mt-auto">
+
+            <div className="mt-5 pt-4 border-t border-slate-700/80">
                 {pendingUpgrade ? (
-                     <div className="text-center bg-slate-700 p-3 rounded-lg"><p className="text-sm font-bold text-amber-400">Upgrade läuft...</p></div>
-                ) : upgradeCost !== null ? (
-                    <button
-                        disabled={(club.budget || 0) < upgradeCost}
-                        onClick={() => onUpgrade(club.id, type)}
-                        className="w-full bg-emerald-600 text-white font-bold py-3 rounded-lg text-sm md:text-base disabled:bg-slate-600 disabled:cursor-not-allowed hover:bg-emerald-500 transition-colors shadow-md active:scale-95">
-                        Upgrade für {upgradeCost.toLocaleString()} €
-                    </button>
-                ) : <p className="text-center text-sm font-bold text-green-400">Max Level</p>}
+                     <div className="text-center bg-slate-700/80 p-3 rounded-lg border border-slate-600">
+                        <p className="text-sm font-bold text-slate-300">Verbleibende Zeit:</p>
+                        <p className="text-xl font-black text-amber-400 tracking-wider">{formatDuration(remainingTime)}</p>
+                     </div>
+                ) : upgradeCost !== null && upgradeTime !== null ? (
+                    <div className="flex flex-col gap-2">
+                         <div className="grid grid-cols-2 gap-2 text-center">
+                             <div className="bg-slate-900/70 p-2 rounded-md border border-slate-700/50">
+                                <p className="text-[10px] font-bold text-slate-400 uppercase">Kosten</p>
+                                <p className="text-sm font-semibold text-white">{upgradeCost.toLocaleString()} €</p>
+                             </div>
+                             <div className="bg-slate-900/70 p-2 rounded-md border border-slate-700/50">
+                                <p className="text-[10px] font-bold text-slate-400 uppercase">Dauer</p>
+                                <p className="text-sm font-semibold text-white">{formatDuration(upgradeTime)}</p>
+                             </div>
+                         </div>
+                        <button
+                            disabled={(club.budget || 0) < upgradeCost}
+                            onClick={() => onUpgrade(club.id, type)}
+                            className="w-full bg-emerald-600 text-white font-bold py-3 rounded-lg text-sm md:text-base disabled:bg-slate-600 disabled:text-slate-500 disabled:cursor-not-allowed hover:bg-emerald-500 transition-colors shadow-md active:scale-95">
+                            Upgrade starten
+                        </button>
+                    </div>
+                ) : (
+                     <div className="text-center bg-emerald-900/50 p-3 rounded-lg border border-emerald-700">
+                         <p className="text-sm font-bold text-emerald-300">Maximales Level erreicht</p>
+                     </div>
+                )}
             </div>
         </div>
     );
