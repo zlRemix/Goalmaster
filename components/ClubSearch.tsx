@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Club, Player } from '../types';
 import { dataService } from '../services/dataService';
 import { MAX_CLUB_PLAYERS } from '../constants';
@@ -10,28 +10,57 @@ interface ClubSearchProps {
 export const ClubSearch: React.FC<ClubSearchProps> = ({ player }) => {
   const [clubs, setClubs] = useState<Club[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState<string | null>(null); // To disable buttons during operation
+
+  const unsubscribeRef = useRef<() => void>();
 
   useEffect(() => {
-    const unsubscribe = dataService.listenToClubs((allClubs) => {
+    // Start listening to clubs when the component mounts
+    unsubscribeRef.current = dataService.listenToClubs((allClubs) => {
       setClubs(allClubs);
       setLoading(false);
     });
-    return () => unsubscribe();
+
+    // Unsubscribe when the component unmounts
+    return () => {
+      if (unsubscribeRef.current) {
+        unsubscribeRef.current();
+      }
+    };
   }, []);
 
+  const resubscribe = () => {
+    if (unsubscribeRef.current) {
+        unsubscribeRef.current(); // Unsubscribe from any previous listener
+    }
+    unsubscribeRef.current = dataService.listenToClubs(setClubs);
+  }
+
   const handleApply = async (clubId: string) => {
+    setIsSubmitting(clubId);
+    if (unsubscribeRef.current) unsubscribeRef.current(); // Stop listening
+
     try {
       await dataService.applyToClub(player.id, clubId);
     } catch (error) {
       console.error("Error applying to club:", error);
+    } finally {
+      resubscribe(); // Start listening again
+      setIsSubmitting(null);
     }
   };
 
   const handleCancelApplication = async (clubId: string) => {
+    setIsSubmitting(clubId);
+    if (unsubscribeRef.current) unsubscribeRef.current(); // Stop listening
+
     try {
       await dataService.cancelApplication(player.id, clubId);
     } catch (error) {
       console.error("Error cancelling application:", error);
+    } finally {
+      resubscribe(); // Start listening again
+      setIsSubmitting(null);
     }
   };
 
@@ -59,6 +88,7 @@ export const ClubSearch: React.FC<ClubSearchProps> = ({ player }) => {
         {clubs.map((club) => {
           const hasApplied = club.pendingApplications?.includes(player.id);
           const isFull = (club.players?.length || 0) >= MAX_CLUB_PLAYERS;
+          const buttonDisabled = isSubmitting === club.id;
 
           return (
             <div key={club.id} className="grid grid-cols-[1fr,auto,auto] items-center bg-slate-800/80 p-3 md:p-4 rounded-xl border border-slate-700/50 transition-all hover:bg-slate-800 hover:border-slate-600 gap-2 md:gap-4">
@@ -74,9 +104,10 @@ export const ClubSearch: React.FC<ClubSearchProps> = ({ player }) => {
                 {hasApplied ? (
                    <button 
                     onClick={() => handleCancelApplication(club.id)}
-                    className="bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded-lg transition-colors text-sm"
+                    disabled={buttonDisabled}
+                    className="bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded-lg transition-colors text-sm disabled:bg-slate-600 disabled:cursor-wait"
                   >
-                    Bewerbung zurückziehen
+                    {isSubmitting === club.id ? '... ' : 'Bewerbung zurückziehen'}
                   </button>
                 ) : player.pendingClubInvitation === club.id ? (
                     <span className="text-green-400 font-bold text-sm">Eingeladen</span>
@@ -85,9 +116,10 @@ export const ClubSearch: React.FC<ClubSearchProps> = ({ player }) => {
                 ) : (
                   <button 
                     onClick={() => handleApply(club.id)}
-                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-4 rounded-lg transition-colors text-sm"
+                    disabled={buttonDisabled}
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-4 rounded-lg transition-colors text-sm disabled:bg-slate-600 disabled:cursor-wait"
                   >
-                    Bewerben
+                    {isSubmitting === club.id ? '... ' : 'Bewerben'}
                   </button>
                 )}
               </div>

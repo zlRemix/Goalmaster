@@ -14,21 +14,63 @@ const getNextHourlyTimestamp = () => {
 
 const dataService = {
   // =========================================================================
-  // PLAYER DATA
+  // PLAYER & CLUB CREATION
   // =========================================================================
 
-  async createPlayer(uid: string, name: string, position: PlayerPosition): Promise<void> {
-    const playerRef = doc(db, 'players', uid);
-    const newPlayer: Player = {
-      id: uid, name, position, clubId: null,
-      level: 1, experience: 0, trainingPoints: 5,
-      roles: [UserRole.PLAYER], skills: {},
-      activeActivities: [],
-      completedActivityIds: [],
-      nextActivityReset: getNextHourlyTimestamp(),
-    };
-    await setDoc(playerRef, newPlayer);
+  async createPlayerAndClub(uid: string, name: string, position: PlayerPosition, wantsManagerRole: boolean, clubName?: string): Promise<void> {
+    await runTransaction(db, async (transaction) => {
+        const playerRef = doc(db, 'players', uid);
+        let clubId: string | null = null;
+        const roles = [UserRole.PLAYER];
+
+        // If the user wants to be a manager and provided a club name, create the club.
+        if (wantsManagerRole && clubName) {
+            const clubRef = doc(collection(db, 'clubs')); // Create a new doc with a generated ID
+            
+            const newClub: Club = {
+                id: clubRef.id,
+                name: clubName,
+                managerId: uid,
+                players: [uid],
+                budget: 50000, // Starting budget
+                infrastructure: {
+                    stadium: { level: 1 },
+                    training_ground: { level: 1 },
+                    youth_academy: { level: 1 },
+                    scouting_network: { level: 1 },
+                },
+                pendingApplications: [],
+                pendingUpgrades: [],
+                activeTeamTraining: null,
+            };
+            transaction.set(clubRef, newClub);
+
+            clubId = clubRef.id;
+            roles.push(UserRole.MANAGER);
+        }
+
+        // Create the player document
+        const newPlayer: Player = {
+            id: uid,
+            name,
+            position,
+            clubId,
+            level: 1,
+            experience: 0,
+            trainingPoints: 5,
+            roles,
+            skills: {},
+            activeActivities: [],
+            completedActivityIds: [],
+            nextActivityReset: getNextHourlyTimestamp(),
+        };
+        transaction.set(playerRef, newPlayer);
+    });
   },
+
+  // =========================================================================
+  // PLAYER DATA
+  // =========================================================================
 
   listenToPlayer(uid: string, callback: (player: Player) => void): () => void {
     const playerRef = doc(db, 'players', uid);

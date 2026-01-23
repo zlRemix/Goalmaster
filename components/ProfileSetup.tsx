@@ -4,12 +4,14 @@ import { PlayerPosition } from '../types';
 
 interface ProfileSetupProps {
   userId: string;
-  onProfileCreate: (userId: string, name: string, position: PlayerPosition) => Promise<void>;
+  onProfileCreate: (userId: string, name: string, position: PlayerPosition, wantsManagerRole: boolean, clubName?: string) => Promise<void>;
 }
 
 const ProfileSetup: React.FC<ProfileSetupProps> = ({ userId, onProfileCreate }) => {
   const [name, setName] = useState('');
-  const [position, setPosition] = useState<PlayerPosition>('ST');
+  const [position, setPosition] = useState<PlayerPosition>('Stürmer');
+  const [wantsManagerRole, setWantsManagerRole] = useState(false);
+  const [clubName, setClubName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -19,10 +21,14 @@ const ProfileSetup: React.FC<ProfileSetupProps> = ({ userId, onProfileCreate }) 
       setError('Bitte gib einen Spielernamen ein.');
       return;
     }
+    if (wantsManagerRole && !clubName.trim()) {
+        setError('Bitte gib einen Vereinsnamen an.');
+        return;
+    }
     setIsLoading(true);
     setError('');
     try {
-      await onProfileCreate(userId, name, position);
+      await onProfileCreate(userId, name, position, wantsManagerRole, clubName);
     } catch (err) {
       setError('Fehler beim Erstellen des Profils. Bitte versuche es erneut.');
       setIsLoading(false);
@@ -33,7 +39,7 @@ const ProfileSetup: React.FC<ProfileSetupProps> = ({ userId, onProfileCreate }) 
     <div className="h-screen bg-slate-950 flex flex-col items-center justify-center p-6 text-white">
         <div className="w-full max-w-md bg-slate-900 rounded-2xl shadow-2xl p-8 border border-slate-800">
             <h1 className="text-3xl font-black text-center text-emerald-400 mb-2">Profil erstellen</h1>
-            <p className="text-center text-slate-400 mb-8">Willkommen bei ProSoccer! Bitte richte dein Spielerprofil ein.</p>
+            <p className="text-center text-slate-400 mb-8">Willkommen! Richte dein Spielerprofil ein.</p>
             
             <form onSubmit={handleCreateProfile} className="space-y-6">
                 <div>
@@ -62,6 +68,34 @@ const ProfileSetup: React.FC<ProfileSetupProps> = ({ userId, onProfileCreate }) 
                         ))}
                     </select>
                 </div>
+
+                <div className="flex items-center justify-between">
+                    <label htmlFor="managerRole" className="text-slate-300 flex items-center space-x-3 cursor-pointer">
+                        <input
+                            id="managerRole"
+                            type="checkbox"
+                            checked={wantsManagerRole}
+                            onChange={(e) => setWantsManagerRole(e.target.checked)}
+                            className="h-5 w-5 rounded bg-slate-700 border-slate-600 text-emerald-500 focus:ring-emerald-500 focus:ring-offset-slate-900"
+                        />
+                        <span className="font-bold">Ich möchte auch Manager sein</span>
+                    </label>
+                </div>
+
+                {wantsManagerRole && (
+                    <div>
+                        <label htmlFor="clubName" className="block text-sm font-bold text-slate-300 mb-2">Vereinsname</label>
+                        <input
+                            id="clubName"
+                            type="text"
+                            value={clubName}
+                            onChange={(e) => setClubName(e.target.value)}
+                            placeholder="Name deines neuen Vereins"
+                            className="w-full bg-slate-800 border-2 border-slate-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition"
+                            required
+                        />
+                    </div>
+                )}
 
                 {error && <p className="text-red-500 text-sm text-center">{error}</p>}
 

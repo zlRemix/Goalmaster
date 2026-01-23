@@ -1,9 +1,4 @@
-export enum PlayerPosition {
-  ST = 'Stürmer',
-  MF = 'Mittelfeld',
-  DEF = 'Abwehr',
-  GK = 'Torwart',
-}
+export type PlayerPosition = 'Stürmer' | 'Mittelfeld' | 'Abwehr' | 'Torwart';
 
 export enum UserRole {
   PLAYER = 'player',
@@ -73,9 +68,8 @@ export interface Player {
 export enum InfrastructureType {
     STADIUM = 'stadium',
     TRAINING_GROUND = 'training_ground',
-    FAN_SHOP = 'fan_shop',
-    ANALYTICS_CENTER = 'analytics_center',
-    SPONSORSHIP_CENTER = 'sponsorship_center',
+    YOUTH_ACADEMY = 'youth_academy',
+    SCOUTING_NETWORK = 'scouting_network',
 }
 
 export interface InfrastructureItem {
@@ -92,10 +86,10 @@ export interface PendingUpgrade {
 export interface Club {
   id: string;
   name: string;
-  managerName?: string;
+  managerId: string;
   players: string[];
   budget: number;
-  infrastructure: Record<InfrastructureType, InfrastructureItem>;
+  infrastructure: Partial<Record<InfrastructureType, InfrastructureItem>>;
   pendingUpgrades?: PendingUpgrade[];
   activeTeamTraining?: ActiveTeamTraining | null;
   pendingApplications?: string[]; // IDs of players who applied

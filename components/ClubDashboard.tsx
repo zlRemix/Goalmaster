@@ -38,11 +38,10 @@ const formatDuration = (totalSeconds: number) => {
 
 // --- DATA ---
 const infrastructureInfo: Record<InfrastructureType, { name: string; icon: string; description: string; }> = {
-    stadium: { name: 'Stadion', icon: '🏟️', description: 'Erhöht die Ticketeinnahmen bei Heimspielen.' },
-    training_ground: { name: 'Trainingsgelände', icon: '🏋️', description: 'Verbessert die Effektivität des Trainings (TP-Gewinn).' },
-    fan_shop: { name: 'Fan-Shop', icon: '🛍️', description: 'Generiert passives Einkommen durch Merchandising.' },
-    analytics_center: { name: 'Analysezentrum', icon: '📊', description: 'Erhöht den Gewinn von XP für alle Spieler.' },
-    sponsorship_center: { name: 'Sponsoring-Zentrale', icon: '📈', description: 'Steigert Einnahmen aus PR- & Sponsoring-Aktivitäten.' },
+    [InfrastructureType.STADIUM]: { name: 'Stadion', icon: '🏟️', description: 'Erhöht die Ticketeinnahmen bei Heimspielen.' },
+    [InfrastructureType.TRAINING_GROUND]: { name: 'Trainingsgelände', icon: '🏋️', description: 'Verbessert die Effektivität des Trainings (TP-Gewinn).' },
+    [InfrastructureType.YOUTH_ACADEMY]: { name: 'Jugendakademie', icon: '🧒', description: 'Scoutet regelmäßig neue, vielversprechende Talente.' },
+    [InfrastructureType.SCOUTING_NETWORK]: { name: 'Scouting-Netzwerk', icon: '📡', description: 'Verbessert die Genauigkeit von Spieler-Scouting-Berichten.' },
 };
 
 // --- SUB-COMPONENTS ---
@@ -214,7 +213,7 @@ interface ClubDashboardProps {
     setView: (view: View) => void;
 }
 
-export const ClubDashboard: React.FC<ClubDashboardProps> = ({ club, player, onUpgrade, setView: setAppView }) => {
+export const ClubDashboard: React.FC<ClubDashboardProps> = ({ club, player, onUpgrade, setView }) => {
     const [clubNav, setClubNav] = useState<ClubNavView>('infrastructure');
     const [squadPlayers, setSquadPlayers] = useState<Player[]>([]);
     const isManager = player.roles.includes(UserRole.MANAGER);
@@ -243,7 +242,7 @@ export const ClubDashboard: React.FC<ClubDashboardProps> = ({ club, player, onUp
                 <h2 className="text-2xl font-bold mb-2">Du bist vereinslos</h2>
                 <p className="text-slate-400 mb-6">Suche nach einem Verein, um deine Karriere voranzutreiben.</p>
                 <button 
-                    onClick={() => setAppView('club-search')} 
+                    onClick={() => setView('club-search')} 
                     className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 px-8 rounded-lg transition-colors shadow-lg">
                     Verein suchen
                 </button>

@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { onAuthStateChanged, signOut, User } from 'firebase/auth';
-import { Player, Club, View, SkillType, Fixture, ActiveActivity, InfrastructureType, UserRole } from './types';
+import { Player, Club, View, SkillType, Fixture, ActiveActivity, InfrastructureType, UserRole, PlayerPosition } from './types';
 import { ACTIVITIES, TEAM_TRAININGS } from './constants';
 import { dataService } from './services/dataService';
 import { auth } from './services/firebase';
@@ -12,8 +12,14 @@ import { Activities as ActivitiesComponent } from './components/Activities';
 import { Leaderboard } from './components/Leaderboard';
 import { ClubSearch } from './components/ClubSearch';
 import Login from './components/Login';
+import ProfileSetup from './components/ProfileSetup';
 import { getSkillsForPosition } from './utils';
 import { Menu } from 'lucide-react';
+
+// Holder for our subscription cleanup functions
+let playerUnsubscribe: (() => void) | null = null;
+let clubsUnsubscribe: (() => void) | null = null;
+let fixturesUnsubscribe: (() => void) | null = null;
 
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -23,27 +29,68 @@ const App: React.FC = () => {
   const [activeView, setActiveView] = useState<View>('home');
   const [isInitializing, setIsInitializing] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [playerExists, setPlayerExists] = useState<boolean | undefined>(undefined);
 
   const selectedClub = useMemo(() => clubs.find(c => c.id === player?.clubId), [clubs, player?.clubId]);
 
-  useEffect(() => {
-    const authUnsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-      if (firebaseUser) setUser(firebaseUser);
-      else { setUser(null); setPlayer(null); setClubs([]); setFixtures([]); setIsInitializing(false); }
-    });
-    return () => authUnsubscribe();
+  const resetAllState = useCallback(() => {
+    console.log("RESETTING ALL APPLICATION STATE");
+    // Cleanup listeners
+    if (playerUnsubscribe) playerUnsubscribe();
+    if (clubsUnsubscribe) clubsUnsubscribe();
+    if (fixturesUnsubscribe) fixturesUnsubscribe();
+    playerUnsubscribe = clubsUnsubscribe = fixturesUnsubscribe = null;
+    
+    // Reset state variables
+    setUser(null);
+    setPlayer(null);
+    setClubs([]);
+    setFixtures([]);
+    setActiveView('home');
+    setPlayerExists(undefined);
+    setIsInitializing(true); // Start initializing for the new user
   }, []);
 
   useEffect(() => {
-    if (!user) return;
-    const playerUnsubscribe = dataService.listenToPlayer(user.uid, (p) => { 
-      setPlayer(p); 
-      if (isInitializing) setIsInitializing(false); 
+    const authUnsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      resetAllState(); // CRITICAL: Reset state on every auth change
+      if (firebaseUser) {
+        console.log("New user detected:", firebaseUser.uid);
+        setUser(firebaseUser);
+      } else {
+        console.log("User logged out.");
+        setIsInitializing(false); // No user, so we are not initializing anything
+      }
     });
-    const clubsUnsubscribe = dataService.listenToClubs(setClubs);
-    const fixturesUnsubscribe = dataService.listenToFixtures(setFixtures);
-    return () => { playerUnsubscribe(); clubsUnsubscribe(); fixturesUnsubscribe(); };
-  }, [user, isInitializing]);
+    return () => authUnsubscribe();
+  }, [resetAllState]);
+
+  useEffect(() => {
+    if (!user) return;
+
+    console.log("Setting up listeners for user:", user.uid);
+    playerUnsubscribe = dataService.listenToPlayer(user.uid, (p) => { 
+      if (p) {
+        setPlayer(p);
+        setPlayerExists(true);
+      } else {
+        setPlayer(null);
+        setPlayerExists(false);
+      }
+      setIsInitializing(false);
+    });
+    
+    clubsUnsubscribe = dataService.listenToClubs(setClubs);
+    fixturesUnsubscribe = dataService.listenToFixtures(setFixtures);
+
+    // The return function of useEffect is the cleanup function
+    return () => {
+      console.log("Cleaning up listeners for user:", user.uid);
+      if (playerUnsubscribe) playerUnsubscribe();
+      if (clubsUnsubscribe) clubsUnsubscribe();
+      if (fixturesUnsubscribe) fixturesUnsubscribe();
+    };
+  }, [user]);
 
   useEffect(() => {
     if (!player || !user) return;
@@ -58,7 +105,7 @@ const App: React.FC = () => {
         const finishedUpgrades = club.pendingUpgrades?.filter(upg => now >= upg.endTime);
         if (finishedUpgrades?.length > 0) dataService.completeInfrastructureUpgrades(club.id, finishedUpgrades);
       });
-      if (selectedClub?.activeTeamTraining) {
+      if (selectedClub?.activeTeamTraining && selectedClub.players) {
         const def = TEAM_TRAININGS.find(t => t.id === selectedClub.activeTeamTraining!.trainingId);
         if (def) {
           const endTime = selectedClub.activeTeamTraining!.startTime + def.durationSeconds * 1000;
@@ -85,6 +132,14 @@ const App: React.FC = () => {
     }
   }, [player?.experience, player?.level, user?.uid]);
 
+  const handleProfileCreate = async (userId: string, name: string, position: PlayerPosition, wantsManagerRole: boolean, clubName?: string) => {
+    await dataService.createPlayerAndClub(userId, name, position, wantsManagerRole, clubName);
+  };
+
+  const handleLogout = () => {
+    signOut(auth);
+  }
+
   const handleUpgrade = (clubId: string, type: InfrastructureType) => dataService.startInfrastructureUpgrade(clubId, type);
   const handleTrainSkill = (skill: SkillType) => { if (player) dataService.upgradeSkill(player.id, skill); };
   const startActivity = (activityId: string) => { if (player && player.activeActivities?.length === 0) dataService.startActivity(player.id, activityId); };
@@ -100,46 +155,48 @@ const App: React.FC = () => {
 
   if (isInitializing) return <div className="h-screen bg-slate-950 flex items-center justify-center"><h1 className="text-emerald-500 font-black animate-pulse text-2xl">VERBINDE...</h1></div>;
   if (!user) return <Login />;
-  if (!player) return <div className="h-screen bg-slate-950 flex items-center justify-center"><h1 className="text-amber-500 font-black animate-pulse text-2xl">LADE PROFIL...</h1></div>;
+  if (playerExists === false) return <ProfileSetup userId={user.uid} onProfileCreate={handleProfileCreate} />;
+  if (playerExists === true && player) {
+      return (
+        <div className="h-screen bg-slate-950 text-slate-100 font-sans">
+          <Sidebar 
+            activeView={activeView} 
+            setView={setActiveView} 
+            roles={player.roles || []} 
+            onLogout={handleLogout} 
+            isOpen={isSidebarOpen} 
+            setIsOpen={setIsSidebarOpen} 
+          />
+          <div className="md:ml-64 flex flex-col h-full">
+            <header className="md:hidden bg-slate-900 border-b border-slate-800 p-4 flex justify-between items-center">
+              <h1 className="text-xl font-black text-white">Pro<span className="text-emerald-500">Soccer</span></h1>
+              <button onClick={() => setIsSidebarOpen(true)} className="p-2">
+                <Menu className="h-6 w-6 text-white" />
+              </button>
+            </header>
 
-  return (
-    <div className="h-screen bg-slate-950 text-slate-100 font-sans">
-      <Sidebar 
-        activeView={activeView} 
-        setView={setActiveView} 
-        roles={player.roles || []} 
-        onLogout={() => signOut(auth)} 
-        isOpen={isSidebarOpen} 
-        setIsOpen={setIsSidebarOpen} 
-      />
-      <div className="md:ml-64 flex flex-col h-full">
-        <header className="md:hidden bg-slate-900 border-b border-slate-800 p-4 flex justify-between items-center">
-           <h1 className="text-xl font-black text-white">Pro<span className="text-emerald-500">Soccer</span></h1>
-          <button onClick={() => setIsSidebarOpen(true)} className="p-2">
-            <Menu className="h-6 w-6 text-white" />
-          </button>
-        </header>
-
-        <main className="flex-1 overflow-y-auto p-4 md:p-8 bg-slate-900/95">
-          <div className="max-w-7xl mx-auto space-y-8">
-            {activeView === 'home' && <Dashboard player={player} club={selectedClub} allClubs={clubs} overallRating={overallRating} xpProgress={xpProgress} xpNeeded={xpNeeded} />}
-            {activeView === 'skills' && <TrainingCenter player={player} onTrain={handleTrainSkill} />}
-            {activeView === 'club' && 
-              <ClubDashboard 
-                club={selectedClub || null}
-                player={player} 
-                setView={setActiveView}
-                onUpgrade={handleUpgrade}
-              />
-            }
-            {activeView === 'activities' && <ActivitiesComponent player={player} onStart={startActivity} />}
-            {activeView === 'leaderboard' && <Leaderboard />}
-            {activeView === 'club-search' && <ClubSearch player={player} />}
+            <main className="flex-1 overflow-y-auto p-4 md:p-8 bg-slate-900/95">
+              <div className="max-w-7xl mx-auto space-y-8">
+                {activeView === 'home' && <Dashboard player={player} club={selectedClub} allClubs={clubs} overallRating={overallRating} xpProgress={xpProgress} xpNeeded={xpNeeded} />}
+                {activeView === 'skills' && <TrainingCenter player={player} onTrain={handleTrainSkill} />}
+                {activeView === 'club' && 
+                  <ClubDashboard 
+                    club={selectedClub || null}
+                    player={player} 
+                    setView={setActiveView}
+                    onUpgrade={handleUpgrade}
+                  />
+                }
+                {activeView === 'activities' && <ActivitiesComponent player={player} onStart={startActivity} />}
+                {activeView === 'leaderboard' && <Leaderboard />}
+                {activeView === 'club-search' && <ClubSearch player={player} />}
+              </div>
+            </main>
           </div>
-        </main>
-      </div>
-    </div>
-  );
+        </div>
+      );
+  }
+  return <div className="h-screen bg-slate-950 flex items-center justify-center"><h1 className="text-amber-500 font-black animate-pulse text-2xl">LADE PROFIL...</h1></div>;
 };
 
 export default App;

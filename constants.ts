@@ -1,7 +1,10 @@
-import { SkillType, Activity, InfrastructureType, TeamTrainingSession, UserRole } from './types';
+import { SkillType, Activity, InfrastructureType, TeamTrainingSession, UserRole, PlayerPosition } from './types';
 
 export const SKILL_UPGRADE_COST = 1;
 export const MAX_CLUB_PLAYERS = 5;
+
+// All available player positions for selection.
+export const POSITIONS: PlayerPosition[] = ['Stürmer', 'Mittelfeld', 'Abwehr', 'Torwart'];
 
 export const POSITION_SKILLS: Record<string, SkillType[]> = {
   'Stürmer': ['finishing', 'shot_power', 'heading', 'long_shots', 'dribbling', 'pace'],
@@ -21,9 +24,8 @@ export const INFRA_UPGRADE_TIMES = [
 export const INFRA_LEVEL_BENEFITS: Record<InfrastructureType, string[]> = {
     stadium: Array.from({ length: 10 }, (_, i) => `+${(i + 1) * 500} Ticketeinnahmen pro Heimspiel.`),
     training_ground: Array.from({ length: 10 }, (_, i) => `+${(i + 1) * 2}% Bonus auf Trainings-TP.`),
-    fan_shop: Array.from({ length: 10 }, (_, i) => `Generiert ${(i + 1) * 250}€ passives Einkommen pro Stunde.`),
-    analytics_center: Array.from({ length: 10 }, (_, i) => `+${(i + 1) * 1}% Bonus auf alle erhaltenen Erfahrungspunkte (XP).`),
-    sponsorship_center: Array.from({ length: 10 }, (_, i) => `+${(i + 1) * 2}% Bonus auf Budget-Einnahmen aus Aktivitäten.`),
+    youth_academy: Array.from({ length: 10 }, (_, i) => `Scoutet alle 24 Stunden einen neuen Jugendspieler (Level ${(i + 1) * 5}).`),
+    scouting_network: Array.from({ length: 10 }, (_, i) => `Verbessert die Genauigkeit der Spieler-Scouting-Berichte um ${(i + 1) * 5}%.`),
 };
 
 
