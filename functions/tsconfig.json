@@ -1,14 +1,15 @@
 {
   "compilerOptions": {
-    "module": "NodeNext",
-    "esModuleInterop": true,
-    "moduleResolution": "nodenext",
+    "module": "commonjs",             // <-- WICHTIG: Zurück zu commonjs
+    "moduleResolution": "node",       // <-- WICHTIG: Zurück zu node
     "noImplicitReturns": true,
-    "noUnusedLocals": true,
+    "noUnusedLocals": false,          // Auf false, damit es weniger meckert
     "outDir": "lib",
     "sourceMap": true,
     "strict": true,
-    "target": "es2017"
+    "target": "es2017",
+    "esModuleInterop": true,
+    "skipLibCheck": true              // Hilft oft bei Bibliotheks-Fehlern
   },
   "compileOnSave": true,
   "include": [

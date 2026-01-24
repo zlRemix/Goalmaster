@@ -1,7 +1,6 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { onAuthStateChanged, signOut, User } from 'firebase/auth';
-import { Player, Club, View, SkillType, Fixture, InfrastructureType, PlayerPosition } from './types';
+import { Player, Club, View, SkillType, Fixture, InfrastructureType, PlayerPosition, UserRole } from './types';
 import { TEAM_TRAININGS } from './constants';
 import { dataService } from './services/dataService';
 import { auth } from './services/firebase';
@@ -16,46 +15,56 @@ import Login from './components/Login';
 import ProfileSetup from './components/ProfileSetup';
 import { getSkillsForPosition } from './utils';
 import { Menu } from 'lucide-react';
+import LeagueManagement from './components/LeagueManagement';
+import LeagueView from './components/LeagueView'; // Import LeagueView
+
+const calculateXpNeeded = (level: number): number => {
+  return Math.floor(100 * Math.pow(1.15, level - 1));
+};
 
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [player, setPlayer] = useState<Player | null>(null);
-  const [clubs, setClubs] = useState<Club[]>([]);
+  const [selectedClub, setSelectedClub] = useState<Club | null>(null);
+  const [allClubs, setAllClubs] = useState<Club[]>([]);
   const [fixtures, setFixtures] = useState<Fixture[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   
   const [activeView, setActiveView] = useState<View>('home');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
-  const selectedClub = useMemo(() => clubs.find(c => c.id === player?.clubId), [clubs, player?.clubId]);
-
   useEffect(() => {
     let playerUnsubscribe: (() => void) | null = null;
-    let clubsUnsubscribe: (() => void) | null = null;
+    let clubUnsubscribe: (() => void) | null = null;
+    let allClubsUnsubscribe: (() => void) | null = null;
     let fixturesUnsubscribe: (() => void) | null = null;
 
     const authUnsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (playerUnsubscribe) playerUnsubscribe();
-      if (clubsUnsubscribe) clubsUnsubscribe();
-      if (fixturesUnsubscribe) fixturesUnsubscribe();
+      playerUnsubscribe?.();
+      clubUnsubscribe?.();
+      allClubsUnsubscribe?.();
+      fixturesUnsubscribe?.();
 
       setUser(firebaseUser);
 
       if (firebaseUser) {
-        if (!clubsUnsubscribe) {
-            clubsUnsubscribe = dataService.listenToClubs(setClubs);
-        }
-        if (!fixturesUnsubscribe) {
-            fixturesUnsubscribe = dataService.listenToFixtures(setFixtures);
-        }
+        allClubsUnsubscribe = dataService.listenToClubs(setAllClubs);
+        fixturesUnsubscribe = dataService.listenToFixtures(setFixtures);
         playerUnsubscribe = dataService.listenToPlayer(firebaseUser.uid, (p) => {
-            setPlayer(p ? { ...p, id: firebaseUser.uid } : null);
-            setLoading(false);
+          setPlayer(p ? { ...p, id: firebaseUser.uid } : null);
+
+          if (p?.clubId) {
+            clubUnsubscribe = dataService.listenToClub(p.clubId, setSelectedClub);
+          } else {
+            setSelectedClub(null);
+          }
+          setLoading(false);
         });
       } else {
         setUser(null);
         setPlayer(null);
-        setClubs([]);
+        setSelectedClub(null);
+        setAllClubs([]);
         setFixtures([]);
         setLoading(false);
       }
@@ -63,21 +72,23 @@ const App: React.FC = () => {
 
     return () => {
       authUnsubscribe();
-      if (playerUnsubscribe) playerUnsubscribe();
-      if (clubsUnsubscribe) clubsUnsubscribe();
-      if (fixturesUnsubscribe) fixturesUnsubscribe();
+      playerUnsubscribe?.();
+      clubUnsubscribe?.();
+      allClubsUnsubscribe?.();
+      fixturesUnsubscribe?.();
     };
   }, []);
 
   useEffect(() => {
-    if (!player || !user) return;
+    if (!player || !user || !selectedClub) return;
     const gameTick = setInterval(() => {
         const now = Date.now();
-        clubs.forEach(club => {
-            const finishedUpgrades = club.pendingUpgrades?.filter(upg => now >= upg.endTime);
-            if (finishedUpgrades?.length > 0) dataService.completeInfrastructureUpgrades(club.id, finishedUpgrades);
-        });
-        if (selectedClub?.activeTeamTraining && selectedClub.players) {
+        const finishedUpgrades = selectedClub.pendingUpgrades?.filter(upg => now >= upg.endTime);
+        if (finishedUpgrades?.length > 0) {
+            dataService.completeInfrastructureUpgrades(selectedClub.id, finishedUpgrades);
+        }
+
+        if (selectedClub.activeTeamTraining && selectedClub.players) {
             const def = TEAM_TRAININGS.find(t => t.id === selectedClub.activeTeamTraining!.trainingId);
             if (def) {
                 const endTime = selectedClub.activeTeamTraining!.startTime + def.durationSeconds * 1000;
@@ -88,20 +99,24 @@ const App: React.FC = () => {
         }
     }, 1000);
     return () => clearInterval(gameTick);
-  }, [player, user, clubs, selectedClub]);
+  }, [player, user, selectedClub]);
 
   useEffect(() => {
-    if (!player || !user || player.experience == null) return;
-    let xpNeeded = 100 + ((player.level || 1) - 1) * 50;
+    if (!player || !user || typeof player.experience !== 'number') return;
+
+    let xpNeeded = calculateXpNeeded(player.level || 1);
+    
     if (player.experience >= xpNeeded) {
-      let pAfterLvlUp = { ...player };
-      while (pAfterLvlUp.experience >= xpNeeded) {
-        pAfterLvlUp.experience -= xpNeeded;
-        pAfterLvlUp.level = (pAfterLvlUp.level || 1) + 1;
-        pAfterLvlUp.trainingPoints = (pAfterLvlUp.trainingPoints || 0) + 5;
-        xpNeeded = 100 + (pAfterLvlUp.level - 1) * 50;
+      let playerAfterLvlUp = { ...player };
+
+      while (playerAfterLvlUp.experience >= xpNeeded) {
+        playerAfterLvlUp.experience -= xpNeeded;
+        playerAfterLvlUp.level = (playerAfterLvlUp.level || 1) + 1;
+        playerAfterLvlUp.trainingPoints = (playerAfterLvlUp.trainingPoints || 0) + 5; 
+        xpNeeded = calculateXpNeeded(playerAfterLvlUp.level);
       }
-      dataService.updatePlayer(user.uid, pAfterLvlUp);
+
+      dataService.updatePlayer(user.uid, playerAfterLvlUp);
     }
   }, [player?.experience, player?.level, user?.uid]);
 
@@ -124,16 +139,23 @@ const App: React.FC = () => {
     const skills = getSkillsForPosition(player.position);
     const total = skills.reduce((sum, s) => sum + (player.skills?.[s] || 0), 0);
     const overall = skills.length > 0 ? Math.round(total / skills.length) : 0;
-    const needed = 100 + ((player.level || 1) - 1) * 50;
-    return { overallRating: overall, xpNeeded: needed, xpProgress: (player.experience / needed) * 100 };
+    const needed = calculateXpNeeded(player.level || 1);
+    const progress = player.experience > 0 ? (player.experience / needed) * 100 : 0;
+    return { 
+      overallRating: overall, 
+      xpNeeded: needed, 
+      xpProgress: Math.min(100, progress)
+    };
   }, [player]);
 
   const renderContent = () => {
-    if (activeView === 'home') return <Dashboard player={player!} club={selectedClub} allClubs={clubs} overallRating={overallRating} xpProgress={xpProgress} xpNeeded={xpNeeded} />;
+    if (activeView === 'home') return <Dashboard player={player!} club={selectedClub} allClubs={allClubs} overallRating={overallRating} xpProgress={xpProgress} xpNeeded={xpNeeded} />;
     if (activeView === 'skills') return <TrainingCenter player={player!} onTrain={handleTrainSkill} />;
     if (activeView === 'activities') return <ActivitiesComponent player={player!} onStart={handleStartActivity} onComplete={handleCompleteActivity} onReset={handleResetActivities} />;
     if (activeView === 'leaderboard') return <Leaderboard />;
     if (activeView === 'club-search') return <ClubSearch player={player!} />;
+    if (activeView === 'league') return <LeagueView fixtures={fixtures} allClubs={allClubs} />;
+    if (activeView === 'admin' && player?.roles.includes(UserRole.ADMIN)) return <LeagueManagement />;
     if (activeView === 'club') {
       if (player?.clubId && !selectedClub) {
         return <div className="h-full flex items-center justify-center"><h1 className="text-emerald-500 font-black animate-pulse text-2xl">LADE VEREINSDATEN...</h1></div>;

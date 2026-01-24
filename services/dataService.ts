@@ -13,6 +13,11 @@ const getNextHourlyTimestamp = () => {
     return now.getTime();
 };
 
+const getXpForSkillUpgrade = (currentSkillLevel: number): number => {
+    const rank = Math.floor(currentSkillLevel / 100);
+    return (1 + rank) * XP_PER_SKILL_UPGRADE;
+};
+
 // Helper to calculate all player and club updates from a completed activity.
 const calculateActivityRewards = (player: Player, activity: Activity) => {
     const playerUpdates: { [key: string]: any } = {};
@@ -24,10 +29,12 @@ const calculateActivityRewards = (player: Player, activity: Activity) => {
     if (activity.reward.skills && typeof activity.reward.skills === 'object') {
         for (const [skill, value] of Object.entries(activity.reward.skills)) {
             if (typeof value === 'number' && value > 0) {
-                // Add the skill point
-                playerUpdates[`skills.${skill as SkillType}`] = ((player.skills?.[skill as SkillType]) || 0) + value;
-                // Add XP for gaining a skill point from an activity
-                totalXpGain += value * XP_PER_SKILL_UPGRADE;
+                const currentSkillLevel = player.skills?.[skill as SkillType] || 0;
+                playerUpdates[`skills.${skill as SkillType}`] = currentSkillLevel + value;
+                
+                for (let i = 0; i < value; i++) {
+                    totalXpGain += getXpForSkillUpgrade(currentSkillLevel + i);
+                }
             }
         }
     }
@@ -77,10 +84,10 @@ const dataService = {
                 players: [uid],
                 budget: 50000, // Starting budget
                 infrastructure: {
-                    stadium: { level: 1 },
-                    training_ground: { level: 1 },
-                    medical_center: { level: 1 },
-                    marketing_department: { level: 1 },
+                    stadium: { level: 0 },
+                    training_ground: { level: 0 },
+                    medical_center: { level: 0 },
+                    marketing_department: { level: 0 },
                 },
                 pendingApplications: [],
                 pendingUpgrades: [],
@@ -165,21 +172,18 @@ const dataService = {
       const player = playerDoc.data() as Player;
       const currentSkillLevel = player.skills?.[skill] || 0;
 
-      // Calculate cost based on current skill level tier
-      // 0-19: Amateur (1 TP)
-      // 20-39: Profi (3 TP)
-      // 40-59: Elite (5 TP)
-      // etc.
-      const rank = Math.floor(currentSkillLevel / 20);
+      const rank = Math.floor(currentSkillLevel / 100);
       const cost = 1 + rank * 2;
 
       if ((player.trainingPoints || 0) < cost) {
         throw new Error(`Nicht genügend Trainingspunkte. Benötigt: ${cost}`);
       }
 
+      const xpGained = getXpForSkillUpgrade(currentSkillLevel);
+
       transaction.update(playerRef, {
         trainingPoints: (player.trainingPoints || 0) - cost,
-        experience: (player.experience || 0) + XP_PER_SKILL_UPGRADE, // XP für das Upgrade gewähren
+        experience: (player.experience || 0) + xpGained, 
         [`skills.${skill}`]: currentSkillLevel + 1,
       });
     });
@@ -248,6 +252,17 @@ const dataService = {
   // CLUB & TEAM TRAINING
   // =========================================================================
 
+  listenToClub(clubId: string, callback: (club: Club | null) => void): () => void {
+    const clubRef = doc(db, 'clubs', clubId);
+    return onSnapshot(clubRef, (doc) => {
+        if (doc.exists()) {
+            callback({ id: doc.id, ...doc.data() } as Club);
+        } else {
+            callback(null);
+        }
+    });
+  },
+
   listenToClubs(callback: (clubs: Club[]) => void): () => void {
     const clubsRef = collection(db, 'clubs');
     return onSnapshot(clubsRef, (snapshot) => {
@@ -291,61 +306,8 @@ const dataService = {
   },
 
   async completeTeamTraining(clubId: string, uid: string): Promise<void> {
-    await runTransaction(db, async (transaction) => {
-        console.log(`Completing training for club ${clubId}`);
-        const clubRef = doc(db, 'clubs', clubId);
-        const clubDoc = await transaction.get(clubRef);
-
-        if (!clubDoc.exists()) throw new Error(`Club ${clubId} not found.`);
-        const club = clubDoc.data() as Club;
-
-        if (!club.activeTeamTraining) {
-            console.log(`Club ${clubId} has no active team training.`);
-            transaction.update(clubRef, { activeTeamTraining: null });
-            return;
-        }
-        
-        const trainingDef = TEAM_TRAININGS.find(t => t.id === club.activeTeamTraining!.trainingId);
-        if (!trainingDef) {
-            console.error(`Team training definition for ${club.activeTeamTraining.trainingId} not found.`);
-            transaction.update(clubRef, { activeTeamTraining: null });
-            return;
-        }
-
-        const endTime = club.activeTeamTraining.startTime + trainingDef.durationSeconds * 1000;
-        if (Date.now() < endTime) {
-             console.warn(`Training ${trainingDef.id} for club ${clubId} is not finished yet.`);
-             return;
-        }
-
-        const playerIds = club.players || [];
-        if (playerIds.length > 0) {
-            const reward = trainingDef.reward;
-            
-            const playerDocPromises = playerIds.map(id => transaction.get(doc(db, 'players', id)));
-            const playerDocs = await Promise.all(playerDocPromises);
-
-            for (const playerDoc of playerDocs) {
-                if (playerDoc.exists()) {
-                    const player = playerDoc.data() as Player;
-                    const playerRef = doc(db, 'players', playerDoc.id);
-                    const updates: { [key: string]: any } = {};
-
-                    updates.experience = (player.experience || 0) + (reward.xp || 0);
-
-                    if (reward.skills) {
-                        for (const [skill, value] of Object.entries(reward.skills)) {
-                            updates[`skills.${skill as SkillType}`] = ((player.skills?.[skill as SkillType]) || 0) + value;
-                        }
-                    }
-                    transaction.update(playerRef, updates);
-                }
-            }
-        }
-
-        transaction.update(clubRef, { activeTeamTraining: null });
-        console.log(`Successfully completed training ${trainingDef.id} for club ${clubId}`);
-    });
+    const completeTeamTrainingFunction = httpsCallable(functions, 'completeTeamTraining');
+    await completeTeamTrainingFunction({ clubId, uid });
   },
 
   // =========================================================================

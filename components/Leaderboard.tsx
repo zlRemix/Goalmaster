@@ -77,6 +77,7 @@ const PlayerLeaderboard: React.FC = () => {
 interface RankedClub extends Club {
     averageOverall: number;
     playerCount: number;
+    managerName?: string;
 }
 
 const ClubLeaderboardRow: React.FC<{ club: RankedClub; rank: number }> = ({ club, rank }) => {
@@ -112,11 +113,14 @@ const ClubLeaderboard: React.FC = () => {
     const rankedClubs = useMemo<RankedClub[]>(() => {
         if (!players.length || !clubs.length) return [];
 
+        const playerMap = new Map(players.map(p => [p.id, p.name]));
+
         const clubsWithStats = clubs.map(club => {
             const clubPlayers = players.filter(p => p.clubId === club.id);
             const totalOverall = clubPlayers.reduce((sum, p) => sum + getOverall(p), 0);
             const averageOverall = clubPlayers.length > 0 ? Math.round(totalOverall / clubPlayers.length) : 0;
-            return { ...club, averageOverall, playerCount: clubPlayers.length };
+            const managerName = club.managerId ? playerMap.get(club.managerId) : undefined;
+            return { ...club, averageOverall, playerCount: clubPlayers.length, managerName };
         });
 
         return clubsWithStats.sort((a, b) => b.averageOverall - a.averageOverall);

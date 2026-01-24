@@ -16,10 +16,10 @@ const SKILL_TRANSLATIONS: Record<SkillType, string> = {
 };
 
 const getTierInfo = (value: number) => {
-    // A tier is reached every 20 points.
-    const tier = Math.floor(value / 20);
-    // Progress within the current 20-point block.
-    const progress = (value % 20) / 20 * 100;
+    // Ein Rang wird alle 100 Punkte erreicht.
+    const tier = Math.floor(value / 100);
+    // Fortschritt innerhalb des aktuellen 100-Punkte-Blocks.
+    const progress = (value % 100);
     const tiers = [
       { l: 'Amateur', c: 'from-emerald-600 to-emerald-400' }, { l: 'Profi', c: 'from-blue-600 to-blue-400' },
       { l: 'Elite', c: 'from-purple-600 to-purple-400' }, { l: 'Weltklasse', c: 'from-cyan-600 to-cyan-400' },
@@ -29,7 +29,7 @@ const getTierInfo = (value: number) => {
       { l: 'Gottgleich', c: 'from-slate-400 to-slate-100' }, { l: 'Kosmisch', c: 'from-indigo-600 via-purple-600 to-pink-500' }
     ];
     const current = tiers[Math.min(tier, tiers.length - 1)];
-    return { tier, progress, colorClass: current.c, tierLabel: current.l, pointsToNext: 20 - (value % 20) };
+    return { tier, progress, colorClass: current.c, tierLabel: current.l, pointsToNext: 100 - (value % 100) };
 };
 
 export const TrainingCenter: React.FC<TrainingCenterProps> = ({ player, onTrain }) => {
@@ -71,7 +71,7 @@ export const TrainingCenter: React.FC<TrainingCenterProps> = ({ player, onTrain 
                             <div className="h-3 w-full bg-slate-900 rounded-full overflow-hidden border border-slate-800 p-0.5">
                                 <div className={`h-full bg-gradient-to-r ${colorClass} rounded-full`} style={{ width: `${progress}%` }}/>
                             </div>
-                            <p className="text-[9px] text-slate-600 font-bold uppercase tracking-tighter">{pointsToNext} bis Rang {tier + 2}</p>
+                            <p className="text-[9px] text-slate-600 font-bold uppercase tracking-tighter">{pointsToNext} bis Rang {tier + 1}</p>
                         </div>
                         <button onClick={() => onTrain(skill)} disabled={!canAfford} className={`h-14 w-14 rounded-lg flex flex-col items-center justify-center font-bold transition-all z-10 flex-shrink-0 ${
                             canAfford ? 'bg-slate-700 hover:bg-emerald-600 text-white cursor-pointer active:scale-90 border border-slate-600' : 'bg-slate-900 text-slate-600 cursor-not-allowed opacity-50 border border-slate-800'}`}>

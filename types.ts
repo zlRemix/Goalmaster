@@ -94,6 +94,7 @@ export interface Club {
   pendingUpgrades?: PendingUpgrade[];
   activeTeamTraining?: ActiveTeamTraining | null;
   pendingApplications?: string[]; // IDs of players who applied
+  isBot?: boolean;
 }
 
 export interface Fixture {
@@ -104,4 +105,4 @@ export interface Fixture {
   result?: string; // e.g. "2-1"
 }
 
-export type View = 'home' | 'skills' | 'club' | 'activities' | 'staff' | 'finances' | 'match' | 'leaderboard' | 'club-search';
+export type View = 'home' | 'skills' | 'club' | 'activities' | 'staff' | 'finances' | 'match' | 'leaderboard' | 'club-search' | 'admin' | 'league';

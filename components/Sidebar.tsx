@@ -6,8 +6,8 @@ interface SidebarProps {
   setView: (view: View) => void;
   roles: UserRole[];
   onLogout: () => void;
-  isOpen: boolean; // <-- NEW
-  setIsOpen: (isOpen: boolean) => void; // <-- NEW
+  isOpen: boolean; 
+  setIsOpen: (isOpen: boolean) => void; 
 }
 
 const NavItem: React.FC<{ 
@@ -16,7 +16,7 @@ const NavItem: React.FC<{
   activeView: View; 
   setView: (view: View) => void; 
   icon: string;
-  onClick: () => void; // <-- NEW: To close sidebar on mobile after click
+  onClick: () => void; 
 }> = ({ label, view, activeView, setView, icon, onClick }) => (
   <li className="mb-2">
     <button
@@ -35,6 +35,7 @@ const NavItem: React.FC<{
 
 export const Sidebar: React.FC<SidebarProps> = ({ activeView, setView, roles, onLogout, isOpen, setIsOpen }) => {
   const canManageClub = roles.includes(UserRole.MANAGER);
+  const isAdmin = roles.includes(UserRole.ADMIN);
 
   const handleNavItemClicked = () => {
       setIsOpen(false);
@@ -42,13 +43,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeView, setView, roles, on
 
   return (
     <>
-      {/* --- Overlay for Mobile --- */}
       <div 
         className={`fixed inset-0 bg-black/50 z-30 md:hidden transition-opacity ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
         onClick={() => setIsOpen(false)}
       ></div>
 
-      {/* --- Sidebar --- */}
       <aside className={`fixed top-0 left-0 h-full w-64 bg-slate-900 p-4 flex flex-col justify-between border-r border-slate-800 z-40 transition-transform transform md:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div>
           <div className="text-center mb-10 pt-4">
@@ -62,9 +61,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeView, setView, roles, on
               <NavItem label="Club" view="club" activeView={activeView} setView={setView} icon="🛡️" onClick={handleNavItemClicked} />
               <NavItem label="Aktivitäten" view="activities" activeView={activeView} setView={setView} icon="🤸" onClick={handleNavItemClicked} />
               <NavItem label="Rangliste" view="leaderboard" activeView={activeView} setView={setView} icon="🏆" onClick={handleNavItemClicked} />
-              {/* <NavItem label="Transfers" view="transfers" activeView={activeView} setView={setView} icon="🔄" onClick={handleNavItemClicked} />
-              <NavItem label="Liga" view="league" activeView={activeView} setView={setView} icon="🏆" onClick={handleNavItemClicked} /> */}
-              {/* {canManageClub && <NavItem label="Management" view="management" activeView={activeView} setView={setView} icon="💼" onClick={handleNavItemClicked} />} */}
+              <NavItem label="Liga" view="league" activeView={activeView} setView={setView} icon="🏆" onClick={handleNavItemClicked} />
+              {isAdmin && <NavItem label="Admin" view="admin" activeView={activeView} setView={setView} icon="👑" onClick={handleNavItemClicked} />}
             </ul>
           </nav>
         </div>
