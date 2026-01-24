@@ -1,7 +1,8 @@
-import { collection, doc, getDoc, onSnapshot, setDoc, updateDoc, arrayUnion, arrayRemove, runTransaction, serverTimestamp, FieldValue, query, where, getDocs, writeBatch } from 'firebase/firestore';
-import { db } from './firebase';
-import { Player, Club, Fixture, PlayerPosition, UserRole, PendingUpgrade, SkillType, ActiveActivity, Reward, InfrastructureType, ActiveTeamTraining, TeamTrainingSession } from '../types';
-import { ACTIVITIES, INFRA_UPGRADE_COSTS, INFRA_UPGRADE_TIMES, TEAM_TRAININGS, MAX_CLUB_PLAYERS } from '../constants';
+import { collection, doc, getDoc, onSnapshot, setDoc, updateDoc, arrayUnion, arrayRemove, runTransaction, serverTimestamp, FieldValue, query, where, getDocs, writeBatch, documentId } from 'firebase/firestore';
+import { httpsCallable } from 'firebase/functions';
+import { db, functions } from './firebase';
+import { Player, Club, Fixture, PlayerPosition, UserRole, PendingUpgrade, SkillType, ActiveActivity, Reward, InfrastructureType, ActiveTeamTraining, TeamTrainingSession, Activity } from '../types';
+import { ACTIVITIES, INFRA_UPGRADE_COSTS, INFRA_UPGRADE_TIMES, TEAM_TRAININGS, MAX_CLUB_PLAYERS, XP_PER_SKILL_UPGRADE } from '../constants';
 
 const getNextHourlyTimestamp = () => {
     const now = new Date();
@@ -11,6 +12,31 @@ const getNextHourlyTimestamp = () => {
     now.setMilliseconds(0);
     return now.getTime();
 };
+
+// Helper to calculate all player and club updates from a completed activity.
+const calculateActivityRewards = (player: Player, activity: Activity) => {
+    const playerUpdates: { [key: string]: any } = {};
+    let totalXpGain = activity.reward.xp || 0;
+    const budgetGain = activity.reward.budgetGain || 0;
+
+    playerUpdates.trainingPoints = (player.trainingPoints || 0) + (activity.reward.tp || 0);
+
+    if (activity.reward.skills && typeof activity.reward.skills === 'object') {
+        for (const [skill, value] of Object.entries(activity.reward.skills)) {
+            if (typeof value === 'number' && value > 0) {
+                // Add the skill point
+                playerUpdates[`skills.${skill as SkillType}`] = ((player.skills?.[skill as SkillType]) || 0) + value;
+                // Add XP for gaining a skill point from an activity
+                totalXpGain += value * XP_PER_SKILL_UPGRADE;
+            }
+        }
+    }
+    
+    playerUpdates.experience = (player.experience || 0) + totalXpGain;
+
+    return { playerUpdates, budgetGain };
+};
+
 
 const dataService = {
   // =========================================================================
@@ -30,7 +56,8 @@ const dataService = {
             const newClub: Club = {
                 id: clubRef.id,
                 name: clubName,
-                managerId: uid,
+                managerId: uid, // Correctly set the managerId
+                ownerId: uid, // Also set the ownerId for authorization
                 players: [uid],
                 budget: 50000, // Starting budget
                 infrastructure: {
@@ -87,7 +114,8 @@ const dataService = {
         return () => {};
     }
     const playersRef = collection(db, 'players');
-    const q = query(playersRef, where('id', 'in', playerIds));
+    // Query by the actual document ID, which is the most robust method.
+    const q = query(playersRef, where(documentId(), 'in', playerIds));
     
     return onSnapshot(q, (snapshot) => {
         const players = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Player));
@@ -120,6 +148,7 @@ const dataService = {
         const currentSkillLevel = (player.skills && player.skills[skill]) || 0;
         transaction.update(playerRef, {
             trainingPoints: (player.trainingPoints || 0) - 1,
+            experience: (player.experience || 0) + XP_PER_SKILL_UPGRADE, // Grant XP for using a TP
             [`skills.${skill}`]: currentSkillLevel + 1
         });
     });
@@ -144,38 +173,33 @@ const dataService = {
         const playerRef = doc(db, 'players', playerId);
         const playerDoc = await transaction.get(playerRef);
 
-        if (!playerDoc.exists()) return;
+        if (!playerDoc.exists()) throw new Error(`Player ${playerId} not found.`);
+        
         const player = playerDoc.data() as Player;
+        const activityDef = ACTIVITIES.find(a => a.id === activityId);
 
-        const def = ACTIVITIES.find(a => a.id === activityId);
-        if (!def) return;
+        if (!activityDef) throw new Error(`Activity definition ${activityId} not found.`);
 
         const activityInstance = player.activeActivities?.[0];
-        if (!activityInstance || activityInstance.activityId !== activityId) return;
-
-        let clubRef = null;
-        let clubDoc = null;
-        if (def.reward.budgetGain && player.clubId) {
-            clubRef = doc(db, 'clubs', player.clubId);
-            clubDoc = await transaction.get(clubRef);
+        if (!activityInstance || activityInstance.activityId !== activityId) {
+             console.warn(`Attempted to complete activity ${activityId} which is not active for player ${playerId}.`);
+            return;
         }
+        
+        const { playerUpdates, budgetGain } = calculateActivityRewards(player, activityDef as Activity);
 
-        const updates: { [key: string]: any } = {};
-        updates.experience = (player.experience || 0) + (def.reward.xp || 0);
-        updates.trainingPoints = (player.trainingPoints || 0) + (def.reward.tp || 0);
-        if (def.reward.skills) {
-            for (const [skill, value] of Object.entries(def.reward.skills)) {
-                updates[`skills.${skill}`] = ((player.skills?.[skill as SkillType]) || 0) + value;
+        playerUpdates.activeActivities = []; 
+        playerUpdates.completedActivityIds = arrayUnion(activityId);
+
+        transaction.update(playerRef, playerUpdates);
+
+        if (budgetGain > 0 && player.clubId) {
+            const clubRef = doc(db, 'clubs', player.clubId);
+            const clubDoc = await transaction.get(clubRef);
+            if (clubDoc.exists()) {
+                const currentBudget = clubDoc.data().budget || 0;
+                transaction.update(clubRef, { budget: currentBudget + budgetGain });
             }
-        }
-        updates.activeActivities = []; 
-        updates.completedActivityIds = arrayUnion(activityId);
-
-        transaction.update(playerRef, updates);
-
-        if (clubRef && clubDoc?.exists()) {
-            const currentBudget = clubDoc.data().budget || 0;
-            transaction.update(clubRef, { budget: currentBudget + def.reward.budgetGain });
         }
     });
   },
@@ -263,8 +287,8 @@ const dataService = {
   // =========================================================================
 
   async applyToClub(playerId: string, clubId: string): Promise<void> {
-    const clubRef = doc(db, 'clubs', clubId);
-    await updateDoc(clubRef, { pendingApplications: arrayUnion(playerId) });
+    const applyToClubFunction = httpsCallable(functions, 'applyToClub');
+    await applyToClubFunction({ clubId });
   },
 
   async cancelApplication(playerId: string, clubId: string): Promise<void> {
@@ -293,23 +317,8 @@ const dataService = {
   },
 
   async acceptApplication(clubId: string, playerId: string): Promise<void> {
-    await runTransaction(db, async (transaction) => {
-      const clubRef = doc(db, 'clubs', clubId);
-      const playerRef = doc(db, 'players', playerId);
-
-      const clubDoc = await transaction.get(clubRef);
-      if (!clubDoc.exists()) throw new Error("Club not found");
-      
-      const club = clubDoc.data() as Club;
-      if ((club.players?.length || 0) >= MAX_CLUB_PLAYERS) throw new Error("Club is full");
-
-      // Add player to club and set player's clubId
-      transaction.update(clubRef, { 
-        players: arrayUnion(playerId),
-        pendingApplications: arrayRemove(playerId) // Remove the application
-      });
-      transaction.update(playerRef, { clubId: clubId });
-    });
+    const acceptApplicationFunction = httpsCallable(functions, 'acceptApplication');
+    await acceptApplicationFunction({ clubId, playerId });
   },
 
   async acceptClubInvitation(playerId: string, clubId: string): Promise<void> {
@@ -359,8 +368,10 @@ const dataService = {
       if (currentLevel >= 10) throw new Error("Max level reached");
 
       const newUpgrade: PendingUpgrade = {
-        type, targetLevel: currentLevel + 1,
-        startTime: Date.now(), endTime: Date.now() + duration * 1000,
+        type, 
+        targetLevel: currentLevel + 1,
+        startTime: Date.now(), 
+        endTime: Date.now() + duration * 1000,
       };
 
       transaction.update(clubRef, {
@@ -378,7 +389,12 @@ const dataService = {
 
         const updates: { [key: string]: any } = { pendingUpgrades: arrayRemove(...upgrades) };
         for (const upgrade of upgrades) {
-            updates[`infrastructure.${upgrade.type}.level`] = upgrade.targetLevel;
+            // Ensure targetLevel is valid before updating
+            if (upgrade.targetLevel !== null && upgrade.targetLevel !== undefined) {
+                updates[`infrastructure.${upgrade.type}.level`] = upgrade.targetLevel;
+            } else {
+                console.warn(`Upgrade for ${upgrade.type} is missing targetLevel. It will be removed without updating the level.`);
+            }
         }
         transaction.update(clubRef, updates);
     });

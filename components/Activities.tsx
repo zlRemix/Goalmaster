@@ -1,19 +1,34 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Player, Activity, ActiveActivity, UserRole } from '../types';
 import { ACTIVITIES } from '../constants';
 
 // --- HOOKS & HELPERS --- //
+
+// Updated hook for smoother countdown
 const useCountdown = (endTime: number) => {
-  const calculateRemaining = () => Math.max(0, Math.floor((endTime - Date.now()) / 1000));
-  const [totalSeconds, setTotalSeconds] = useState(calculateRemaining);
+  const calculateRemaining = () => Math.max(0, endTime - Date.now());
+  const [remainingMs, setRemainingMs] = useState(calculateRemaining);
 
   useEffect(() => {
-    setTotalSeconds(calculateRemaining());
-    const timer = setInterval(() => setTotalSeconds(prev => Math.max(0, prev - 1)), 1000);
+    if (endTime <= Date.now()) {
+      setRemainingMs(0);
+      return;
+    }
+
+    const timer = setInterval(() => {
+      const newRemaining = calculateRemaining();
+      if (newRemaining <= 0) {
+        setRemainingMs(0);
+        clearInterval(timer);
+      } else {
+        setRemainingMs(newRemaining);
+      }
+    }, 50); // Update every 50ms for a smoother visual
+
     return () => clearInterval(timer);
   }, [endTime]);
 
-  return totalSeconds;
+  return remainingMs;
 };
 
 const formatDuration = (totalSeconds: number) => {
@@ -37,8 +52,13 @@ const getAppearanceAndCategory = (activity: Activity) => {
 // --- CHILD COMPONENTS (NOW RESPONSIVE) --- //
 
 const ActiveActivityStatus: React.FC<{ activeInstance: ActiveActivity, activityDef: Activity }> = ({ activeInstance, activityDef }) => {
-    const remainingSeconds = useCountdown(activeInstance.startTime + activityDef.durationSeconds * 1000);
-    const progress = Math.min(100, (activityDef.durationSeconds - remainingSeconds) / activityDef.durationSeconds * 100);
+    const totalDurationMs = activityDef.durationSeconds * 1000;
+    const endTime = activeInstance.startTime + totalDurationMs;
+    const remainingMs = useCountdown(endTime);
+    
+    const progress = Math.min(100, Math.max(0, ((totalDurationMs - remainingMs) / totalDurationMs) * 100));
+    const remainingSecondsForDisplay = Math.ceil(remainingMs / 1000);
+
     const { icon, color } = getAppearanceAndCategory(activityDef);
 
     return (
@@ -50,19 +70,21 @@ const ActiveActivityStatus: React.FC<{ activeInstance: ActiveActivity, activityD
                     <h3 className="text-lg md:text-2xl font-black text-white">{activityDef.name}</h3>
                 </div>
                 <div className="text-center bg-slate-900/50 p-3 rounded-lg w-full sm:w-auto">
-                     <p className="text-2xl md:text-4xl font-black text-emerald-400 tracking-widest">{formatDuration(remainingSeconds)}</p>
+                     <p className="text-2xl md:text-4xl font-black text-emerald-400 tracking-widest tabular-nums">{formatDuration(remainingSecondsForDisplay)}</p>
                      <p className="text-[10px] text-slate-600 font-bold uppercase tracking-widest">Verbleibend</p>
                 </div>
             </div>
             <div className="h-3 w-full bg-slate-900 rounded-full overflow-hidden border border-slate-800 p-0.5 mt-4">
-                <div className={`h-full ${color} rounded-full`} style={{ width: `${progress}%`, transition: 'width 1s linear' }} />
+                <div className={`h-full ${color} rounded-full`} style={{ width: `${progress}%`, transition: 'width 0.05s linear' }} />
             </div>
         </div>
     );
 };
 
+
 const ResetCountdown: React.FC<{ nextResetTime: number }> = ({ nextResetTime }) => {
-    const totalSeconds = useCountdown(nextResetTime || 0);
+    const remainingMs = useCountdown(nextResetTime || 0);
+    const remainingSecondsForDisplay = Math.ceil(remainingMs / 1000);
 
     return (
         <div className="bg-slate-900/50 p-4 rounded-2xl border border-slate-800 flex items-center gap-4">
@@ -72,7 +94,7 @@ const ResetCountdown: React.FC<{ nextResetTime: number }> = ({ nextResetTime }) 
                 <p className="text-xs text-slate-500 font-medium uppercase tracking-tight">Stündliches Zurücksetzen</p>
             </div>
             <div className="ml-auto text-right">
-                <p className="text-lg md:text-2xl font-black text-blue-400 tracking-widest">{formatDuration(totalSeconds)}</p>
+                <p className="text-lg md:text-2xl font-black text-blue-400 tracking-widest tabular-nums">{formatDuration(remainingSecondsForDisplay)}</p>
             </div>
         </div>
     );
@@ -81,11 +103,54 @@ const ResetCountdown: React.FC<{ nextResetTime: number }> = ({ nextResetTime }) 
 
 // --- MAIN COMPONENT (NOW RESPONSIVE) --- //
 
-export const Activities: React.FC<{ player: Player; onStart: (activityId: string) => void; }> = ({ player, onStart }) => {
+export const Activities: React.FC<{ player: Player; onStart: (activityId: string) => void; onComplete: (activityId: string) => void; onReset: () => void; }> = ({ player, onStart, onComplete, onReset }) => {
     const activeInstance = player.activeActivities?.[0];
     const activeDef = activeInstance ? ACTIVITIES.find(a => a.id === activeInstance.activityId) : undefined;
 
-    const availableActivities = ACTIVITIES.filter(act => !act.requiredRole || player.roles?.includes(act.requiredRole));
+    // More robust effect for activity completion
+    useEffect(() => {
+        if (!activeInstance || !activeDef) {
+            return; // No active activity, nothing to do.
+        }
+
+        const endTime = activeInstance.startTime + (activeDef.durationSeconds * 1000);
+        const remainingTime = endTime - Date.now();
+
+        if (remainingTime <= 0) {
+            onComplete(activeDef.id);
+            return;
+        }
+
+        const completionTimer = setTimeout(() => {
+            onComplete(activeDef.id);
+        }, remainingTime);
+
+        return () => clearTimeout(completionTimer);
+
+    }, [activeInstance?.activityId, onComplete]);
+
+    // More robust effect for the hourly reset
+    useEffect(() => {
+        if (!player.nextActivityReset) {
+            return; // No reset time scheduled.
+        }
+
+        const remainingTime = player.nextActivityReset - Date.now();
+
+        if (remainingTime <= 0) {
+            onReset();
+            return;
+        }
+
+        const resetTimer = setTimeout(() => {
+            onReset();
+        }, remainingTime);
+
+        return () => clearTimeout(resetTimer);
+    }, [player.nextActivityReset, onReset]);
+
+
+    const availableActivities = ACTIVITIES;
     const isActivityRunning = !!activeDef;
 
     return (
@@ -103,20 +168,21 @@ export const Activities: React.FC<{ player: Player; onStart: (activityId: string
 
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6">
                 {availableActivities.map((activity) => {
-                    const { icon, color, category } = getAppearanceAndCategory(activity);
+                    const { icon, color, category } = getAppearanceAndCategory(activity as Activity);
                     const reward = activity.reward || {tp: 0, xp: 0};
                     const isCompleted = player.completedActivityIds?.includes(activity.id);
-                    const canStart = !isActivityRunning && !isCompleted;
+                    const canPerformRole = !activity.requiredRole || player.roles?.includes(activity.requiredRole);
+                    const canStart = !isActivityRunning && !isCompleted && canPerformRole;
 
                     return (
-                        <div key={activity.id} className={`bg-slate-800/80 rounded-3xl p-6 border border-slate-700 flex flex-col justify-between shadow-lg transition-all relative overflow-hidden group ${isCompleted ? 'opacity-40 grayscale' : ''}`}>
+                        <div key={activity.id} className={`bg-slate-800/80 rounded-3xl p-6 border border-slate-700 flex flex-col justify-between shadow-lg transition-all relative overflow-hidden group ${!canStart ? 'opacity-40 grayscale' : ''}`}>
                              <div className="absolute -right-4 -top-4 text-6xl opacity-5 group-hover:scale-110 transition-transform select-none">{icon}</div>
                             <div>
                                 <div className="flex justify-between items-start mb-4">
                                     <div className="text-3xl p-3 bg-slate-900 rounded-2xl border border-slate-700 shadow-inner">{icon}</div>
                                     <div className="text-right">
-                                        <p className="text-emerald-400 font-bold text-lg">+{reward.tp} TP</p>
-                                        <p className="text-blue-400 font-bold text-xs">+{reward.xp} XP</p>
+                                        <p className="text-emerald-400 font-bold text-lg">+{reward.tp || 0} TP</p>
+                                        <p className="text-blue-400 font-bold text-xs">+{reward.xp || 0} XP</p>
                                     </div>
                                 </div>
                                 <h3 className="text-lg font-black mb-1 text-white">{activity.name}</h3>

@@ -1,147 +1,60 @@
-import { SkillType, Activity, InfrastructureType, TeamTrainingSession, UserRole, PlayerPosition } from './types';
+import { InfrastructureType, PlayerPosition, SkillType, UserRole } from "./types";
 
-export const SKILL_UPGRADE_COST = 1;
-export const MAX_CLUB_PLAYERS = 5;
+export const MAX_CLUB_PLAYERS = 25;
+export const XP_PER_SKILL_UPGRADE = 10; // XP gained for each skill point spent
 
-// All available player positions for selection.
-export const POSITIONS: PlayerPosition[] = ['Stürmer', 'Mittelfeld', 'Abwehr', 'Torwart'];
+export const POSITIONS: PlayerPosition[] = ['Torwart', 'Abwehr', 'Mittelfeld', 'Stürmer'];
 
-export const POSITION_SKILLS: Record<string, SkillType[]> = {
-  'Stürmer': ['finishing', 'shot_power', 'heading', 'long_shots', 'dribbling', 'pace'],
-  'Mittelfeld': ['passing', 'dribbling', 'vision', 'tackling', 'stamina', 'long_shots'],
-  'Abwehr': ['tackling', 'marking', 'interceptions', 'strength', 'heading', 'aggression'],
-  'Torwart': ['handling', 'reflexes', 'diving', 'positioning', 'communication', 'kicking'],
+// prettier-ignore
+export const getSkillsForPosition = (position: string): SkillType[] => {
+    switch (position) {
+        case 'TW': return ['handling', 'reflexes', 'diving', 'positioning', 'communication', 'kicking', 'strength'];
+        case 'IV': return ['tackling', 'marking', 'interceptions', 'heading', 'strength', 'aggression', 'stamina', 'passing'];
+        case 'AV': return ['tackling', 'pace', 'dribbling', 'passing', 'stamina', 'interceptions', 'vision'];
+        case 'DM': return ['tackling', 'interceptions', 'passing', 'vision', 'stamina', 'strength', 'long_shots'];
+        case 'ZM': return ['passing', 'vision', 'dribbling', 'tackling', 'stamina', 'long_shots', 'finishing', 'pace'];
+        case 'OM': return ['dribbling', 'passing', 'vision', 'finishing', 'long_shots', 'pace', 'shot_power'];
+        case 'ST': return ['finishing', 'shot_power', 'heading', 'long_shots', 'dribbling', 'pace', 'strength'];
+        default: return [];
+    }
 };
 
-export const INFRA_UPGRADE_COSTS = [
-  50000, 150000, 300000, 500000, 800000, 1200000, 2000000, 3500000, 6000000, 10000000
+export const ACTIVITIES = [
+  { id: 'light_training', name: 'Leichtes Training', type: 'training', description: 'Eine lockere Einheit, um in Form zu bleiben und Routine aufzubauen.', durationSeconds: 60 * 5, reward: { tp: 1, xp: 5 } },
+  { id: 'gym_session', name: 'Kraftraum', type: 'training', description: 'Fokus auf Kraft und Kondition, um die physische Präsenz zu stärken.', durationSeconds: 60 * 10, reward: { tp: 2, xp: 10 } },
+  { id: 'skill_drill', name: 'Technik-Drill', type: 'training', description: 'Intensive Übungen zur Verbesserung spezifischer technischer Fähigkeiten.', durationSeconds: 60 * 15, reward: { tp: 3, xp: 15 } },
+  { id: 'tactic_meeting', name: 'Taktik-Besprechung', type: 'tactic', description: 'Analyse von Gegnern und Entwicklung von Spielstrategien mit dem Team.', durationSeconds: 60 * 8, reward: { tp: 1, xp: 8 } },
+  { id: 'video_analysis', name: 'Video-Analyse', type: 'tactic', description: 'Eigenständige Analyse von Spielszenen zur Verbesserung des taktischen Verständnisses.', durationSeconds: 60 * 12, reward: { tp: 2, xp: 12 } },
+  { id: 'press_conference', name: 'Pressekonferenz', type: 'pr', description: 'Stelle dich den Fragen der Journalisten und stärke dein Markenimage.', durationSeconds: 60 * 7, reward: { xp: 15, budgetGain: 5000 }, requiredRole: UserRole.MANAGER },
+  { id: 'fan_meetup', name: 'Fan-Treffen', type: 'pr', description: 'Interagiere mit den Fans, um die Vereinsbindung zu stärken.', durationSeconds: 60 * 20, reward: { xp: 25, budgetGain: 10000 }, requiredRole: UserRole.MANAGER },
+  { id: 'yoga_session', name: 'Yoga-Einheit', type: 'fitness', description: 'Verbessere deine Flexibilität und mentale Stärke.', durationSeconds: 60 * 10, reward: { tp: 1, xp: 5 } },
+  { id: 'team_dinner', name: 'Team-Abendessen', type: 'social', description: 'Stärke den Teamgeist bei einem gemeinsamen Abendessen.', durationSeconds: 60 * 25, reward: { xp: 20 } },
 ];
 
-export const INFRA_UPGRADE_TIMES = [
-  3600, 7200, 14400, 28800, 57600, 115200, 230400, 460800, 921600, 1843200
-];
+export const INFRA_UPGRADE_COSTS = [10000, 25000, 50000, 100000, 200000, 400000, 800000, 1500000, 3000000, 5000000];
+export const INFRA_UPGRADE_TIMES = [30, 60, 120, 240, 480, 960, 1920, 3840, 7680, 15360]; // in seconds
 
 export const INFRA_LEVEL_BENEFITS: Record<InfrastructureType, string[]> = {
-    stadium: Array.from({ length: 10 }, (_, i) => `+${(i + 1) * 500} Ticketeinnahmen pro Heimspiel.`),
-    training_ground: Array.from({ length: 10 }, (_, i) => `+${(i + 1) * 2}% Bonus auf Trainings-TP.`),
-    youth_academy: Array.from({ length: 10 }, (_, i) => `Scoutet alle 24 Stunden einen neuen Jugendspieler (Level ${(i + 1) * 5}).`),
-    scouting_network: Array.from({ length: 10 }, (_, i) => `Verbessert die Genauigkeit der Spieler-Scouting-Berichte um ${(i + 1) * 5}%.`),
+    [InfrastructureType.STADIUM]: [
+        "+1% Ticketeinnahmen", "+2% Ticketeinnahmen", "+3% Ticketeinnahmen", "+4% Ticketeinnahmen", "+5% Ticketeinnahmen", 
+        "+6% Ticketeinnahmen", "+7% Ticketeinnahmen", "+8% Ticketeinnahmen", "+9% Ticketeinnahmen", "+10% Ticketeinnahmen"
+    ],
+    [InfrastructureType.TRAINING_GROUND]: [
+        "+2% TP-Gewinn", "+4% TP-Gewinn", "+6% TP-Gewinn", "+8% TP-Gewinn", "+10% TP-Gewinn", 
+        "+12% TP-Gewinn", "+14% TP-Gewinn", "+16% TP-Gewinn", "+18% TP-Gewinn", "+20% TP-Gewinn"
+    ],
+    [InfrastructureType.YOUTH_ACADEMY]: [
+        "Scoutet alle 3 Tage", "Scoutet alle 2.5 Tage", "Scoutet alle 2 Tage", "Scoutet alle 1.5 Tage", "Scoutet alle 24h", 
+        "Bessere Talentqualität (Low)", "Bessere Talentqualität (Mid)", "Bessere Talentqualität (High)", "Scoutet alle 12h", "Maximale Talentqualität"
+    ],
+    [InfrastructureType.SCOUTING_NETWORK]: [
+        "Genauigkeit +5%", "Genauigkeit +10%", "Genauigkeit +15%", "Genauigkeit +20%", "Genauigkeit +25%", 
+        "Aufdecken von Potenzial (Low)", "Aufdecken von Potenzial (Mid)", "Aufdecken von Potenzial (High)", "Aufdecken von allen Attributen", "Maximale Genauigkeit & Potenzial"
+    ],
 };
 
-
-// --- NEW: TEAM TRAINING SESSIONS --- //
-export const TEAM_TRAININGS: TeamTrainingSession[] = [
-    {
-        id: 'tt_taktik',
-        name: 'Taktikschulung',
-        description: 'Verbessert das Stellungsspiel und das taktische Verständnis des gesamten Teams.',
-        durationSeconds: 3600, // 1 hour
-        reward: { xp: 100, tp: 5 }
-    },
-    {
-        id: 'tt_abschluss',
-        name: 'Abschlusstraining',
-        description: 'Fokussiert das Training auf Torschüsse und Angriffsszenarien.',
-        durationSeconds: 2700, // 45 minutes
-        reward: { xp: 80, tp: 8 }
-    },
-    {
-        id: 'tt_verteidigung',
-        name: 'Defensiv-Drill',
-        description: 'Stärkt die Abwehrreihen durch Zweikampf- und Stellungsspiel-Übungen.',
-        durationSeconds: 2700, // 45 minutes
-        reward: { xp: 80, tp: 8 }
-    },
-    {
-        id: 'tt_regeneration',
-        name: 'Regenerationseinheit',
-        description: 'Lockeres Training zur schnelleren Erholung der Spieler nach einem anstrengenden Match.',
-        durationSeconds: 1800, // 30 minutes
-        reward: { xp: 50, tp: 3 }
-    }
-];
-
-
-export const ACTIVITIES: Activity[] = [
-  {
-    id: 'sprint_training',
-    name: 'Sprint-Training',
-    description: 'Verbessere deine Grundschnelligkeit und Ausdauer auf dem Platz.',
-    durationSeconds: 120,
-    reward: { tp: 10, xp: 20 },
-    type: 'training'
-  },
-  {
-    id: 'technique_drill',
-    name: 'Technik-Drill',
-    description: 'Feile an deiner Ballkontrolle, deinem Dribbling und Passspiel.',
-    durationSeconds: 180,
-    reward: { tp: 15, xp: 30 },
-    type: 'training'
-  },
-  {
-    id: 'physio_session',
-    name: 'Physio-Behandlung',
-    description: 'Regeneration und Verletzungsprävention mit dem medizinischen Team.',
-    durationSeconds: 240, 
-    reward: { tp: 5, xp: 15 },
-    type: 'fitness'
-  },
-  {
-    id: 'tactic_meeting',
-    name: 'Taktik-Besprechung',
-    description: 'Analyse des nächsten Gegners und Planung der Spielstrategie.',
-    durationSeconds: 300,
-    reward: { tp: 20, xp: 50 },
-    type: 'tactic'
-  },
-  {
-    id: 'video_analysis',
-    name: 'Video-Analyse',
-    description: 'Studiere deine eigene Leistung und die von Top-Spielern.',
-    durationSeconds: 400,
-    reward: { tp: 25, xp: 60 },
-    type: 'tactic'
-  },
-  {
-    id: 'press_conference',
-    name: 'Pressekonferenz',
-    description: 'Stelle dich den Fragen der Journalisten und baue dein Image auf.',
-    durationSeconds: 150,
-    reward: { tp: 30, xp: 70, budgetGain: 5000 },
-    type: 'pr'
-  },
-  {
-    id: 'sponsor_meeting',
-    name: 'Sponsoren-Termin',
-    description: 'Triff potenzielle Sponsoren, um die Finanzen des Clubs zu stärken.',
-    durationSeconds: 600,
-    reward: { tp: 50, xp: 100, budgetGain: 25000 },
-    requiredRole: UserRole.MANAGER,
-    type: 'pr'
-  },
-  {
-    id: 'autograph_signing',
-    name: 'Autogrammstunde',
-    description: 'Interagiere mit den Fans und stärke die Bindung zum Verein.',
-    durationSeconds: 200,
-    reward: { tp: 40, xp: 80, budgetGain: 10000 },
-    type: 'pr'
-  },
-  {
-    id: 'ice_bath',
-    name: 'Eisbad',
-    description: 'Reduziere Muskelkater und beschleunige die Regeneration.',
-    durationSeconds: 90,
-    reward: { tp: 8, xp: 25 },
-    type: 'fitness'
-  },
-  {
-    id: 'team_dinner',
-    name: 'Team-Abend',
-    description: 'Gemeinsames Abendessen zur Stärkung des Teamgeists.',
-    durationSeconds: 600,
-    reward: { tp: 20, xp: 40 },
-    type: 'social'
-  }
+export const TEAM_TRAININGS = [
+    { id: 'match_prep', name: 'Spielvorbereitung', description: 'Intensive taktische Vorbereitung auf den nächsten Gegner.', durationSeconds: 60 * 30, reward: { xp: 50, tp: 5 } },
+    { id: 'endurance_camp', name: 'Ausdauer-Camp', description: 'Ein hartes Camp zur Steigerung der Grundlagenausdauer des gesamten Teams.', durationSeconds: 60 * 60 * 2, reward: { xp: 100, tp: 10 } },
+    { id: 'finishing_drills', name: 'Abschluss-Drills', description: 'Fokus auf Torschuss- und Abschlusstechniken für alle Offensivspieler.', durationSeconds: 60 * 45, reward: { xp: 75, tp: 8 } },
 ];

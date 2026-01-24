@@ -27,7 +27,7 @@ const Login = () => {
     <div className="h-screen bg-slate-950 flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
         <form onSubmit={handleAuthAction} className="bg-slate-900 shadow-2xl rounded-[2.5rem] p-8 pt-6 border border-slate-800">
-           <h2 className="text-3xl font-black text-center mb-2 text-white">GoalMaster</h2>
+        <h1 className="text-3xl font-black text-white text-center" >Pro<span className="text-emerald-500">Soccer</span></h1>
           <p className="text-slate-500 text-center mb-8 text-sm uppercase tracking-widest font-bold">{isRegistering ? 'Konto erstellen' : 'Willkommen zurück'}</p>
           
           <div className="mb-4">

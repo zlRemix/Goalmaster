@@ -219,9 +219,19 @@ export const ClubDashboard: React.FC<ClubDashboardProps> = ({ club, player, onUp
     const isManager = player.roles.includes(UserRole.MANAGER);
 
     useEffect(() => {
-        if (club?.players) {
-            const unsubscribe = dataService.listenToPlayers(club.players, setSquadPlayers);
-            return () => unsubscribe();
+        if (club) {
+            // Ensure the manager is always included in the squad list, even if DB is inconsistent.
+            const playerIds = new Set(club.players || []);
+            if (club.managerId) {
+                playerIds.add(club.managerId);
+            }
+
+            if (playerIds.size > 0) {
+                const unsubscribe = dataService.listenToPlayers(Array.from(playerIds), setSquadPlayers);
+                return () => unsubscribe();
+            } else {
+                setSquadPlayers([]);
+            }
         } else {
             setSquadPlayers([]);
         }
@@ -230,6 +240,36 @@ export const ClubDashboard: React.FC<ClubDashboardProps> = ({ club, player, onUp
     useEffect(() => {
       if (!isManager && clubNav === 'management') setClubNav('infrastructure');
     }, [isManager, clubNav]);
+
+    useEffect(() => {
+        const checkState = () => {
+            if (!club) return;
+
+            // Check for completed infrastructure upgrades
+            if (club.pendingUpgrades?.length) {
+                const now = Date.now();
+                const completed = club.pendingUpgrades.filter(upg => now >= (upg.endTime || 0));
+                if (completed.length > 0) {
+                    dataService.completeInfrastructureUpgrades(club.id, completed);
+                }
+            }
+
+            // Check for completed team training
+            if (club.activeTeamTraining) {
+                const trainingDef = TEAM_TRAININGS.find(t => t.id === club.activeTeamTraining!.trainingId);
+                if (trainingDef) {
+                    const endTime = (club.activeTeamTraining!.startTime || 0) + trainingDef.durationSeconds * 1000;
+                    if (Date.now() >= endTime) {
+                        dataService.completeTeamTraining(club.id, club.players, club.activeTeamTraining);
+                    }
+                }
+            }
+        };
+
+        const interval = setInterval(checkState, 2000); // Check every 2 seconds
+
+        return () => clearInterval(interval);
+    }, [club]);
 
     const handleStartTeamTraining = (trainingId: string) => {
         if (club) dataService.startTeamTraining(club.id, trainingId);

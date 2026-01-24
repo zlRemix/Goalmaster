@@ -7,10 +7,10 @@ export enum UserRole {
 }
 
 export type SkillType = 
-  | 'pace' | 'shot_power' | 'finishing' | 'passing' | 'dribbling' 
-  | 'tackling' | 'vision' | 'stamina' | 'heading' | 'long_shots' 
-  | 'marking' | 'interceptions' | 'strength' | 'aggression' 
-  | 'handling' | 'reflexes' | 'diving' | 'positioning' | 'communication' | 'kicking';
+ | 'pace' | 'shot_power' | 'finishing' | 'passing' | 'dribbling' 
+ | 'tackling' | 'vision' | 'stamina' | 'heading' | 'long_shots' 
+ | 'marking' | 'interceptions' | 'strength' | 'aggression' 
+ | 'handling' | 'reflexes' | 'diving' | 'positioning' | 'communication' | 'kicking';
 
 export interface Reward {
   xp?: number;
@@ -87,6 +87,7 @@ export interface Club {
   id: string;
   name: string;
   managerId: string;
+  ownerId: string; // Add ownerId for authorization
   players: string[];
   budget: number;
   infrastructure: Partial<Record<InfrastructureType, InfrastructureItem>>;

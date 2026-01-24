@@ -16,7 +16,6 @@ import ProfileSetup from './components/ProfileSetup';
 import { getSkillsForPosition } from './utils';
 import { Menu } from 'lucide-react';
 
-// Holder for our subscription cleanup functions
 let playerUnsubscribe: (() => void) | null = null;
 let clubsUnsubscribe: (() => void) | null = null;
 let fixturesUnsubscribe: (() => void) | null = null;
@@ -34,32 +33,26 @@ const App: React.FC = () => {
   const selectedClub = useMemo(() => clubs.find(c => c.id === player?.clubId), [clubs, player?.clubId]);
 
   const resetAllState = useCallback(() => {
-    console.log("RESETTING ALL APPLICATION STATE");
-    // Cleanup listeners
     if (playerUnsubscribe) playerUnsubscribe();
     if (clubsUnsubscribe) clubsUnsubscribe();
     if (fixturesUnsubscribe) fixturesUnsubscribe();
     playerUnsubscribe = clubsUnsubscribe = fixturesUnsubscribe = null;
-    
-    // Reset state variables
     setUser(null);
     setPlayer(null);
     setClubs([]);
     setFixtures([]);
     setActiveView('home');
     setPlayerExists(undefined);
-    setIsInitializing(true); // Start initializing for the new user
+    setIsInitializing(true);
   }, []);
 
   useEffect(() => {
     const authUnsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-      resetAllState(); // CRITICAL: Reset state on every auth change
+      resetAllState();
       if (firebaseUser) {
-        console.log("New user detected:", firebaseUser.uid);
         setUser(firebaseUser);
       } else {
-        console.log("User logged out.");
-        setIsInitializing(false); // No user, so we are not initializing anything
+        setIsInitializing(false);
       }
     });
     return () => authUnsubscribe();
@@ -68,24 +61,15 @@ const App: React.FC = () => {
   useEffect(() => {
     if (!user) return;
 
-    console.log("Setting up listeners for user:", user.uid);
-    playerUnsubscribe = dataService.listenToPlayer(user.uid, (p) => { 
-      if (p) {
-        setPlayer(p);
-        setPlayerExists(true);
-      } else {
-        setPlayer(null);
-        setPlayerExists(false);
-      }
+    playerUnsubscribe = dataService.listenToPlayer(user.uid, (p) => {
+      setPlayer(p ? { ...p, id: user.uid } : null);
+      setPlayerExists(!!p);
       setIsInitializing(false);
     });
-    
     clubsUnsubscribe = dataService.listenToClubs(setClubs);
     fixturesUnsubscribe = dataService.listenToFixtures(setFixtures);
 
-    // The return function of useEffect is the cleanup function
     return () => {
-      console.log("Cleaning up listeners for user:", user.uid);
       if (playerUnsubscribe) playerUnsubscribe();
       if (clubsUnsubscribe) clubsUnsubscribe();
       if (fixturesUnsubscribe) fixturesUnsubscribe();
@@ -96,11 +80,6 @@ const App: React.FC = () => {
     if (!player || !user) return;
     const gameTick = setInterval(() => {
       const now = Date.now();
-      if (player.activeActivities?.length > 0) {
-        const active = player.activeActivities[0];
-        const def = ACTIVITIES.find(a => a.id === active.activityId);
-        if (def && now >= active.startTime + def.durationSeconds * 1000) dataService.completeActivity(player.id, active.activityId);
-      }
       clubs.forEach(club => {
         const finishedUpgrades = club.pendingUpgrades?.filter(upg => now >= upg.endTime);
         if (finishedUpgrades?.length > 0) dataService.completeInfrastructureUpgrades(club.id, finishedUpgrades);
@@ -112,7 +91,6 @@ const App: React.FC = () => {
           if (now >= endTime) dataService.completeTeamTraining(selectedClub.id, selectedClub.players, selectedClub.activeTeamTraining!);
         }
       }
-      if (now >= (player.nextActivityReset || 0)) dataService.resetCompletedActivities(player.id);
     }, 1000);
     return () => clearInterval(gameTick);
   }, [player, user, clubs, selectedClub]);
@@ -142,7 +120,9 @@ const App: React.FC = () => {
 
   const handleUpgrade = (clubId: string, type: InfrastructureType) => dataService.startInfrastructureUpgrade(clubId, type);
   const handleTrainSkill = (skill: SkillType) => { if (player) dataService.upgradeSkill(player.id, skill); };
-  const startActivity = (activityId: string) => { if (player && player.activeActivities?.length === 0) dataService.startActivity(player.id, activityId); };
+  const handleStartActivity = (activityId: string) => { if(player) dataService.startActivity(player.id, activityId); };
+  const handleCompleteActivity = (activityId: string) => { if(player) dataService.completeActivity(player.id, activityId); };
+  const handleResetActivities = () => { if(player) dataService.resetCompletedActivities(player.id); };
 
   const { overallRating, xpNeeded, xpProgress } = useMemo(() => {
     if (!player) return { overallRating: 0, xpNeeded: 100, xpProgress: 0 };
@@ -187,7 +167,7 @@ const App: React.FC = () => {
                     onUpgrade={handleUpgrade}
                   />
                 }
-                {activeView === 'activities' && <ActivitiesComponent player={player} onStart={startActivity} />}
+                {activeView === 'activities' && <ActivitiesComponent player={player} onStart={handleStartActivity} onComplete={handleCompleteActivity} onReset={handleResetActivities} />}
                 {activeView === 'leaderboard' && <Leaderboard />}
                 {activeView === 'club-search' && <ClubSearch player={player} />}
               </div>
