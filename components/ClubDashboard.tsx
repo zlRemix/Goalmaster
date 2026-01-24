@@ -3,7 +3,7 @@ import { Club, Player, InfrastructureType, UserRole, ActiveTeamTraining, View } 
 import { dataService } from '../services/dataService';
 import { getSkillsForPosition } from '../utils';
 import { INFRA_UPGRADE_COSTS, INFRA_UPGRADE_TIMES, INFRA_LEVEL_BENEFITS, TEAM_TRAININGS, MAX_CLUB_PLAYERS } from '../constants';
-import { ClubManagement } from './ClubManagement'; // Import ClubManagement
+import { ClubManagement } from './ClubManagement';
 
 // --- HOOKS ---
 const useCountdown = (endTime: number) => {
@@ -153,12 +153,9 @@ const SquadList: React.FC<{ players: Player[] }> = ({ players }) => {
     );
 };
 
-const ActiveTeamTrainingDisplay: React.FC<{ training: ActiveTeamTraining }> = ({ training }) => {
-    const trainingDef = TEAM_TRAININGS.find(t => t.id === training.trainingId);
-    const endTime = training.startTime + (trainingDef?.durationSeconds || 0) * 1000;
+const ActiveTeamTrainingDisplay: React.FC<{ training: ActiveTeamTraining, trainingDef: any }> = ({ training, trainingDef }) => {
+    const endTime = training.startTime + (trainingDef.durationSeconds || 0) * 1000;
     const remainingSeconds = useCountdown(endTime);
-
-    if (!trainingDef) return null;
 
     return (
         <div className="bg-slate-800/80 rounded-2xl p-6 md:p-8 border-2 border-dashed border-blue-500/30 text-center">
@@ -172,35 +169,54 @@ const ActiveTeamTrainingDisplay: React.FC<{ training: ActiveTeamTraining }> = ({
 
 const TeamTraining: React.FC<{club: Club, player: Player, onStart: (trainingId: string) => void}> = ({ club, player, onStart }) => {
     const isManager = player.roles.includes(UserRole.MANAGER);
-    const trainingInProgress = !!club.activeTeamTraining;
-
-    if (trainingInProgress) {
-        return <ActiveTeamTrainingDisplay training={club.activeTeamTraining!} />;
+    const activeTraining = club.activeTeamTraining;
+    const activeTrainingDef = activeTraining ? TEAM_TRAININGS.find(t => t.id === activeTraining.trainingId) : null;
+    
+    // Scenario 1: An active training is running and it's a valid, known training.
+    if (activeTraining && activeTrainingDef) {
+        return <ActiveTeamTrainingDisplay training={activeTraining} trainingDef={activeTrainingDef} />;
     }
 
+    // Scenario 2: An invalid or legacy training is running, OR no training is running.
+    // In both cases, we show the list of available trainings.
+    const trainingInProgress = !!activeTraining;
+
     return (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
-            {TEAM_TRAININGS.map(t => (
-                <div key={t.id} className="bg-slate-800/80 rounded-2xl p-4 md:p-6 border border-slate-700 shadow-lg flex flex-col">
-                    <h3 className="text-lg md:text-xl font-black text-white">{t.name}</h3>
-                    <p className="text-xs md:text-sm text-slate-400 mt-1 mb-4 h-10">{t.description}</p>
-                    <div className="bg-slate-900/70 p-3 rounded-lg border border-slate-700/50 mb-6 space-y-1 text-sm">
-                         <p className="font-bold text-emerald-400">+{t.reward.xp} XP für jeden Spieler</p>
-                         <p className="font-bold text-blue-400">+{t.reward.tp} TP für jeden Spieler</p>
-                    </div>
-                    <div className="mt-auto">
-                         <button 
-                            onClick={() => onStart(t.id)}
-                            disabled={!isManager || trainingInProgress}
-                            className="w-full bg-blue-600 text-white font-bold py-3 rounded-lg disabled:bg-slate-600 disabled:text-slate-400 disabled:cursor-not-allowed hover:bg-blue-500 transition-colors shadow-md active:scale-95 text-sm md:text-base">
-                            {isManager ? `Starten (${formatDuration(t.durationSeconds)})` : 'Nur für Manager'}
-                        </button>
-                    </div>
+        <div>
+            {/* Optional: Show a warning if a legacy training is blocking the start buttons */}
+            {trainingInProgress && !activeTrainingDef && (
+                 <div className="mb-4 bg-yellow-900/50 border border-yellow-700 text-yellow-300 p-3 rounded-lg text-sm font-bold text-center">
+                    Ein veraltetes Training ist noch aktiv. Neue Trainings können erst nach Abschluss gestartet werden.
                 </div>
-            ))}
+            )}
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+                {TEAM_TRAININGS.map(t => (
+                    <div key={t.id} className="bg-slate-800/80 rounded-2xl p-4 md:p-6 border border-slate-700 shadow-lg flex flex-col">
+                        <h3 className="text-lg md:text-xl font-black text-white">{t.name}</h3>
+                        <p className="text-xs md:text-sm text-slate-400 mt-1 mb-4 h-10">{t.description}</p>
+                        
+                        <div className="bg-slate-900/70 p-3 rounded-lg border border-slate-700/50 mb-6 space-y-1 text-sm">
+                            { (t.reward.xp ?? 0) > 0 && <p className="font-bold text-emerald-400">+{t.reward.xp} XP für jeden Spieler</p> }
+                            { (t.reward.tp ?? 0) > 0 && <p className="font-bold text-blue-400">+{t.reward.tp} TP für jeden Spieler</p> }
+                        </div>
+
+                        <div className="mt-auto">
+                             <button 
+                                onClick={() => onStart(t.id)}
+                                // Disable if not a manager OR if any training is in progress.
+                                disabled={!isManager || trainingInProgress}
+                                className="w-full bg-blue-600 text-white font-bold py-3 rounded-lg disabled:bg-slate-600 disabled:text-slate-400 disabled:cursor-not-allowed hover:bg-blue-500 transition-colors shadow-md active:scale-95 text-sm md:text-base">
+                                {isManager ? `Starten (${formatDuration(t.durationSeconds)})` : 'Nur für Manager'}
+                            </button>
+                        </div>
+                    </div>
+                ))}
+            </div>
         </div>
     );
 };
+
 
 // --- MAIN DASHBOARD COMPONENT ---
 
@@ -257,11 +273,14 @@ export const ClubDashboard: React.FC<ClubDashboardProps> = ({ club, player, onUp
             // Check for completed team training
             if (club.activeTeamTraining) {
                 const trainingDef = TEAM_TRAININGS.find(t => t.id === club.activeTeamTraining!.trainingId);
-                if (trainingDef) {
-                    const endTime = (club.activeTeamTraining!.startTime || 0) + trainingDef.durationSeconds * 1000;
-                    if (Date.now() >= endTime) {
-                        dataService.completeTeamTraining(club.id, club.players, club.activeTeamTraining);
-                    }
+                // We use a default duration of 0 if the training is not found.
+                // This ensures that legacy/invalid trainings can expire.
+                const duration = (trainingDef?.durationSeconds || 0) * 1000;
+                const endTime = (club.activeTeamTraining!.startTime || 0) + duration;
+                
+                if (Date.now() >= endTime) {
+                    console.log(`Completing training for club ${club.id}`);
+                    dataService.completeTeamTraining(club.id, club.players || [], club.activeTeamTraining);
                 }
             }
         };

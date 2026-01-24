@@ -260,22 +260,32 @@ const dataService = {
 
   async completeTeamTraining(clubId: string, playerIds: string[], training: ActiveTeamTraining): Promise<void> {
       const trainingDef = TEAM_TRAININGS.find(t => t.id === training.trainingId);
-      if (!trainingDef) return;
       
       const batch = writeBatch(db);
       
-      for (const playerId of playerIds) {
-          const playerRef = doc(db, 'players', playerId);
-           const playerDoc = await getDoc(playerRef); 
-            if (playerDoc.exists()) {
-                const player = playerDoc.data() as Player;
-                batch.update(playerRef, {
-                    experience: (player.experience || 0) + (trainingDef.reward.xp || 0),
-                    trainingPoints: (player.trainingPoints || 0) + (trainingDef.reward.tp || 0),
-                });
-            }
+      // Only grant rewards if the training is valid and exists.
+      if (trainingDef && playerIds?.length) {
+          for (const playerId of playerIds) {
+              const playerRef = doc(db, 'players', playerId);
+              // We don't need to fetch the player doc, we can increment server-side.
+              // This is faster, cheaper, and more robust.
+              const xpGain = trainingDef.reward.xp || 0;
+              const tpGain = trainingDef.reward.tp || 0;
+              
+              // Note: Firebase server-side increments are not available in the client SDK.
+              // The existing implementation is correct for client-side updates.
+               const playerDoc = await getDoc(playerRef); 
+                if (playerDoc.exists()) {
+                    const player = playerDoc.data() as Player;
+                    batch.update(playerRef, {
+                        experience: (player.experience || 0) + xpGain,
+                        trainingPoints: (player.trainingPoints || 0) + tpGain,
+                    });
+                }
+          }
       }
       
+      // Always set the active training to null to clear it.
       const clubRef = doc(db, 'clubs', clubId);
       batch.update(clubRef, { activeTeamTraining: null });
       
