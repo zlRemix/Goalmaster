@@ -4,7 +4,9 @@ import { dataService } from '../services/dataService';
 import { getSkillsForPosition } from '../utils';
 import { INFRA_UPGRADE_COSTS, INFRA_UPGRADE_TIMES, INFRA_LEVEL_BENEFITS, TEAM_TRAININGS, MAX_CLUB_PLAYERS } from '../constants';
 import { ClubManagement } from './ClubManagement';
-import { Building, Dumbbell, HeartPulse, LineChart } from 'lucide-react';
+import LogoEditor from './LogoEditor';
+import ClubLogo from './ClubLogo';
+import { Building, Dumbbell, HeartPulse, LineChart, Paintbrush } from 'lucide-react';
 
 // --- HOOKS ---
 const useCountdown = (endTime: number) => {
@@ -176,18 +178,14 @@ const TeamTraining: React.FC<{club: Club, player: Player, onStart: (trainingId: 
     const activeTraining = club.activeTeamTraining;
     const activeTrainingDef = activeTraining ? TEAM_TRAININGS.find(t => t.id === activeTraining.trainingId) : null;
     
-    // Scenario 1: An active training is running and it's a valid, known training.
     if (activeTraining && activeTrainingDef) {
         return <ActiveTeamTrainingDisplay training={activeTraining} trainingDef={activeTrainingDef} />;
     }
 
-    // Scenario 2: An invalid or legacy training is running, OR no training is running.
-    // In both cases, we show the list of available trainings.
     const trainingInProgress = !!activeTraining;
 
     return (
         <div>
-            {/* Optional: Show a warning if a legacy training is blocking the start buttons */}
             {trainingInProgress && !activeTrainingDef && (
                  <div className="mb-4 bg-yellow-900/50 border border-yellow-700 text-yellow-300 p-3 rounded-lg text-sm font-bold text-center">
                     Ein veraltetes Training ist noch aktiv. Neue Trainings können erst nach Abschluss gestartet werden.
@@ -208,7 +206,6 @@ const TeamTraining: React.FC<{club: Club, player: Player, onStart: (trainingId: 
                         <div className="mt-auto">
                              <button 
                                 onClick={() => onStart(t.id)}
-                                // Disable if not a manager OR if any training is in progress.
                                 disabled={!isManager || trainingInProgress}
                                 className="w-full bg-blue-600 text-white font-bold py-3 rounded-lg disabled:bg-slate-600 disabled:text-slate-400 disabled:cursor-not-allowed hover:bg-blue-500 transition-colors shadow-md active:scale-95 text-sm md:text-base">
                                 {isManager ? `Starten (${formatDuration(t.durationSeconds)})` : 'Nur für Manager'}
@@ -222,9 +219,7 @@ const TeamTraining: React.FC<{club: Club, player: Player, onStart: (trainingId: 
 };
 
 
-// --- MAIN DASHBOARD COMPONENT ---
-
-type ClubNavView = 'infrastructure' | 'squad' | 'training' | 'management';
+type ClubNavView = 'infrastructure' | 'squad' | 'training' | 'management' | 'logo';
 
 interface ClubDashboardProps {
     club: Club | null;
@@ -240,7 +235,6 @@ export const ClubDashboard: React.FC<ClubDashboardProps> = ({ club, player, onUp
 
     useEffect(() => {
         if (club) {
-            // Ensure the manager is always included in the squad list, even if DB is inconsistent.
             const playerIds = new Set(club.players || []);
             if (club.managerId) {
                 playerIds.add(club.managerId);
@@ -258,14 +252,13 @@ export const ClubDashboard: React.FC<ClubDashboardProps> = ({ club, player, onUp
     }, [club]);
     
     useEffect(() => {
-      if (!isManager && clubNav === 'management') setClubNav('infrastructure');
+      if (!isManager && (clubNav === 'management' || clubNav === 'logo')) setClubNav('infrastructure');
     }, [isManager, clubNav]);
 
     useEffect(() => {
         const checkState = () => {
             if (!club) return;
 
-            // Check for completed infrastructure upgrades
             if (club.pendingUpgrades?.length) {
                 const now = Date.now();
                 const completed = club.pendingUpgrades.filter(upg => now >= (upg.endTime || 0));
@@ -274,22 +267,18 @@ export const ClubDashboard: React.FC<ClubDashboardProps> = ({ club, player, onUp
                 }
             }
 
-            // Check for completed team training
             if (club.activeTeamTraining) {
                 const trainingDef = TEAM_TRAININGS.find(t => t.id === club.activeTeamTraining!.trainingId);
-                // We use a default duration of 0 if the training is not found.
-                // This ensures that legacy/invalid trainings can expire.
                 const duration = (trainingDef?.durationSeconds || 0) * 1000;
                 const endTime = (club.activeTeamTraining!.startTime || 0) + duration;
                 
                 if (Date.now() >= endTime) {
-                    console.log(`Completing training for club ${club.id}`);
                     dataService.completeTeamTraining(club.id, player.id);
                 }
             }
         };
 
-        const interval = setInterval(checkState, 2000); // Check every 2 seconds
+        const interval = setInterval(checkState, 2000);
 
         return () => clearInterval(interval);
     }, [club, player.id]);
@@ -298,7 +287,6 @@ export const ClubDashboard: React.FC<ClubDashboardProps> = ({ club, player, onUp
         if (club) dataService.startTeamTraining(club.id, trainingId);
     };
 
-    // No Club View
     if (!club) {
         return (
             <div className="text-center p-10 bg-slate-800/80 rounded-2xl border border-slate-700">
@@ -313,22 +301,27 @@ export const ClubDashboard: React.FC<ClubDashboardProps> = ({ club, player, onUp
         );
     }
 
-    // Main Club View
     return (
         <div className="space-y-6 md:space-y-8 animate-in fade-in duration-300">
-            <header className="bg-slate-800/80 p-4 md:p-6 rounded-2xl shadow-lg border-slate-700 border">
-                <h1 className="text-2xl md:text-4xl font-black text-white">{club.name}</h1>
-                <div className="mt-2 md:mt-4 text-xl md:text-3xl font-bold text-emerald-400">
-                    Budget: {(club.budget || 0).toLocaleString()} €
+            <header className="bg-slate-800/80 p-4 md:p-6 rounded-2xl shadow-lg border-slate-700 border flex items-center gap-4">
+                <ClubLogo logo={club.logo} size={64} />
+                <div>
+                    <h1 className="text-2xl md:text-4xl font-black text-white">{club.name}</h1>
+                    <div className="mt-1 text-xl md:text-3xl font-bold text-emerald-400">
+                        Budget: {(club.budget || 0).toLocaleString()} €
+                    </div>
                 </div>
             </header>
 
-            <div className="flex gap-1 md:gap-2 p-1 md:p-2 bg-slate-800 border border-slate-700 rounded-full text-sm">
+            <div className="flex flex-wrap gap-1 md:gap-2 p-1 md:p-2 bg-slate-800 border border-slate-700 rounded-full text-sm">
                 <button onClick={() => setClubNav('infrastructure')} className={`flex-1 text-center font-bold p-2 md:p-3 rounded-full transition-colors ${clubNav === 'infrastructure' ? 'bg-emerald-600 text-white' : 'text-slate-300 hover:bg-slate-700'}`}>Infrastruktur</button>
                 <button onClick={() => setClubNav('squad')} className={`flex-1 text-center font-bold p-2 md:p-3 rounded-full transition-colors ${clubNav === 'squad' ? 'bg-emerald-600 text-white' : 'text-slate-300 hover:bg-slate-700'}`}>Kader</button>
                 <button onClick={() => setClubNav('training')} className={`flex-1 text-center font-bold p-2 md:p-3 rounded-full transition-colors ${clubNav === 'training' ? 'bg-emerald-600 text-white' : 'text-slate-300 hover:bg-slate-700'}`}>Training</button>
                 {isManager && (
-                    <button onClick={() => setClubNav('management')} className={`flex-1 text-center font-bold p-2 md:p-3 rounded-full transition-colors ${clubNav === 'management' ? 'bg-emerald-600 text-white' : 'text-slate-300 hover:bg-slate-700'}`}>Management</button>
+                    <>
+                        <button onClick={() => setClubNav('management')} className={`flex-1 text-center font-bold p-2 md:p-3 rounded-full transition-colors ${clubNav === 'management' ? 'bg-emerald-600 text-white' : 'text-slate-300 hover:bg-slate-700'}`}>Management</button>
+                        <button onClick={() => setClubNav('logo')} className={`flex-1 text-center font-bold p-2 md:p-3 rounded-full transition-colors ${clubNav === 'logo' ? 'bg-emerald-600 text-white' : 'text-slate-300 hover:bg-slate-700'}`}>Logo</button>
+                    </>
                 )}
             </div>
 
@@ -343,6 +336,7 @@ export const ClubDashboard: React.FC<ClubDashboardProps> = ({ club, player, onUp
                 {clubNav === 'squad' && <SquadList players={squadPlayers} />}
                 {clubNav === 'training' && <TeamTraining club={club} player={player} onStart={handleStartTeamTraining} />}
                 {clubNav === 'management' && isManager && <ClubManagement club={club} />}
+                {clubNav === 'logo' && isManager && <LogoEditor club={club} />}
             </div>
         </div>
     );

@@ -1,3 +1,4 @@
+
 export type PlayerPosition = 'Stürmer' | 'Mittelfeld' | 'Abwehr' | 'Torwart';
 
 export enum UserRole {
@@ -19,7 +20,6 @@ export interface Reward {
     skills?: Partial<Record<SkillType, number>>;
 }
 
-// INDIVIDUAL player activities
 export interface Activity {
     id: string;
     name: string;
@@ -35,7 +35,6 @@ export interface ActiveActivity {
     startTime: number;
 }
 
-// TEAM training sessions
 export interface TeamTrainingSession {
     id: string;
     name: string;
@@ -49,15 +48,14 @@ export interface ActiveTeamTraining {
     startTime: number;
 }
 
-// TACTICS
 export type TacticID = 'balanced' | 'offensive' | 'defensive' | 'counter' | 'gegenpressing';
 
 export interface Tactic {
     id: TacticID;
     name: string;
     description: string;
-    attackBonus: number; // e.g., 0.15 for +15%
-    defenseBonus: number; // e.g., -0.10 for -10%
+    attackBonus: number; 
+    defenseBonus: number; 
 }
 
 export interface Player {
@@ -73,7 +71,7 @@ export interface Player {
     activeActivities: ActiveActivity[];
     completedActivityIds: string[];
     nextActivityReset: number;
-    pendingClubInvitation?: string | null; // ID of a club that invited the player
+    pendingClubInvitation?: string | null; 
 }
 
 export enum InfrastructureType {
@@ -94,27 +92,35 @@ export interface PendingUpgrade {
     endTime: number;
 }
 
+export interface ClubLogoData {
+    shape: 'shield' | 'circle' | 'square';
+    icon: string; // Name of the lucide-react icon
+    primaryColor: string;
+    secondaryColor: string;
+}
+
 export interface Club {
     id: string;
     name: string;
     managerId: string;
-    ownerId: string; // Add ownerId for authorization
+    ownerId: string; 
     players: string[];
     budget: number;
     infrastructure: Partial<Record<InfrastructureType, InfrastructureItem>>;
     pendingUpgrades?: PendingUpgrade[];
     activeTeamTraining?: ActiveTeamTraining | null;
-    pendingApplications?: string[]; // IDs of players who applied
-    isBot?: boolean;
+    pendingApplications?: string[]; 
+    isAcceptingApplications?: boolean;
     activeTacticId?: TacticID;
+    logo?: ClubLogoData; 
 }
 
 export interface Fixture {
   id: string;
   homeTeam: string;
   awayTeam: string;
-  date: number; // timestamp
-  result?: string; // e.g. "2-1"
+  date: number; 
+  result?: string; 
   status: 'scheduled' | 'played';
 }
 

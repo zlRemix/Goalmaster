@@ -4,6 +4,7 @@ import { dataService } from '../services/dataService';
 import { getSkillsForPosition } from '../utils';
 import { MAX_CLUB_PLAYERS } from '../constants';
 import { Medal } from 'lucide-react';
+import ClubLogo from './ClubLogo';
 
 // --- HELPERS ---
 const getOverall = (p: Player) => {
@@ -21,7 +22,7 @@ const getMedalIcon = (rank: number): ReactNode => {
 };
 
 // --- PLAYER LEADERBOARD ---
-const PlayerLeaderboardRow: React.FC<{ player: Player; rank: number; clubName: string | null; }> = ({ player, rank, clubName }) => {
+const PlayerLeaderboardRow: React.FC<{ player: Player; rank: number; club: Club | null; }> = ({ player, rank, club }) => {
     const overall = useMemo(() => getOverall(player), [player]);
     const medalIcon = getMedalIcon(rank);
 
@@ -35,7 +36,16 @@ const PlayerLeaderboardRow: React.FC<{ player: Player; rank: number; clubName: s
             <div className="w-20 text-center text-slate-300 font-semibold">
                  <div className="font-bold text-slate-300 text-xs md:text-sm w-7 h-7 md:w-8 md:h-8 inline-flex items-center justify-center bg-slate-700 rounded-full flex-shrink-0">{player.position}</div>
             </div>
-            <div className="w-28 text-center text-slate-400 text-sm truncate">{clubName || 'Vereinslos'}</div>
+            <div className="w-28 text-center text-slate-400 text-sm truncate flex items-center justify-center gap-2">
+                {club ? (
+                    <>
+                        <ClubLogo logo={club.logo} size={24} />
+                        <span className="truncate">{club.name}</span>
+                    </>
+                ) : (
+                    'Vereinslos'
+                )}
+                </div>
             <div className="w-24 text-center">
                  <div className="text-xl md:text-2xl font-black text-amber-400">{overall}</div>
                  <div className="text-[10px] text-slate-500 font-bold -mt-1">GESAMT</div>
@@ -50,7 +60,7 @@ const PlayerLeaderboard: React.FC = () => {
     
     useEffect(() => {
         const unsubscribePlayers = dataService.listenToAllPlayers(setAllPlayers);
-        const unsubscribeClubs = dataService.listenToClubs(setAllClubs);
+        const unsubscribeClubs = dataService.listenToAllClubs(setAllClubs);
         return () => { unsubscribePlayers(); unsubscribeClubs(); };
     }, []);
 
@@ -58,7 +68,7 @@ const PlayerLeaderboard: React.FC = () => {
         return [...allPlayers].sort((a, b) => getOverall(b) - getOverall(a));
     }, [allPlayers]);
 
-    const clubMap = useMemo(() => new Map(allClubs.map(c => [c.id, c.name])), [allClubs]);
+    const clubMap = useMemo(() => new Map(allClubs.map(c => [c.id, c])), [allClubs]);
 
     return (
         <div className="space-y-2 md:space-y-3">
@@ -74,7 +84,7 @@ const PlayerLeaderboard: React.FC = () => {
                     key={player.id} 
                     player={player} 
                     rank={index + 1} 
-                    clubName={player.clubId ? clubMap.get(player.clubId) || null : null}
+                    club={player.clubId ? clubMap.get(player.clubId) || null : null}
                 />
             ))}
         </div>
@@ -96,6 +106,7 @@ const ClubLeaderboardRow: React.FC<{ club: RankedClub; rank: number }> = ({ club
             <div className="w-8 text-center text-lg md:text-xl font-black text-slate-400">{rank}</div>
             <div className="flex items-center gap-3 md:gap-4">
                 <div className="w-6 h-6 flex items-center justify-center">{medalIcon}</div>
+                <ClubLogo logo={club.logo} size={32}/>
                 <p className="text-base md:text-lg truncate">{club.name}</p>
             </div>
             <div className="w-28 text-center text-slate-400 text-sm truncate">{club.managerName || 'N/A'}</div>

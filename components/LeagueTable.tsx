@@ -1,6 +1,6 @@
-
 import React from 'react';
-import { Club, Fixture } from '../types';
+import { Club, Fixture, ClubLogoData } from '../types';
+import ClubLogo from './ClubLogo';
 
 interface LeagueTableProps {
   fixtures: Fixture[];
@@ -10,6 +10,7 @@ interface LeagueTableProps {
 interface TeamStats {
   id: string;
   name: string;
+  logo?: ClubLogoData;
   played: number;
   wins: number;
   draws: number;
@@ -24,11 +25,11 @@ interface TeamStats {
 const LeagueTable: React.FC<LeagueTableProps> = ({ fixtures, allClubs }) => {
   const stats: Record<string, TeamStats> = {};
 
-  // **FINAL FIX: Identify bots using ownerId instead of isBot**
   allClubs.forEach(club => {
     stats[club.id] = {
       id: club.id,
       name: club.name,
+      logo: club.logo,
       played: 0,
       wins: 0,
       draws: 0,
@@ -37,7 +38,6 @@ const LeagueTable: React.FC<LeagueTableProps> = ({ fixtures, allClubs }) => {
       goalsAgainst: 0,
       goalDifference: 0,
       points: 0,
-      // The crucial change is here:
       isBot: club.ownerId === 'bot_owner',
     };
   });
@@ -51,7 +51,6 @@ const LeagueTable: React.FC<LeagueTableProps> = ({ fixtures, allClubs }) => {
 
     if (!stats[homeTeamId] || !stats[awayTeamId]) return;
 
-    // Update stats for both teams
     stats[homeTeamId].played += 1;
     stats[awayTeamId].played += 1;
     stats[homeTeamId].goalsFor += homeGoals;
@@ -59,7 +58,6 @@ const LeagueTable: React.FC<LeagueTableProps> = ({ fixtures, allClubs }) => {
     stats[homeTeamId].goalsAgainst += awayGoals;
     stats[awayTeamId].goalsAgainst += homeGoals;
 
-    // Determine result
     if (homeGoals > awayGoals) {
       stats[homeTeamId].wins += 1;
       stats[homeTeamId].points += 3;
@@ -113,7 +111,12 @@ const LeagueTable: React.FC<LeagueTableProps> = ({ fixtures, allClubs }) => {
                 {sortedTable.map((team, index) => (
                 <tr key={team.id} className="hover:bg-slate-800 transition-colors">
                     <td className="px-4 py-3 text-sm text-slate-400 font-bold text-center">{index + 1}</td>
-                    <td className={`px-6 py-3 text-sm font-semibold whitespace-nowrap ${team.isBot ? 'text-slate-500' : 'text-white'}`}>{team.name}</td>
+                    <td className={`px-6 py-3 text-sm font-semibold whitespace-nowrap ${team.isBot ? 'text-slate-500' : 'text-white'}`}>
+                        <div className="flex items-center gap-3">
+                            <ClubLogo logo={team.logo} size={24} />
+                            <span>{team.name}</span>
+                        </div>
+                    </td>
                     <td className="px-4 py-3 text-sm text-slate-300 font-mono text-center">{team.played}</td>
                     <td className="px-4 py-3 text-sm text-slate-300 font-mono text-center">{team.wins}</td>
                     <td className="px-4 py-3 text-sm text-slate-300 font-mono text-center">{team.draws}</td>

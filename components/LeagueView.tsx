@@ -3,6 +3,7 @@ import { Fixture, Club } from '../types';
 import { format } from 'date-fns';
 import { de } from 'date-fns/locale';
 import LeagueTable from './LeagueTable';
+import ClubLogo from './ClubLogo'; // Import ClubLogo
 
 interface LeagueViewProps {
   fixtures: Fixture[];
@@ -21,12 +22,10 @@ const LeagueView: React.FC<LeagueViewProps> = ({ fixtures, allClubs }) => {
     [fixtures]
   );
 
-  // Loading is true if fixtures are present, but the clubs they reference haven't been loaded yet.
-  const isLoading = sortedFixtures.length > 0 && allClubs.length > 0 && (!clubsById[sortedFixtures[0].homeTeam] || !clubsById[sortedFixtures[0].awayTeam]);
+  const isLoading = fixtures.length > 0 && (allClubs.length === 0 || !clubsById[fixtures[0].homeTeam] || !clubsById[fixtures[0].awayTeam]);
 
   return (
     <div className="space-y-12">
-        {/* Pass the new bot identification logic to LeagueTable */}
         <LeagueTable fixtures={fixtures} allClubs={allClubs} />
 
         <div>
@@ -35,14 +34,14 @@ const LeagueView: React.FC<LeagueViewProps> = ({ fixtures, allClubs }) => {
                 <p className="text-slate-400 text-sm md:text-base">Kommende und vergangene Spiele der Liga.</p>
             </header>
 
-            {sortedFixtures.length === 0 ? (
+            {fixtures.length === 0 && !isLoading ? (
                 <div className="mt-4 bg-slate-800/80 p-8 rounded-2xl border border-amber-500/30 text-center">
                     <h3 className="text-lg font-bold text-amber-400">Kein Spielplan gefunden</h3>
-                    <p className="text-slate-400 mt-2 text-sm">Es wurde noch kein Spielplan für die Liga erstellt.</p>
+                    <p className="text-slate-400 mt-2 text-sm">Es wurde noch kein Spielplan für die Liga erstellt. Gehe zur Liga-Verwaltung, um eine neue Liga zu generieren.</p>
                 </div>
             ) : isLoading ? (
                 <div className="mt-4 bg-slate-800/80 p-8 rounded-2xl text-center">
-                    <h3 className="text-lg font-bold text-emerald-400 animate-pulse">Lade Vereinsnamen...</h3>
+                    <h3 className="text-lg font-bold text-emerald-400 animate-pulse">Lade Spieldaten...</h3>
                 </div>
             ) : (
                 <div className="mt-4 bg-slate-800/80 rounded-2xl border border-slate-700 shadow-lg">
@@ -50,13 +49,17 @@ const LeagueView: React.FC<LeagueViewProps> = ({ fixtures, allClubs }) => {
                     {sortedFixtures.map((fixture) => {
                         const homeTeam = clubsById[fixture.homeTeam];
                         const awayTeam = clubsById[fixture.awayTeam];
-                        const matchDate = new Date(fixture.date);
-
+                        
                         if (!homeTeam || !awayTeam) {
-                            return null; 
+                            return (
+                                <li key={fixture.id} className="p-4 flex items-center justify-between animate-pulse">
+                                    <div className="h-4 bg-slate-700 rounded w-1/3"></div>
+                                    <div className="h-4 bg-slate-700 rounded w-1/4"></div>
+                                </li>
+                            );
                         }
 
-                        // **FINAL FIX: Identify bots using ownerId instead of isBot**
+                        const matchDate = new Date(fixture.date);
                         const isHomeTeamBot = homeTeam.ownerId === 'bot_owner';
                         const isAwayTeamBot = awayTeam.ownerId === 'bot_owner';
 
@@ -67,13 +70,15 @@ const LeagueView: React.FC<LeagueViewProps> = ({ fixtures, allClubs }) => {
                                     {format(matchDate, 'dd.MM.yy', { locale: de })} - {format(matchDate, 'HH:mm')}h
                                 </span>
                                 <div className="flex items-center justify-center flex-1 text-center">
-                                    <span className={`font-bold text-base text-right flex-1 ${isHomeTeamBot ? 'text-slate-500' : 'text-white'}`}>
-                                        {homeTeam.name}
-                                    </span>
+                                    <div className={`font-bold text-base text-right flex-1 flex items-center justify-end gap-3 ${isHomeTeamBot ? 'text-slate-500' : 'text-white'}`}>
+                                        <span>{homeTeam.name}</span>
+                                        <ClubLogo logo={homeTeam.logo} size={28} />
+                                    </div>
                                     <span className="font-black text-amber-400 mx-4">VS</span>
-                                    <span className={`font-bold text-base text-left flex-1 ${isAwayTeamBot ? 'text-slate-500' : 'text-white'}`}>
-                                        {awayTeam.name}
-                                    </span>
+                                    <div className={`font-bold text-base text-left flex-1 flex items-center justify-start gap-3 ${isAwayTeamBot ? 'text-slate-500' : 'text-white'}`}>
+                                        <ClubLogo logo={awayTeam.logo} size={28} />
+                                        <span>{awayTeam.name}</span>
+                                    </div>
                                 </div>
                             </div>
                             {fixture.result && (

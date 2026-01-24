@@ -69,7 +69,6 @@ const dataService = {
             const newClub: Club = {
                 id: clubRef.id,
                 name: clubName,
-                // **FINAL FIX: isBot is removed. Player clubs are identified by a real ownerId.**
                 managerId: uid,
                 ownerId: uid,
                 players: [uid],
@@ -208,7 +207,6 @@ const dataService = {
     });
   },
 
-  // **FINAL FIX: Filter clubs for the leaderboard based on the ownerId.**
   listenToClubs(callback: (clubs: Club[]) => void): () => void {
     const q = query(collection(db, 'clubs'), where('ownerId', '!=', 'bot_owner'), orderBy('ownerId'), orderBy('name'));
     return onSnapshot(q, (snapshot) => {
@@ -221,6 +219,10 @@ const dataService = {
     return onSnapshot(q, (snapshot) => {
       callback(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Club)));
     });
+  },
+
+  async updateClub(clubId: string, updates: Partial<Club>): Promise<void> {
+    await updateDoc(doc(db, 'clubs', clubId), updates);
   },
 
   async addPlayerToClub(clubId: string, playerId: string): Promise<void> {
