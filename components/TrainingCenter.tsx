@@ -16,8 +16,10 @@ const SKILL_TRANSLATIONS: Record<SkillType, string> = {
 };
 
 const getTierInfo = (value: number) => {
-    const tier = Math.floor(value / 100);
-    const progress = value % 100;
+    // A tier is reached every 20 points.
+    const tier = Math.floor(value / 20);
+    // Progress within the current 20-point block.
+    const progress = (value % 20) / 20 * 100;
     const tiers = [
       { l: 'Amateur', c: 'from-emerald-600 to-emerald-400' }, { l: 'Profi', c: 'from-blue-600 to-blue-400' },
       { l: 'Elite', c: 'from-purple-600 to-purple-400' }, { l: 'Weltklasse', c: 'from-cyan-600 to-cyan-400' },
@@ -27,7 +29,7 @@ const getTierInfo = (value: number) => {
       { l: 'Gottgleich', c: 'from-slate-400 to-slate-100' }, { l: 'Kosmisch', c: 'from-indigo-600 via-purple-600 to-pink-500' }
     ];
     const current = tiers[Math.min(tier, tiers.length - 1)];
-    return { tier, progress, colorClass: current.c, tierLabel: current.l };
+    return { tier, progress, colorClass: current.c, tierLabel: current.l, pointsToNext: 20 - (value % 20) };
 };
 
 export const TrainingCenter: React.FC<TrainingCenterProps> = ({ player, onTrain }) => {
@@ -51,27 +53,30 @@ export const TrainingCenter: React.FC<TrainingCenterProps> = ({ player, onTrain 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
             {relevantSkills.length > 0 ? relevantSkills.map((skill) => {
                 const value = player.skills?.[skill] || 0;
-                const { tier, progress, colorClass, tierLabel } = getTierInfo(value);
+                const { tier, progress, colorClass, tierLabel, pointsToNext } = getTierInfo(value);
+
+                const cost = 1 + tier * 2;
+                const canAfford = (player.trainingPoints || 0) >= cost;
 
                 return (
                     <div key={skill} className="bg-slate-800/80 rounded-2xl p-4 border border-slate-700 flex items-center justify-between group transition-all shadow-md">
                         <div className="space-y-2 flex-1 mr-3">
                             <div className="flex justify-between items-center mb-1">
-                                <p className="font-bold text-base md:text-lg text-slate-100">{SKILL_TRANSLATIONS[skill] || skill}</p>
+                                <p className={`font-bold text-base md:text-lg bg-clip-text text-transparent bg-gradient-to-r ${colorClass}`}>{SKILL_TRANSLATIONS[skill] || skill}</p>
                                 <div className="text-right">
                                     <span className={`text-[10px] font-black uppercase block leading-none bg-clip-text text-transparent bg-gradient-to-r ${colorClass}`}>{tierLabel}</span>
                                     <span className="text-amber-400 font-mono font-black text-sm">{value}</span>
                                 </div>
                             </div>
                             <div className="h-3 w-full bg-slate-900 rounded-full overflow-hidden border border-slate-800 p-0.5">
-                                <div className={`h-full bg-gradient-to-r ${colorClass} rounded-full`} style={{ width: `${progress === 0 && value > 0 ? 100 : progress}%` }}/>
+                                <div className={`h-full bg-gradient-to-r ${colorClass} rounded-full`} style={{ width: `${progress}%` }}/>
                             </div>
-                            <p className="text-[9px] text-slate-600 font-bold uppercase tracking-tighter">{100 - progress} bis Rang {tier + 1}</p>
+                            <p className="text-[9px] text-slate-600 font-bold uppercase tracking-tighter">{pointsToNext} bis Rang {tier + 2}</p>
                         </div>
-                        <button onClick={() => onTrain(skill)} disabled={(player.trainingPoints || 0) <= 0} className={`h-14 w-14 rounded-lg flex flex-col items-center justify-center font-bold transition-all z-10 flex-shrink-0 ${
-                            (player.trainingPoints || 0) > 0 ? 'bg-slate-700 hover:bg-emerald-600 text-white cursor-pointer active:scale-90 border border-slate-600' : 'bg-slate-900 text-slate-600 cursor-not-allowed opacity-50 border border-slate-800'}`}>
+                        <button onClick={() => onTrain(skill)} disabled={!canAfford} className={`h-14 w-14 rounded-lg flex flex-col items-center justify-center font-bold transition-all z-10 flex-shrink-0 ${
+                            canAfford ? 'bg-slate-700 hover:bg-emerald-600 text-white cursor-pointer active:scale-90 border border-slate-600' : 'bg-slate-900 text-slate-600 cursor-not-allowed opacity-50 border border-slate-800'}`}>
                             <span className="text-2xl">+</span>
-                            <span className="text-[9px] uppercase opacity-50">1 TP</span>
+                            <span className="text-[9px] uppercase opacity-50">{cost} TP</span>
                         </button>
                     </div>
                 );

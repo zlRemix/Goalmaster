@@ -158,21 +158,33 @@ const dataService = {
 
   async upgradeSkill(playerId: string, skill: SkillType): Promise<void> {
     await runTransaction(db, async (transaction) => {
-        const playerRef = doc(db, 'players', playerId);
-        const playerDoc = await transaction.get(playerRef);
-        if (!playerDoc.exists()) throw new Error("Player not found");
+      const playerRef = doc(db, 'players', playerId);
+      const playerDoc = await transaction.get(playerRef);
+      if (!playerDoc.exists()) throw new Error("Spieler nicht gefunden");
 
-        const player = playerDoc.data() as Player;
-        if ((player.trainingPoints || 0) < 1) throw new Error("Not enough training points");
+      const player = playerDoc.data() as Player;
+      const currentSkillLevel = player.skills?.[skill] || 0;
 
-        const currentSkillLevel = (player.skills && player.skills[skill]) || 0;
-        transaction.update(playerRef, {
-            trainingPoints: (player.trainingPoints || 0) - 1,
-            experience: (player.experience || 0) + XP_PER_SKILL_UPGRADE, // Grant XP for using a TP
-            [`skills.${skill}`]: currentSkillLevel + 1
-        });
+      // Calculate cost based on current skill level tier
+      // 0-19: Amateur (1 TP)
+      // 20-39: Profi (3 TP)
+      // 40-59: Elite (5 TP)
+      // etc.
+      const rank = Math.floor(currentSkillLevel / 20);
+      const cost = 1 + rank * 2;
+
+      if ((player.trainingPoints || 0) < cost) {
+        throw new Error(`Nicht genügend Trainingspunkte. Benötigt: ${cost}`);
+      }
+
+      transaction.update(playerRef, {
+        trainingPoints: (player.trainingPoints || 0) - cost,
+        experience: (player.experience || 0) + XP_PER_SKILL_UPGRADE, // XP für das Upgrade gewähren
+        [`skills.${skill}`]: currentSkillLevel + 1,
+      });
     });
   },
+
 
   // =========================================================================
   // ACTIVITIES
