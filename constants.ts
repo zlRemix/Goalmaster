@@ -1,6 +1,6 @@
 import { Activity, TeamTrainingSession, UserRole, InfrastructureType, PlayerPosition } from './types.js';
 
-export const MAX_CLUB_PLAYERS = 25;
+export const MAX_CLUB_PLAYERS = 5;
 export const XP_PER_SKILL_UPGRADE = 10;
 
 export const POSITIONS: PlayerPosition[] = ['Stürmer', 'Mittelfeld', 'Abwehr', 'Torwart'];

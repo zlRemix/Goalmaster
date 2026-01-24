@@ -4,11 +4,12 @@ import { PlayerPosition } from '../types';
 interface ProfileSetupProps {
   userId: string;
   onProfileCreate: (userId: string, name: string, position: PlayerPosition, wantsManagerRole: boolean, clubName?: string) => Promise<void>;
+  onLogout: () => void;
 }
 
 const POSITIONS: PlayerPosition[] = ['Stürmer', 'Mittelfeld', 'Abwehr', 'Torwart'];
 
-const ProfileSetup: React.FC<ProfileSetupProps> = ({ userId, onProfileCreate }) => {
+const ProfileSetup: React.FC<ProfileSetupProps> = ({ userId, onProfileCreate, onLogout }) => {
   const [name, setName] = useState('');
   const [position, setPosition] = useState<PlayerPosition>('Stürmer');
   const [wantsManagerRole, setWantsManagerRole] = useState(false);
@@ -108,9 +109,15 @@ const ProfileSetup: React.FC<ProfileSetupProps> = ({ userId, onProfileCreate }) 
                     {isLoading ? 'Erstelle Profil...' : 'Profil erstellen & Starten'}
                 </button>
             </form>
+            <button
+                onClick={onLogout}
+                className="w-full text-center mt-6 text-slate-500 hover:text-emerald-400 font-bold text-sm transition-colors"
+            >
+                Abmelden
+            </button>
         </div>
         <footer className="text-center text-slate-600 text-sm mt-8">
-            <p>&copy; 2024 ProSoccer</p>
+            <p>0.1.0-alpha.1</p>
         </footer>
     </div>
   );

@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+
+import React, { useState, useEffect, useMemo } from 'react';
 import { onAuthStateChanged, signOut, User } from 'firebase/auth';
-import { Player, Club, View, SkillType, Fixture, ActiveActivity, InfrastructureType, UserRole, PlayerPosition } from './types';
-import { ACTIVITIES, TEAM_TRAININGS } from './constants';
+import { Player, Club, View, SkillType, Fixture, InfrastructureType, PlayerPosition } from './types';
+import { TEAM_TRAININGS } from './constants';
 import { dataService } from './services/dataService';
 import { auth } from './services/firebase';
 import { Sidebar } from './components/Sidebar';
@@ -16,55 +17,57 @@ import ProfileSetup from './components/ProfileSetup';
 import { getSkillsForPosition } from './utils';
 import { Menu } from 'lucide-react';
 
-let playerUnsubscribe: (() => void) | null = null;
-let clubsUnsubscribe: (() => void) | null = null;
-let fixturesUnsubscribe: (() => void) | null = null;
-
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [player, setPlayer] = useState<Player | null>(null);
   const [clubs, setClubs] = useState<Club[]>([]);
   const [fixtures, setFixtures] = useState<Fixture[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  
   const [activeView, setActiveView] = useState<View>('home');
-  const [loading, setLoading] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const selectedClub = useMemo(() => clubs.find(c => c.id === player?.clubId), [clubs, player?.clubId]);
 
   useEffect(() => {
-    const authUnsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+    let playerUnsubscribe: (() => void) | null = null;
+    let clubsUnsubscribe: (() => void) | null = null;
+    let fixturesUnsubscribe: (() => void) | null = null;
+
+    const authUnsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (playerUnsubscribe) playerUnsubscribe();
       if (clubsUnsubscribe) clubsUnsubscribe();
       if (fixturesUnsubscribe) fixturesUnsubscribe();
-      setPlayer(null);
-      setClubs([]);
-      setFixtures([]);
 
       setUser(firebaseUser);
-      if (!firebaseUser) {
+
+      if (firebaseUser) {
+        if (!clubsUnsubscribe) {
+            clubsUnsubscribe = dataService.listenToClubs(setClubs);
+        }
+        if (!fixturesUnsubscribe) {
+            fixturesUnsubscribe = dataService.listenToFixtures(setFixtures);
+        }
+        playerUnsubscribe = dataService.listenToPlayer(firebaseUser.uid, (p) => {
+            setPlayer(p ? { ...p, id: firebaseUser.uid } : null);
+            setLoading(false);
+        });
+      } else {
+        setUser(null);
+        setPlayer(null);
+        setClubs([]);
+        setFixtures([]);
         setLoading(false);
       }
     });
-    return () => authUnsubscribe();
-  }, []);
-
-  useEffect(() => {
-    if (!user) return;
-
-    setLoading(true);
-    playerUnsubscribe = dataService.listenToPlayer(user.uid, (p) => {
-      setPlayer(p ? { ...p, id: user.uid } : null);
-      setLoading(false); 
-    });
-    clubsUnsubscribe = dataService.listenToClubs(setClubs);
-    fixturesUnsubscribe = dataService.listenToFixtures(setFixtures);
 
     return () => {
+      authUnsubscribe();
       if (playerUnsubscribe) playerUnsubscribe();
       if (clubsUnsubscribe) clubsUnsubscribe();
       if (fixturesUnsubscribe) fixturesUnsubscribe();
     };
-  }, [user]);
+  }, []);
 
   useEffect(() => {
     if (!player || !user) return;
@@ -85,7 +88,7 @@ const App: React.FC = () => {
         }
     }, 1000);
     return () => clearInterval(gameTick);
-}, [player, user, clubs, selectedClub]);
+  }, [player, user, clubs, selectedClub]);
 
   useEffect(() => {
     if (!player || !user || player.experience == null) return;
@@ -125,10 +128,33 @@ const App: React.FC = () => {
     return { overallRating: overall, xpNeeded: needed, xpProgress: (player.experience / needed) * 100 };
   }, [player]);
 
-  if (loading) return <div className="h-screen bg-slate-950 flex items-center justify-center"><h1 className="text-emerald-500 font-black animate-pulse text-2xl">VERBINDE...</h1></div>;
-  if (!user) return <Login />;
-  if (!player) return <ProfileSetup userId={user.uid} onProfileCreate={handleProfileCreate} />;
+  const renderContent = () => {
+    if (activeView === 'home') return <Dashboard player={player!} club={selectedClub} allClubs={clubs} overallRating={overallRating} xpProgress={xpProgress} xpNeeded={xpNeeded} />;
+    if (activeView === 'skills') return <TrainingCenter player={player!} onTrain={handleTrainSkill} />;
+    if (activeView === 'activities') return <ActivitiesComponent player={player!} onStart={handleStartActivity} onComplete={handleCompleteActivity} onReset={handleResetActivities} />;
+    if (activeView === 'leaderboard') return <Leaderboard />;
+    if (activeView === 'club-search') return <ClubSearch player={player!} />;
+    if (activeView === 'club') {
+      if (player?.clubId && !selectedClub) {
+        return <div className="h-full flex items-center justify-center"><h1 className="text-emerald-500 font-black animate-pulse text-2xl">LADE VEREINSDATEN...</h1></div>;
+      }
+      return <ClubDashboard club={selectedClub || null} player={player!} setView={setActiveView} onUpgrade={handleUpgrade} />;
+    }
+    return null;
+  };
 
+  if (loading) {
+    return <div className="h-screen bg-slate-950 flex items-center justify-center"><h1 className="text-emerald-500 font-black animate-pulse text-2xl">VERBINDE...</h1></div>;
+  }
+
+  if (!user) {
+    return <Login />;
+  }
+
+  if (!player) {
+    return <ProfileSetup userId={user.uid} onProfileCreate={handleProfileCreate} onLogout={handleLogout} />;
+  }
+  
   return (
     <div className="h-screen bg-slate-950 text-slate-100 font-sans">
       <Sidebar 
@@ -149,19 +175,7 @@ const App: React.FC = () => {
 
         <main className="flex-1 overflow-y-auto p-4 md:p-8 bg-slate-900/95">
           <div className="max-w-7xl mx-auto space-y-8">
-            {activeView === 'home' && <Dashboard player={player} club={selectedClub} allClubs={clubs} overallRating={overallRating} xpProgress={xpProgress} xpNeeded={xpNeeded} />}
-            {activeView === 'skills' && <TrainingCenter player={player} onTrain={handleTrainSkill} />}
-            {activeView === 'club' && 
-              <ClubDashboard 
-                club={selectedClub || null}
-                player={player} 
-                setView={setActiveView}
-                onUpgrade={handleUpgrade}
-              />
-            }
-            {activeView === 'activities' && <ActivitiesComponent player={player} onStart={handleStartActivity} onComplete={handleCompleteActivity} onReset={handleResetActivities} />}
-            {activeView === 'leaderboard' && <Leaderboard />}
-            {activeView === 'club-search' && <ClubSearch player={player} />}
+            {renderContent()}
           </div>
         </main>
       </div>

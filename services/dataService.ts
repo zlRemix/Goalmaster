@@ -115,11 +115,15 @@ const dataService = {
   // PLAYER DATA
   // =========================================================================
 
-  listenToPlayer(uid: string, callback: (player: Player) => void): () => void {
+  listenToPlayer(uid: string, callback: (player: Player | null) => void): () => void {
     const playerRef = doc(db, 'players', uid);
     return onSnapshot(playerRef, (doc) => {
       if (doc.exists()) {
         callback({ id: doc.id, ...doc.data() } as Player);
+      } else {
+        // DAS FEHLTE: Wenn kein Dokument da ist, null zurückgeben!
+        console.log("Kein Spielerprofil gefunden (listenToPlayer)");
+        callback(null);
       }
     });
   },
