@@ -1,10 +1,38 @@
 import React, { useState, useEffect, useMemo, ReactNode } from 'react';
-import { Player, Club } from '../types';
+import { Player, Club, AvatarData } from '../types';
 import { dataService } from '../services/dataService';
 import { getSkillsForPosition } from '../utils';
 import { MAX_CLUB_PLAYERS } from '../constants';
-import { Medal } from 'lucide-react';
+import { Medal, UserCircle } from 'lucide-react';
 import ClubLogo from './ClubLogo';
+import { createAvatar } from '@dicebear/core';
+import * as collections from '@dicebear/collection';
+
+// --- PLAYER AVATAR ---
+const PlayerAvatar: React.FC<{ avatar?: AvatarData; size?: number }> = ({ avatar, size = 40 }) => {
+    const avatarSvg = useMemo(() => {
+        if (!avatar || !avatar.style || !avatar.seed) {
+            return null; // Don't generate if data is incomplete
+        }
+        const styleCollection = (collections as any)[avatar.style];
+        if (!styleCollection) {
+            return null; // Style not found
+        }
+        return createAvatar(styleCollection, {
+            seed: avatar.seed,
+            size: size,
+            radius: 50,
+        }).toString();
+    }, [avatar, size]);
+
+    if (avatarSvg) {
+        return <div style={{ width: size, height: size }} dangerouslySetInnerHTML={{ __html: avatarSvg }} />;
+    }
+
+    // Fallback Icon
+    return <UserCircle className="text-slate-500" style={{ width: size, height: size }} />;
+};
+
 
 // --- HELPERS ---
 const getOverall = (p: Player) => {
@@ -18,7 +46,7 @@ const getMedalIcon = (rank: number): ReactNode => {
     if (rank === 1) return <Medal className="h-6 w-6 text-yellow-400" />;
     if (rank === 2) return <Medal className="h-6 w-6 text-slate-300" />;
     if (rank === 3) return <Medal className="h-6 w-6 text-orange-500" />;
-    return null;
+    return <div className="w-6 h-6"></div>; // Placeholder for alignment
 };
 
 // --- PLAYER LEADERBOARD ---
@@ -27,10 +55,11 @@ const PlayerLeaderboardRow: React.FC<{ player: Player; rank: number; club: Club 
     const medalIcon = getMedalIcon(rank);
 
     return (
-         <div className="grid grid-cols-[auto,1fr,auto,auto,auto] items-center bg-slate-800/80 p-3 md:p-4 rounded-xl border border-slate-700/50 text-white font-bold transition-all hover:bg-slate-800 hover:border-slate-600 gap-2 md:gap-4">
+         <div className="grid grid-cols-[auto,auto,1fr,auto,auto,auto] items-center bg-slate-800/80 p-3 md:p-4 rounded-xl border border-slate-700/50 text-white font-bold transition-all hover:bg-slate-800 hover:border-slate-600 gap-3 md:gap-4">
             <div className="w-8 text-center text-lg md:text-xl font-black text-slate-400">{rank}</div>
+            <div className="flex items-center justify-center">{medalIcon}</div>
             <div className="flex items-center gap-3 md:gap-4">
-                <div className="w-6 h-6 flex items-center justify-center">{medalIcon}</div>
+                <PlayerAvatar avatar={player.avatar} size={40} />
                 <p className="text-base md:text-lg truncate">{player.name}</p>
             </div>
             <div className="w-20 text-center text-slate-300 font-semibold">
@@ -72,9 +101,10 @@ const PlayerLeaderboard: React.FC = () => {
 
     return (
         <div className="space-y-2 md:space-y-3">
-           <div className="grid grid-cols-[auto,1fr,auto,auto,auto] items-center p-2 text-xs font-bold text-slate-500 uppercase tracking-wider gap-2 md:gap-4">
+           <div className="grid grid-cols-[auto,auto,1fr,auto,auto,auto] items-center p-2 text-xs font-bold text-slate-500 uppercase tracking-wider gap-3 md:gap-4">
                 <div className="w-8 text-center">#</div>
-                <div className="pl-12">Spieler</div>
+                <div className="w-6"></div>
+                <div className="pl-1">Spieler</div>
                 <div className="w-20 text-center">Position</div>
                 <div className="w-28 text-center">Verein</div>
                 <div className="w-24 text-center">Gesamt</div>

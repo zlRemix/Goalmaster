@@ -1,7 +1,25 @@
-import React from 'react';
-import { Player, Club, View } from '../types';
+import React, { useMemo } from 'react';
+import { Player, Club, View, AvatarData } from '../types';
 import { dataService } from '../services/dataService';
-import { UserCog } from 'lucide-react';
+import { UserCog, Shield } from 'lucide-react';
+import ClubLogo from './ClubLogo';
+import { createAvatar } from '@dicebear/core';
+import * as collections from '@dicebear/collection';
+
+const PlayerAvatar: React.FC<{ avatar?: AvatarData; size?: number }> = ({ avatar, size = 80 }) => {
+    const avatarSvg = useMemo(() => {
+        if (!avatar || !avatar.style || !avatar.seed) return null;
+        const styleCollection = (collections as any)[avatar.style];
+        if (!styleCollection) return null;
+        return createAvatar(styleCollection, { seed: avatar.seed, size, radius: 50 }).toString();
+    }, [avatar, size]);
+
+    if (avatarSvg) {
+        return <div style={{ width: size, height: size }} dangerouslySetInnerHTML={{ __html: avatarSvg }} />;
+    }
+    return <div style={{ width: size, height: size }} className="bg-slate-700 rounded-full" />;
+};
+
 
 interface DashboardProps {
   player: Player;
@@ -50,16 +68,25 @@ export const Dashboard: React.FC<DashboardProps> = ({ player, club, allClubs, ov
         
       {player.pendingClubInvitation && <InvitationBanner player={player} allClubs={allClubs} />}
 
-      <header className="flex justify-between items-start gap-4">
-        <div>
-          <h1 className="text-3xl md:text-5xl font-black text-white">{player.name}</h1>
-          <p className="text-lg md:text-xl text-slate-400 font-bold">{club ? club.name : 'Vereinslos'}</p>
+      <header className="flex justify-between items-center gap-4">
+        <div className="flex items-center gap-4 md:gap-6">
+          <PlayerAvatar avatar={player.avatar} />
+          <div>
+            <h1 className="text-3xl md:text-5xl font-black text-white">{player.name}</h1>
+            <p className="text-lg md:text-xl text-slate-400 font-bold">{club ? club.name : 'Vereinslos'}</p>
+          </div>
         </div>
+        
         <div className="flex items-start gap-3">
-          <button onClick={() => setView('profile')} className="p-3 bg-slate-800 rounded-2xl border border-slate-700 text-slate-400 hover:text-white hover:border-slate-600 transition-colors">
+          {club && (
+             <button onClick={() => setView('club')} className="p-3 bg-slate-800 rounded-2xl border border-slate-700 text-slate-400 hover:text-white hover:border-slate-600 transition-colors">
+                <ClubLogo logo={club.logo} size={40} />
+            </button>
+          )}
+          <button onClick={() => setView('profile')} className="p-3 bg-slate-800 rounded-2xl border border-slate-700 text-slate-400 hover:text-white hover:border-slate-600 transition-colors h-full flex items-center">
              <UserCog className="h-6 w-6" />
           </button>
-          <div className="bg-slate-800 p-2 rounded-2xl flex items-center gap-2 border border-slate-700">
+          <div className="bg-slate-800 p-2 rounded-2xl flex items-center gap-2 border border-slate-700 h-full">
             <div className="bg-emerald-500 text-white text-xs font-bold px-3 py-1 rounded-xl">LEVEL</div>
             <div className="text-white font-black text-2xl px-2">{player.level || 1}</div>
           </div>
