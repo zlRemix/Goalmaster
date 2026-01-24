@@ -1,4 +1,4 @@
-import { collection, doc, getDoc, onSnapshot, setDoc, updateDoc, arrayUnion, arrayRemove, runTransaction, serverTimestamp, FieldValue, query, where, getDocs, writeBatch, documentId } from 'firebase/firestore';
+import { collection, doc, getDoc, onSnapshot, setDoc, updateDoc, arrayUnion, arrayRemove, runTransaction, serverTimestamp, FieldValue, query, where, getDocs, writeBatch, documentId, orderBy } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import { db, functions } from './firebase';
 import { Player, Club, Fixture, PlayerPosition, UserRole, PendingUpgrade, SkillType, ActiveActivity, Reward, InfrastructureType, ActiveTeamTraining, Activity } from '../types';
@@ -18,7 +18,6 @@ const getXpForSkillUpgrade = (currentSkillLevel: number): number => {
     return (1 + rank) * XP_PER_SKILL_UPGRADE;
 };
 
-// Helper to calculate all player and club updates from a completed activity.
 const calculateActivityRewards = (player: Player, activity: Activity) => {
     const playerUpdates: { [key: string]: any } = {};
     let totalXpGain = activity.reward.xp || 0;
@@ -44,21 +43,14 @@ const calculateActivityRewards = (player: Player, activity: Activity) => {
     return { playerUpdates, budgetGain };
 };
 
-
 const dataService = {
-  // =========================================================================
-  // PLAYER & CLUB CREATION
-  // =========================================================================
-
   async createPlayerAndClub(uid: string, name: string, position: PlayerPosition, wantsManagerRole: boolean, clubName?: string): Promise<void> {
-    // Check for duplicate player name
     const playerQuery = query(collection(db, "players"), where("name", "==", name));
     const playerDocs = await getDocs(playerQuery);
     if (!playerDocs.empty) {
         throw new Error("Spielername ist bereits vergeben.");
     }
 
-    // Check for duplicate club name if applicable
     if (wantsManagerRole && clubName) {
         const clubQuery = query(collection(db, "clubs"), where("name", "==", clubName));
         const clubDocs = await getDocs(clubQuery);
@@ -72,17 +64,16 @@ const dataService = {
         let clubId: string | null = null;
         const roles = [UserRole.PLAYER];
 
-        // If the user wants to be a manager and provided a club name, create the club.
         if (wantsManagerRole && clubName) {
-            const clubRef = doc(collection(db, 'clubs')); // Create a new doc with a generated ID
-            
+            const clubRef = doc(collection(db, 'clubs'));
             const newClub: Club = {
                 id: clubRef.id,
                 name: clubName,
-                managerId: uid, // Correctly set the managerId
-                ownerId: uid, // Also set the ownerId for authorization
+                // **FINAL FIX: isBot is removed. Player clubs are identified by a real ownerId.**
+                managerId: uid,
+                ownerId: uid,
                 players: [uid],
-                budget: 50000, // Starting budget
+                budget: 50000,
                 infrastructure: {
                     stadium: { level: 0 },
                     training_ground: { level: 0 },
@@ -94,12 +85,10 @@ const dataService = {
                 activeTeamTraining: null,
             };
             transaction.set(clubRef, newClub);
-
             clubId = clubRef.id;
             roles.push(UserRole.MANAGER);
         }
 
-        // Create the player document
         const newPlayer: Player = {
             id: uid,
             name,
@@ -118,20 +107,10 @@ const dataService = {
     });
   },
 
-  // =========================================================================
-  // PLAYER DATA
-  // =========================================================================
-
   listenToPlayer(uid: string, callback: (player: Player | null) => void): () => void {
     const playerRef = doc(db, 'players', uid);
     return onSnapshot(playerRef, (doc) => {
-      if (doc.exists()) {
-        callback({ id: doc.id, ...doc.data() } as Player);
-      } else {
-        // DAS FEHLTE: Wenn kein Dokument da ist, null zurückgeben!
-        console.log("Kein Spielerprofil gefunden (listenToPlayer)");
-        callback(null);
-      }
+      callback(doc.exists() ? { id: doc.id, ...doc.data() } as Player : null);
     });
   },
 
@@ -140,27 +119,21 @@ const dataService = {
         callback([]);
         return () => {};
     }
-    const playersRef = collection(db, 'players');
-    // Query by the actual document ID, which is the most robust method.
-    const q = query(playersRef, where(documentId(), 'in', playerIds));
-    
+    const q = query(collection(db, 'players'), where(documentId(), 'in', playerIds));
     return onSnapshot(q, (snapshot) => {
-        const players = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Player));
-        callback(players);
+        callback(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Player)));
     });
   },
 
   listenToAllPlayers(callback: (players: Player[]) => void): () => void {
-    const playersRef = collection(db, 'players');
-    return onSnapshot(playersRef, (snapshot) => {
-        const players = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Player));
-        callback(players);
+    const q = query(collection(db, 'players'));
+    return onSnapshot(q, (snapshot) => {
+        callback(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Player)));
     });
   },
 
   async updatePlayer(uid: string, updates: Partial<Player>): Promise<void> {
-    const playerRef = doc(db, 'players', uid);
-    await updateDoc(playerRef, updates);
+    await updateDoc(doc(db, 'players', uid), updates);
   },
 
   async upgradeSkill(playerId: string, skill: SkillType): Promise<void> {
@@ -171,7 +144,6 @@ const dataService = {
 
       const player = playerDoc.data() as Player;
       const currentSkillLevel = player.skills?.[skill] || 0;
-
       const rank = Math.floor(currentSkillLevel / 100);
       const cost = 1 + rank * 2;
 
@@ -180,7 +152,6 @@ const dataService = {
       }
 
       const xpGained = getXpForSkillUpgrade(currentSkillLevel);
-
       transaction.update(playerRef, {
         trainingPoints: (player.trainingPoints || 0) - cost,
         experience: (player.experience || 0) + xpGained, 
@@ -189,218 +160,149 @@ const dataService = {
     });
   },
 
-
-  // =========================================================================
-  // ACTIVITIES
-  // =========================================================================
-
    async startActivity(playerId: string, activityId: string): Promise<void> {
     const activity = ACTIVITIES.find(a => a.id === activityId);
     if (!activity) throw new Error("Activity not found");
-
-    const playerRef = doc(db, 'players', playerId);
     const newActivity: ActiveActivity = { activityId, startTime: Date.now() };
-    
-    await updateDoc(playerRef, { activeActivities: [newActivity] });
+    await updateDoc(doc(db, 'players', playerId), { activeActivities: [newActivity] });
   },
 
   async completeActivity(playerId: string, activityId: string): Promise<void> {
     await runTransaction(db, async (transaction) => {
         const playerRef = doc(db, 'players', playerId);
         const playerDoc = await transaction.get(playerRef);
-
         if (!playerDoc.exists()) throw new Error(`Player ${playerId} not found.`);
         
         const player = playerDoc.data() as Player;
         const activityDef = ACTIVITIES.find(a => a.id === activityId);
-
         if (!activityDef) throw new Error(`Activity definition ${activityId} not found.`);
 
         const activityInstance = player.activeActivities?.[0];
-        if (!activityInstance || activityInstance.activityId !== activityId) {
-             console.warn(`Attempted to complete activity ${activityId} which is not active for player ${playerId}.`);
-            return;
-        }
+        if (!activityInstance || activityInstance.activityId !== activityId) return;
         
         const { playerUpdates, budgetGain } = calculateActivityRewards(player, activityDef as Activity);
-
         playerUpdates.activeActivities = []; 
         playerUpdates.completedActivityIds = arrayUnion(activityId);
-
         transaction.update(playerRef, playerUpdates);
 
         if (budgetGain > 0 && player.clubId) {
             const clubRef = doc(db, 'clubs', player.clubId);
             const clubDoc = await transaction.get(clubRef);
             if (clubDoc.exists()) {
-                const currentBudget = clubDoc.data().budget || 0;
-                transaction.update(clubRef, { budget: currentBudget + budgetGain });
+                transaction.update(clubRef, { budget: (clubDoc.data().budget || 0) + budgetGain });
             }
         }
     });
   },
   
   async resetCompletedActivities(playerId: string): Promise<void> {
-      const playerRef = doc(db, 'players', playerId);
-      await updateDoc(playerRef, {
+      await updateDoc(doc(db, 'players', playerId), {
           completedActivityIds: [],
           nextActivityReset: getNextHourlyTimestamp(),
       });
   },
 
-  // =========================================================================
-  // CLUB & TEAM TRAINING
-  // =========================================================================
-
   listenToClub(clubId: string, callback: (club: Club | null) => void): () => void {
-    const clubRef = doc(db, 'clubs', clubId);
-    return onSnapshot(clubRef, (doc) => {
-        if (doc.exists()) {
-            callback({ id: doc.id, ...doc.data() } as Club);
-        } else {
-            callback(null);
-        }
+    return onSnapshot(doc(db, 'clubs', clubId), (doc) => {
+        callback(doc.exists() ? { id: doc.id, ...doc.data() } as Club : null);
     });
   },
 
+  // **FINAL FIX: Filter clubs for the leaderboard based on the ownerId.**
   listenToClubs(callback: (clubs: Club[]) => void): () => void {
-    const clubsRef = collection(db, 'clubs');
-    return onSnapshot(clubsRef, (snapshot) => {
-      const clubs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Club));
-      callback(clubs);
+    const q = query(collection(db, 'clubs'), where('ownerId', '!=', 'bot_owner'), orderBy('ownerId'), orderBy('name'));
+    return onSnapshot(q, (snapshot) => {
+      callback(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Club)));
+    });
+  },
+  
+  listenToAllClubs(callback: (clubs: Club[]) => void): () => void {
+    const q = query(collection(db, 'clubs'), orderBy('name'));
+    return onSnapshot(q, (snapshot) => {
+      callback(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Club)));
     });
   },
 
   async addPlayerToClub(clubId: string, playerId: string): Promise<void> {
-    const clubRef = doc(db, 'clubs', clubId);
-    const playerRef = doc(db, 'players', playerId);
-
     await runTransaction(db, async (transaction) => {
+        const clubRef = doc(db, 'clubs', clubId);
         const clubDoc = await transaction.get(clubRef);
-        if (!clubDoc.exists()) {
-            throw new Error("Club not found");
-        }
-
+        if (!clubDoc.exists()) throw new Error("Club not found");
         const club = clubDoc.data() as Club;
-        const playerCount = club.players?.length || 0;
-
-        if (playerCount >= MAX_CLUB_PLAYERS) {
-            throw new Error("Club is full");
-        }
+        if ((club.players?.length || 0) >= MAX_CLUB_PLAYERS) throw new Error("Club is full");
 
         transaction.update(clubRef, { players: arrayUnion(playerId) });
-        transaction.update(playerRef, { clubId: clubId });
+        transaction.update(doc(db, 'players', playerId), { clubId: clubId });
     });
   },
   
   async startTeamTraining(clubId: string, trainingId: string): Promise<void> {
     const trainingDef = TEAM_TRAININGS.find(t => t.id === trainingId);
     if (!trainingDef) throw new Error("Team training not found");
-
-    const clubRef = doc(db, 'clubs', clubId);
-    const newTraining: ActiveTeamTraining = {
-        trainingId,
-        startTime: Date.now()
-    };
-    await updateDoc(clubRef, { activeTeamTraining: newTraining });
+    await updateDoc(doc(db, 'clubs', clubId), { activeTeamTraining: { trainingId, startTime: Date.now() } });
   },
 
   async completeTeamTraining(clubId: string, uid: string): Promise<void> {
-    const completeTeamTrainingFunction = httpsCallable(functions, 'completeTeamTraining');
-    await completeTeamTrainingFunction({ clubId, uid });
+    await httpsCallable(functions, 'completeTeamTraining')({ clubId, uid });
   },
 
-  // =========================================================================
-  // CLUB APPLICATIONS & INVITATIONS
-  // =========================================================================
-
   async applyToClub(playerId: string, clubId: string): Promise<void> {
-    const applyToClubFunction = httpsCallable(functions, 'applyToClub');
-    await applyToClubFunction({ clubId });
+    await httpsCallable(functions, 'applyToClub')({ clubId });
   },
 
   async cancelApplication(playerId: string, clubId: string): Promise<void> {
-    const clubRef = doc(db, 'clubs', clubId);
-    await updateDoc(clubRef, { pendingApplications: arrayRemove(playerId) });
+    await updateDoc(doc(db, 'clubs', clubId), { pendingApplications: arrayRemove(playerId) });
   },
 
   async invitePlayer(clubId: string, playerId: string): Promise<void> {
-    const playerRef = doc(db, 'players', playerId);
-    await updateDoc(playerRef, { pendingClubInvitation: clubId });
+    await updateDoc(doc(db, 'players', playerId), { pendingClubInvitation: clubId });
   },
 
   async cancelInvitation(playerId: string): Promise<void> {
-    const playerRef = doc(db, 'players', playerId);
-    await updateDoc(playerRef, { pendingClubInvitation: null });
+    await updateDoc(doc(db, 'players', playerId), { pendingClubInvitation: null });
   },
 
   async rejectApplication(clubId: string, playerId: string): Promise<void> {
-    // This is the same as cancelling, so we just reuse the logic.
     await this.cancelApplication(playerId, clubId);
   },
 
   async rejectClubInvitation(playerId: string): Promise<void> {
-    // This is the same as cancelling, so we just reuse the logic.
     await this.cancelInvitation(playerId);
   },
 
-    async acceptApplication(clubId: string, playerId: string): Promise<void> {
-        await runTransaction(db, async (transaction) => {
-            const clubRef = doc(db, 'clubs', clubId);
-            const playerRef = doc(db, 'players', playerId);
+  async acceptApplication(clubId: string, playerId: string): Promise<void> {
+    await runTransaction(db, async (transaction) => {
+        const clubRef = doc(db, 'clubs', clubId);
+        const clubDoc = await transaction.get(clubRef);
+        if (!clubDoc.exists()) throw new Error("Club not found");
+        if ((clubDoc.data().players?.length || 0) >= MAX_CLUB_PLAYERS) throw new Error("Der Verein ist voll");
 
-            const clubDoc = await transaction.get(clubRef);
-            if (!clubDoc.exists()) throw new Error("Club not found");
-            
-            const club = clubDoc.data() as Club;
-            if ((club.players?.length || 0) >= MAX_CLUB_PLAYERS) throw new Error("Der Verein ist voll");
-
-            // Add player to club, remove application, and set player's clubId
-            transaction.update(clubRef, { 
-                players: arrayUnion(playerId),
-                pendingApplications: arrayRemove(playerId) 
-            });
-            transaction.update(playerRef, { 
-                clubId: clubId,
-            });
-        });
-    },
+        transaction.update(clubRef, { players: arrayUnion(playerId), pendingApplications: arrayRemove(playerId) });
+        transaction.update(doc(db, 'players', playerId), { clubId: clubId });
+    });
+  },
 
   async acceptClubInvitation(playerId: string, clubId: string): Promise<void> {
      await runTransaction(db, async (transaction) => {
       const clubRef = doc(db, 'clubs', clubId);
-      const playerRef = doc(db, 'players', playerId);
-
       const clubDoc = await transaction.get(clubRef);
       if (!clubDoc.exists()) throw new Error("Club not found");
-      
-      const club = clubDoc.data() as Club;
-      if ((club.players?.length || 0) >= MAX_CLUB_PLAYERS) throw new Error("Club is full");
+      if ((clubDoc.data().players?.length || 0) >= MAX_CLUB_PLAYERS) throw new Error("Club is full");
 
-      // Add player to club and set player's clubId
       transaction.update(clubRef, { players: arrayUnion(playerId) });
-      transaction.update(playerRef, { 
-        clubId: clubId,
-        pendingClubInvitation: null // Remove the invitation
-      });
+      transaction.update(doc(db, 'players', playerId), { clubId: clubId, pendingClubInvitation: null });
     });
   },
 
-  // =========================================================================
-  // INFRASTRUCTURE & FIXTURES
-  // =========================================================================
-
   listenToFixtures(callback: (fixtures: Fixture[]) => void): () => void {
-    const fixturesRef = collection(db, 'fixtures');
-    return onSnapshot(fixturesRef, (snapshot) => {
-      const fixtures = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Fixture));
-      callback(fixtures);
+    return onSnapshot(collection(db, 'fixtures'), (snapshot) => {
+      callback(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Fixture)));
     });
   },
 
   async startInfrastructureUpgrade(clubId: string, type: InfrastructureType): Promise<void> {
-    const clubRef = doc(db, 'clubs', clubId);
     await runTransaction(db, async (transaction) => {
+      const clubRef = doc(db, 'clubs', clubId);
       const clubDoc = await transaction.get(clubRef);
       if (!clubDoc.exists()) throw new Error("Club not found");
 
@@ -434,11 +336,8 @@ const dataService = {
 
         const updates: { [key: string]: any } = { pendingUpgrades: arrayRemove(...upgrades) };
         for (const upgrade of upgrades) {
-            // Ensure targetLevel is valid before updating
             if (upgrade.targetLevel !== null && upgrade.targetLevel !== undefined) {
                 updates[`infrastructure.${upgrade.type}.level`] = upgrade.targetLevel;
-            } else {
-                console.warn(`Upgrade for ${upgrade.type} is missing targetLevel. It will be removed without updating the level.`);
             }
         }
         transaction.update(clubRef, updates);

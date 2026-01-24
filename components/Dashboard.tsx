@@ -5,7 +5,7 @@ import { dataService } from '../services/dataService';
 interface DashboardProps {
   player: Player;
   club: Club | null; 
-  allClubs: Club[]; // All clubs to find the inviting club's name
+  allClubs: Club[];
   overallRating: number;
   xpProgress: number;
   xpNeeded: number;

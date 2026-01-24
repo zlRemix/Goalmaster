@@ -16,7 +16,7 @@ import ProfileSetup from './components/ProfileSetup';
 import { getSkillsForPosition } from './utils';
 import { Menu } from 'lucide-react';
 import LeagueManagement from './components/LeagueManagement';
-import LeagueView from './components/LeagueView'; // Import LeagueView
+import LeagueView from './components/LeagueView'; 
 
 const calculateXpNeeded = (level: number): number => {
   return Math.floor(100 * Math.pow(1.15, level - 1));
@@ -48,8 +48,9 @@ const App: React.FC = () => {
       setUser(firebaseUser);
 
       if (firebaseUser) {
-        allClubsUnsubscribe = dataService.listenToClubs(setAllClubs);
+        allClubsUnsubscribe = dataService.listenToAllClubs(setAllClubs);
         fixturesUnsubscribe = dataService.listenToFixtures(setFixtures);
+
         playerUnsubscribe = dataService.listenToPlayer(firebaseUser.uid, (p) => {
           setPlayer(p ? { ...p, id: firebaseUser.uid } : null);
 
@@ -155,7 +156,15 @@ const App: React.FC = () => {
     if (activeView === 'leaderboard') return <Leaderboard />;
     if (activeView === 'club-search') return <ClubSearch player={player!} />;
     if (activeView === 'league') return <LeagueView fixtures={fixtures} allClubs={allClubs} />;
-    if (activeView === 'admin' && player?.roles.includes(UserRole.ADMIN)) return <LeagueManagement />;
+    
+    if (activeView === 'admin' && player?.roles.includes(UserRole.ADMIN)) {
+      return (
+        <div className="space-y-12">
+          <LeagueManagement />
+        </div>
+      );
+    }
+
     if (activeView === 'club') {
       if (player?.clubId && !selectedClub) {
         return <div className="h-full flex items-center justify-center"><h1 className="text-emerald-500 font-black animate-pulse text-2xl">LADE VEREINSDATEN...</h1></div>;

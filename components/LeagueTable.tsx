@@ -24,6 +24,7 @@ interface TeamStats {
 const LeagueTable: React.FC<LeagueTableProps> = ({ fixtures, allClubs }) => {
   const stats: Record<string, TeamStats> = {};
 
+  // **FINAL FIX: Identify bots using ownerId instead of isBot**
   allClubs.forEach(club => {
     stats[club.id] = {
       id: club.id,
@@ -36,7 +37,8 @@ const LeagueTable: React.FC<LeagueTableProps> = ({ fixtures, allClubs }) => {
       goalsAgainst: 0,
       goalDifference: 0,
       points: 0,
-      isBot: club.isBot || false,
+      // The crucial change is here:
+      isBot: club.ownerId === 'bot_owner',
     };
   });
 
