@@ -43,14 +43,14 @@ export const INFRA_LEVEL_BENEFITS: Record<InfrastructureType, string[]> = {
         "+2% TP-Gewinn", "+4% TP-Gewinn", "+6% TP-Gewinn", "+8% TP-Gewinn", "+10% TP-Gewinn", 
         "+12% TP-Gewinn", "+14% TP-Gewinn", "+16% TP-Gewinn", "+18% TP-Gewinn", "+20% TP-Gewinn"
     ],
-    [InfrastructureType.YOUTH_ACADEMY]: [
-        "Scoutet alle 3 Tage", "Scoutet alle 2.5 Tage", "Scoutet alle 2 Tage", "Scoutet alle 1.5 Tage", "Scoutet alle 24h", 
-        "Bessere Talentqualität (Low)", "Bessere Talentqualität (Mid)", "Bessere Talentqualität (High)", "Scoutet alle 12h", "Maximale Talentqualität"
+    [InfrastructureType.MEDICAL_CENTER]: [
+        "-2% Aktivitätsdauer", "-4% Aktivitätsdauer", "-6% Aktivitätsdauer", "-8% Aktivitätsdauer", "-10% Aktivitätsdauer",
+        "-12% Aktivitätsdauer", "-14% Aktivitätsdauer", "-16% Aktivitätsdauer", "-18% Aktivitätsdauer", "-20% Aktivitätsdauer"
     ],
-    [InfrastructureType.SCOUTING_NETWORK]: [
-        "Genauigkeit +5%", "Genauigkeit +10%", "Genauigkeit +15%", "Genauigkeit +20%", "Genauigkeit +25%", 
-        "Aufdecken von Potenzial (Low)", "Aufdecken von Potenzial (Mid)", "Aufdecken von Potenzial (High)", "Aufdecken von allen Attributen", "Maximale Genauigkeit & Potenzial"
-    ],
+    [InfrastructureType.MARKETING_DEPARTMENT]: [
+        "+5% Einnahmen aus PR-Aktivitäten", "+10% Einnahmen aus PR-Aktivitäten", "+15% Einnahmen aus PR-Aktivitäten", "+20% Einnahmen aus PR-Aktivitäten", "+25% Einnahmen aus PR-Aktivitäten",
+        "+30% Einnahmen aus PR-Aktivitäten", "+35% Einnahmen aus PR-Aktivitäten", "+40% Einnahmen aus PR-Aktivitäten", "+45% Einnahmen aus PR-Aktivitäten", "+50% Einnahmen aus PR-Aktivitäten"
+    ]
 };
 
 export const TEAM_TRAININGS = [

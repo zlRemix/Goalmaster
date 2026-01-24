@@ -40,8 +40,8 @@ const formatDuration = (totalSeconds: number) => {
 const infrastructureInfo: Record<InfrastructureType, { name: string; icon: string; description: string; }> = {
     [InfrastructureType.STADIUM]: { name: 'Stadion', icon: '🏟️', description: 'Erhöht die Ticketeinnahmen bei Heimspielen.' },
     [InfrastructureType.TRAINING_GROUND]: { name: 'Trainingsgelände', icon: '🏋️', description: 'Verbessert die Effektivität des Trainings (TP-Gewinn).' },
-    [InfrastructureType.YOUTH_ACADEMY]: { name: 'Jugendakademie', icon: '🧒', description: 'Scoutet regelmäßig neue, vielversprechende Talente.' },
-    [InfrastructureType.SCOUTING_NETWORK]: { name: 'Scouting-Netzwerk', icon: '📡', description: 'Verbessert die Genauigkeit von Spieler-Scouting-Berichten.' },
+    [InfrastructureType.MEDICAL_CENTER]: { name: 'Medizinisches Zentrum', icon: '⚕️', description: 'Verkürzt die Dauer von Spieler-Aktivitäten.' },
+    [InfrastructureType.MARKETING_DEPARTMENT]: { name: 'Marketingabteilung', icon: '📈', description: 'Erhöht die Einnahmen aus PR-Aktivitäten.' },
 };
 
 // --- SUB-COMPONENTS ---
@@ -330,7 +330,7 @@ export const ClubDashboard: React.FC<ClubDashboardProps> = ({ club, player, onUp
 
             <div className="animate-in fade-in duration-500">
                 {clubNav === 'infrastructure' && (
-                    <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6">
+                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
                         {(Object.keys(infrastructureInfo) as InfrastructureType[]).map(type => (
                             <InfrastructureCard key={type} type={type} club={club} onUpgrade={onUpgrade} />
                         ))}

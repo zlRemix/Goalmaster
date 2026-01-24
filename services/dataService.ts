@@ -63,8 +63,8 @@ const dataService = {
                 infrastructure: {
                     stadium: { level: 1 },
                     training_ground: { level: 1 },
-                    youth_academy: { level: 1 },
-                    scouting_network: { level: 1 },
+                    medical_center: { level: 1 },
+                    marketing_department: { level: 1 },
                 },
                 pendingApplications: [],
                 pendingUpgrades: [],

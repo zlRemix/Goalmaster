@@ -68,8 +68,8 @@ export interface Player {
 export enum InfrastructureType {
     STADIUM = 'stadium',
     TRAINING_GROUND = 'training_ground',
-    YOUTH_ACADEMY = 'youth_academy',
-    SCOUTING_NETWORK = 'scouting_network',
+    MEDICAL_CENTER = 'medical_center',
+    MARKETING_DEPARTMENT = 'marketing_department',
 }
 
 export interface InfrastructureItem {
