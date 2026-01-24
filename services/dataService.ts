@@ -279,21 +279,61 @@ const dataService = {
   },
 
   async completeTeamTraining(clubId: string, uid: string): Promise<void> {
-    const url = `https://us-central1-goalmaster-56078.cloudfunctions.net/completeTeamTraining`;
-    const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ data: { clubId, uid } }),
+    await runTransaction(db, async (transaction) => {
+        console.log(`Completing training for club ${clubId}`);
+        const clubRef = doc(db, 'clubs', clubId);
+        const clubDoc = await transaction.get(clubRef);
+
+        if (!clubDoc.exists()) throw new Error(`Club ${clubId} not found.`);
+        const club = clubDoc.data() as Club;
+
+        if (!club.activeTeamTraining) {
+            console.log(`Club ${clubId} has no active team training.`);
+            transaction.update(clubRef, { activeTeamTraining: null });
+            return;
+        }
+        
+        const trainingDef = TEAM_TRAININGS.find(t => t.id === club.activeTeamTraining!.trainingId);
+        if (!trainingDef) {
+            console.error(`Team training definition for ${club.activeTeamTraining.trainingId} not found.`);
+            transaction.update(clubRef, { activeTeamTraining: null });
+            return;
+        }
+
+        const endTime = club.activeTeamTraining.startTime + trainingDef.durationSeconds * 1000;
+        if (Date.now() < endTime) {
+             console.warn(`Training ${trainingDef.id} for club ${clubId} is not finished yet.`);
+             return;
+        }
+
+        const playerIds = club.players || [];
+        if (playerIds.length > 0) {
+            const reward = trainingDef.reward;
+            
+            const playerDocPromises = playerIds.map(id => transaction.get(doc(db, 'players', id)));
+            const playerDocs = await Promise.all(playerDocPromises);
+
+            for (const playerDoc of playerDocs) {
+                if (playerDoc.exists()) {
+                    const player = playerDoc.data() as Player;
+                    const playerRef = doc(db, 'players', playerDoc.id);
+                    const updates: { [key: string]: any } = {};
+
+                    updates.experience = (player.experience || 0) + (reward.xp || 0);
+
+                    if (reward.skills) {
+                        for (const [skill, value] of Object.entries(reward.skills)) {
+                            updates[`skills.${skill as SkillType}`] = ((player.skills?.[skill as SkillType]) || 0) + value;
+                        }
+                    }
+                    transaction.update(playerRef, updates);
+                }
+            }
+        }
+
+        transaction.update(clubRef, { activeTeamTraining: null });
+        console.log(`Successfully completed training ${trainingDef.id} for club ${clubId}`);
     });
-
-    if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Fehler beim Abschließen des Teamtrainings.");
-    }
-
-    return response.json();
   },
 
   // =========================================================================
@@ -330,10 +370,27 @@ const dataService = {
     await this.cancelInvitation(playerId);
   },
 
-  async acceptApplication(clubId: string, playerId: string): Promise<void> {
-    const acceptApplicationFunction = httpsCallable(functions, 'acceptApplication');
-    await acceptApplicationFunction({ clubId, playerId });
-  },
+    async acceptApplication(clubId: string, playerId: string): Promise<void> {
+        await runTransaction(db, async (transaction) => {
+            const clubRef = doc(db, 'clubs', clubId);
+            const playerRef = doc(db, 'players', playerId);
+
+            const clubDoc = await transaction.get(clubRef);
+            if (!clubDoc.exists()) throw new Error("Club not found");
+            
+            const club = clubDoc.data() as Club;
+            if ((club.players?.length || 0) >= MAX_CLUB_PLAYERS) throw new Error("Der Verein ist voll");
+
+            // Add player to club, remove application, and set player's clubId
+            transaction.update(clubRef, { 
+                players: arrayUnion(playerId),
+                pendingApplications: arrayRemove(playerId) 
+            });
+            transaction.update(playerRef, { 
+                clubId: clubId,
+            });
+        });
+    },
 
   async acceptClubInvitation(playerId: string, clubId: string): Promise<void> {
      await runTransaction(db, async (transaction) => {
