@@ -3,8 +3,10 @@ import { Club, Player } from '../types';
 import { dataService } from '../services/dataService';
 import { getSkillsForPosition } from '../utils';
 import { MAX_CLUB_PLAYERS } from '../constants';
+import { Check, X, Plus, Minus, Ban, Info } from 'lucide-react';
+import { TacticSelection } from './TacticSelection'; // Import the new component
 
-// Helper to calculate overall rating, similar to SquadList
+// Helper to calculate overall rating
 const getOverall = (p: Player) => {
     const relevantSkills = getSkillsForPosition(p.position);
     if (!p.skills || relevantSkills.length === 0) return 0;
@@ -12,7 +14,7 @@ const getOverall = (p: Player) => {
     return Math.round(totalSkill / relevantSkills.length);
 };
 
-// A small card to display player info consistently
+// Player card component
 const PlayerCard: React.FC<{ player: Player; children: React.ReactNode }> = ({ player, children }) => (
     <div className="grid grid-cols-[auto,1fr,auto] items-center bg-slate-900/50 p-2 md:p-3 rounded-lg border border-slate-700/50 gap-3">
         <div className="font-bold text-slate-300 text-xs md:text-sm w-7 h-7 md:w-8 md:h-8 flex items-center justify-center bg-slate-700 rounded-full flex-shrink-0">{player.position}</div>
@@ -25,7 +27,7 @@ const PlayerCard: React.FC<{ player: Player; children: React.ReactNode }> = ({ p
                 <p className="font-black text-base md:text-xl text-amber-400">{getOverall(player)}</p>
                 <p className="text-[10px] text-slate-500 font-bold uppercase">GES</p>
             </div>
-            <div className="w-40 text-right">
+            <div className="w-48 text-right">
                 {children}
             </div>
         </div>
@@ -68,6 +70,9 @@ export const ClubManagement: React.FC<ClubManagementProps> = ({ club }) => {
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
+      {/* Add the TacticSelection component here */}
+      <TacticSelection club={club} />
+
       <section>
         <h3 className="text-xl md:text-2xl font-black mb-4">Eingegangene Bewerbungen ({applicants.length})</h3>
         {applicants.length > 0 ? (
@@ -76,11 +81,11 @@ export const ClubManagement: React.FC<ClubManagementProps> = ({ club }) => {
               <PlayerCard key={player.id} player={player}>
                 {!isClubFull ? (
                     <div className="flex gap-2 justify-end">
-                        <button onClick={() => handleAccept(player.id)} className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-3 rounded-lg text-xs transition-colors">Annehmen</button>
-                        <button onClick={() => handleReject(player.id)} className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-3 rounded-lg text-xs transition-colors">Ablehnen</button>
+                        <button onClick={() => handleAccept(player.id)} className="flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-3 rounded-lg text-xs transition-colors"> <Check className="h-4 w-4" /> Annehmen</button>
+                        <button onClick={() => handleReject(player.id)} className="flex items-center justify-center gap-1.5 bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-3 rounded-lg text-xs transition-colors"><X className="h-4 w-4" /> Ablehnen</button>
                     </div>
                 ) : (
-                    <span className="text-red-500 font-bold text-sm px-4">Kader voll</span>
+                    <div className="flex items-center justify-end gap-2 text-red-500 font-bold text-sm px-4"><Ban className="h-4 w-4"/> Kader voll</div>
                 )}
               </PlayerCard>
             ))}
@@ -103,13 +108,13 @@ export const ClubManagement: React.FC<ClubManagementProps> = ({ club }) => {
                     return (
                     <PlayerCard key={player.id} player={player}>
                         {hasBeenInvitedByThisClub ? (
-                        <button onClick={() => handleCancelInvite(player.id)} className="bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-2 px-3 rounded-lg text-xs transition-colors">Einladung zurückziehen</button>
+                        <button onClick={() => handleCancelInvite(player.id)} className="w-full flex items-center justify-center gap-1.5 bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-2 px-3 rounded-lg text-xs transition-colors"><Minus className="h-4 w-4" /> Zurückziehen</button>
                         ) : hasOtherInvite ? (
-                        <span className="text-slate-500 font-bold text-xs px-4">Hat andere Einladung</span>
+                        <div className="flex items-center justify-end gap-2 text-slate-500 font-bold text-xs px-4"><Info className="h-4 w-4"/> Hat andere Einladung</div>
                         ) : isClubFull ? (
-                        <span className="text-red-500 font-bold text-sm px-4">Kader voll</span>
+                        <div className="flex items-center justify-end gap-2 text-red-500 font-bold text-sm px-4"><Ban className="h-4 w-4"/> Kader voll</div>
                         ) : (
-                        <button onClick={() => handleInvite(player.id)} className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-3 rounded-lg text-xs transition-colors">Einladen</button>
+                        <button onClick={() => handleInvite(player.id)} className="w-full flex items-center justify-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-3 rounded-lg text-xs transition-colors"><Plus className="h-4 w-4" /> Einladen</button>
                         )}
                     </PlayerCard>
                     );

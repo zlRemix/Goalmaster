@@ -1,6 +1,7 @@
 import React from 'react';
 import { Player, SkillType } from '../types';
 import { getSkillsForPosition } from '../utils';
+import { Zap, Plus } from 'lucide-react';
 
 interface TrainingCenterProps {
   player: Player;
@@ -16,9 +17,7 @@ const SKILL_TRANSLATIONS: Record<SkillType, string> = {
 };
 
 const getTierInfo = (value: number) => {
-    // Ein Rang wird alle 100 Punkte erreicht.
     const tier = Math.floor(value / 100);
-    // Fortschritt innerhalb des aktuellen 100-Punkte-Blocks.
     const progress = (value % 100);
     const tiers = [
       { l: 'Amateur', c: 'from-emerald-600 to-emerald-400' }, { l: 'Profi', c: 'from-blue-600 to-blue-400' },
@@ -44,8 +43,8 @@ export const TrainingCenter: React.FC<TrainingCenterProps> = ({ player, onTrain 
                 <h2 className="text-2xl md:text-3xl font-black">Trainingsgelände</h2>
                 <p className="text-slate-400 text-sm md:text-base">Investiere TP, um deine Skills zu verbessern.</p>
             </div>
-            <div className="bg-gradient-to-tr from-amber-500 to-amber-400 px-4 py-2 rounded-xl font-bold shadow-lg flex items-center gap-3 self-start md:self-auto">
-                <span className="text-xl text-white">⚡</span>
+            <div className="bg-gradient-to-tr from-amber-500 to-amber-400 px-4 py-2 rounded-xl font-bold shadow-lg flex items-center gap-2 self-start md:self-auto">
+                <Zap className="h-5 w-5 text-white opacity-80" />
                 <span className="text-white">{(player.trainingPoints || 0)} TP Verfügbar</span>
             </div>
         </header>
@@ -75,7 +74,7 @@ export const TrainingCenter: React.FC<TrainingCenterProps> = ({ player, onTrain 
                         </div>
                         <button onClick={() => onTrain(skill)} disabled={!canAfford} className={`h-14 w-14 rounded-lg flex flex-col items-center justify-center font-bold transition-all z-10 flex-shrink-0 ${
                             canAfford ? 'bg-slate-700 hover:bg-emerald-600 text-white cursor-pointer active:scale-90 border border-slate-600' : 'bg-slate-900 text-slate-600 cursor-not-allowed opacity-50 border border-slate-800'}`}>
-                            <span className="text-2xl">+</span>
+                            <Plus className="h-6 w-6" />
                             <span className="text-[9px] uppercase opacity-50">{cost} TP</span>
                         </button>
                     </div>

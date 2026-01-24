@@ -2,6 +2,8 @@
 import { Club, Fixture, MatchResult, LeagueStanding } from '../types';
 import { geminiService } from '../services/geminiService';
 import React, { useState, useEffect, useMemo } from 'react';
+import { useCountdown, formatDuration } from '../hooks/useTimers';
+import { ClipboardList, Mic } from 'lucide-react';
 
 interface MatchCenterProps {
   clubs: Club[];
@@ -12,18 +14,15 @@ interface MatchCenterProps {
   onViewClub: (clubId: string) => void;
 }
 
-// NOTE: This component still has some inconsistencies in how it handles
-// Fixture vs MatchResult types. This will be addressed in a future refactor.
-
 export const MatchCenter: React.FC<MatchCenterProps> = ({ clubs, fixtures, lastMatch, onSimulate, onReset, onViewClub }) => {
   const [analysisText, setAnalysisText] = useState<string>('');
-  const [currentTime, setCurrentTime] = useState(Date.now());
   const [viewMode, setViewMode] = useState<'table' | 'schedule'>('table');
+  
+  const nextFixture = useMemo(() => fixtures.find(f => f.status === 'scheduled'), [fixtures]);
+  const countdownMs = useCountdown(nextFixture ? new Date(nextFixture.date).getTime() : 0);
+  const countdownSeconds = Math.floor(countdownMs / 1000);
 
-  useEffect(() => {
-    const timer = setInterval(() => setCurrentTime(Date.now()), 1000);
-    return () => clearInterval(timer);
-  }, []);
+  const isCurrentlySimulatingMatch = nextFixture ? countdownMs <= 0 : false;
 
   // Calculate Standings
   const standings = useMemo(() => {
@@ -65,18 +64,6 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({ clubs, fixtures, lastM
     });
     return Object.entries(groups).sort(([a], [b]) => new Date(a).getTime() - new Date(b).getTime());
   }, [fixtures]);
-
-  const nextFixture = useMemo(() => fixtures.find(f => f.status === 'scheduled'), [fixtures]);
-  const isCurrentlySimulatingMatch = nextFixture ? currentTime >= new Date(nextFixture.date).getTime() : false;
-
-  const getCountdown = (targetDate: string) => {
-    const diff = new Date(targetDate).getTime() - currentTime;
-    if (diff <= 0) return "00:00:00";
-    const h = Math.floor(diff / 3600000);
-    const m = Math.floor((diff % 3600000) / 60000);
-    const s = Math.floor((diff % 60000) / 1000);
-    return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-  };
 
   useEffect(() => {
     if (lastMatch && analysisText === '') { // Only fetch if analysisText is empty
@@ -128,7 +115,7 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({ clubs, fixtures, lastM
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <div className="bg-slate-800 rounded-3xl p-8 border border-slate-700 shadow-xl">
-            <h4 className="text-xl font-bold mb-6 flex items-center gap-2">📝 Spielbericht</h4>
+            <h4 className="text-xl font-bold mb-6 flex items-center gap-2"><ClipboardList className="h-6 w-6 text-slate-400" /> Spielbericht</h4>
             <div className="space-y-4">
               {lastMatch.events.map((evt, i) => (
                 <div key={i} className="flex gap-4 items-start pb-4 border-b border-slate-700/50 last:border-0">
@@ -139,8 +126,8 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({ clubs, fixtures, lastM
             </div>
           </div>
           <div className="bg-slate-800 rounded-3xl p-8 border border-slate-700 shadow-xl relative overflow-hidden">
-            <div className="absolute top-0 right-0 p-4 opacity-5 text-7xl select-none">🎙️</div>
-            <h4 className="text-xl font-bold mb-6 text-emerald-400 flex items-center gap-2">🎙️ Spielanalyse</h4>
+            <div className="absolute top-0 right-0 p-4 opacity-5 text-7xl select-none"><Mic className="w-24 h-24" /></div>
+            <h4 className="text-xl font-bold mb-6 text-emerald-400 flex items-center gap-2"><Mic className="h-6 w-6"/> Spielanalyse</h4>
             <div className="text-slate-200 italic leading-relaxed whitespace-pre-line text-sm md:text-base">
               {analysisText || "Generiere Analyse..."}
             </div>
@@ -284,7 +271,7 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({ clubs, fixtures, lastM
                   ) : (
                     <div className="bg-amber-500/10 p-4 rounded-2xl border border-amber-500/20 text-center">
                       <p className="text-[10px] text-amber-500 font-black uppercase mb-1">Countdown</p>
-                      <p className="text-2xl font-mono font-black text-amber-500">{getCountdown(nextFixture.date)}</p>
+                      <p className="text-2xl font-mono font-black text-amber-500">{formatDuration(countdownSeconds)}</p>
                     </div>
                   )}
                 </div>

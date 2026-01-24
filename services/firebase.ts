@@ -14,6 +14,7 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
+console.log("🔥🔥 VERBUNDENE PROJEKT-ID:", app.options.projectId);
 const auth = getAuth(app);
 const functions = getFunctions(app); 
 const googleProvider = new GoogleAuthProvider();
@@ -26,14 +27,13 @@ if (import.meta.env.DEV) {
   db = getFirestore(app); 
 
 } else {
-  // B) LIVE (App Hosting): Nutze die spezielle "goalmaster-prod" Datenbank
-// B) LIVE (App Hosting): Nutze die spezielle "goalmaster-prod" Datenbank
-console.log("🚀 LIVE: Verbinde mit 'goalmaster-prod'");
+  // B) LIVE
+  console.log("🚀 LIVE: Verbinde mit 'goalmaster-prod'");
   
-// Wir nutzen "as any", um den TypeScript-Fehler zu unterdrücken
-db = initializeFirestore(app, {
-  databaseId: 'goalmaster-prod' 
-} as any);
+  // WICHTIG: Der zweite Parameter ist der Name der Datenbank!
+  // Das funktioniert in den neueren SDKs viel zuverlässiger als initializeFirestore
+  db = getFirestore(app, "goalmaster-prod");
 }
+
 
 export { auth, db, functions, googleProvider, createUserWithEmailAndPassword, signInWithEmailAndPassword };

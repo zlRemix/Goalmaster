@@ -1,4 +1,4 @@
-import { Activity, TeamTrainingSession, UserRole, InfrastructureType, PlayerPosition } from './types.js';
+import { Activity, TeamTrainingSession, UserRole, InfrastructureType, PlayerPosition, Tactic } from './types.js';
 
 export const MAX_CLUB_PLAYERS = 5;
 export const XP_PER_SKILL_UPGRADE = 10;
@@ -20,7 +20,7 @@ export const ACTIVITIES: Activity[] = [
         id: 'training_1',
         name: 'Passspiel-Drills',
         description: 'Eine intensive Einheit, um deine Passgenauigkeit und dein Stellungsspiel zu verbessern.',
-        durationSeconds: 300, // 5 minutes
+        durationSeconds: 420, // 7 minutes
         reward: { xp: 50, tp: 8 },
         type: 'training',
     },
@@ -28,7 +28,7 @@ export const ACTIVITIES: Activity[] = [
         id: 'training_2',
         name: 'Torschusstraining',
         description: 'Perfektioniere deinen Abschluss vor dem Tor. Eine halbe Stunde konzentriertes Schusstraining.',
-        durationSeconds: 300, // 5 minutes
+        durationSeconds: 420, // 7 minutes
         reward: { xp: 60, tp: 8 },
         type: 'training',
     },
@@ -52,7 +52,7 @@ export const ACTIVITIES: Activity[] = [
         id: 'tactic_1',
         name: 'Videoanalyse',
         description: 'Studiere die Taktiken deines nächsten Gegners, um besser auf ihre Spielweise vorbereitet zu sein.',
-        durationSeconds: 300, // 5 minutes
+        durationSeconds: 240, // 4 minutes
         reward: { xp: 30, tp: 4,  },
         type: 'tactic',
     },
@@ -60,7 +60,7 @@ export const ACTIVITIES: Activity[] = [
         id: 'tactic_2',
         name: 'Freistoßvarianten',
         description: 'Übe mit deinen Teamkollegen einstudierte Freistoßtricks, um den Gegner zu überraschen.',
-        durationSeconds: 300, // 5 minutes
+        durationSeconds: 240, // 4 minutes
         reward: { xp: 30, tp: 5 },
         type: 'tactic',
     },
@@ -68,7 +68,7 @@ export const ACTIVITIES: Activity[] = [
         id: 'pr_1',
         name: 'Pressekonferenz',
         description: 'Stelle dich den Fragen der Journalisten und stärke dein Markenimage.',
-        durationSeconds: 300, // 5 minutes
+        durationSeconds: 120, // 2 minutes
         reward: { xp: 25, tp: 1 },
         type: 'pr',
     },
@@ -76,7 +76,7 @@ export const ACTIVITIES: Activity[] = [
         id: 'social_1',
         name: 'Team-Abendessen',
         description: 'Ein entspanntes Abendessen mit deinen Teamkollegen, um den Teamgeist zu fördern.',
-        durationSeconds: 300, // 5 minutes
+        durationSeconds: 120, // 2 minutes
         reward: { xp: 20, tp: 1 },
         type: 'social',
     },
@@ -84,7 +84,7 @@ export const ACTIVITIES: Activity[] = [
         id: 'social_2',
         name: 'Fantreffen & Autogramme',
         description: 'Nimm dir Zeit für die Fans. Ein positives Image ist auch für die Sponsoren wichtig.',
-        durationSeconds: 300, // 5 minutes
+        durationSeconds: 120, // 2 minutes
         reward: { xp: 25, tp: 1},
         type: 'social',
     }
@@ -104,5 +104,43 @@ export const TEAM_TRAININGS: TeamTrainingSession[] = [
         description: 'Verbessert die Verteidigungsfähigkeiten des gesamten Teams.',
         durationSeconds: 7200, // 2 hours
         reward: { xp: 100, skills: { tackling: 1, marking: 1 } }
+    }
+];
+
+export const TACTICS: Tactic[] = [
+    {
+        id: 'balanced',
+        name: 'Ausgewogen',
+        description: 'Eine neutrale Grundformation ohne spezielle Boni.',
+        attackBonus: 0,
+        defenseBonus: 0
+    },
+    {
+        id: 'offensive',
+        name: 'Offensiv',
+        description: 'Hohes Pressing und schnelles Spiel nach vorne.',
+        attackBonus: 0.15,
+        defenseBonus: -0.10
+    },
+    {
+        id: 'defensive',
+        name: 'Defensiv',
+        description: 'Das Team steht tief und sichert das eigene Tor ab.',
+        attackBonus: -0.10,
+        defenseBonus: 0.15
+    },
+    {
+        id: 'counter',
+        name: 'Konter',
+        description: 'Aus einer sicheren Abwehr schnell umschalten.',
+        attackBonus: -0.05,
+        defenseBonus: 0.10
+    },
+    {
+        id: 'gegenpressing',
+        name: 'Gegenpressing',
+        description: 'Sofortiges Jagen des Balls nach Ballverlust.',
+        attackBonus: 0.10,
+        defenseBonus: -0.05
     }
 ];

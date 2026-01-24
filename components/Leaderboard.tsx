@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, ReactNode } from 'react';
 import { Player, Club } from '../types';
 import { dataService } from '../services/dataService';
 import { getSkillsForPosition } from '../utils';
 import { MAX_CLUB_PLAYERS } from '../constants';
+import { Medal } from 'lucide-react';
 
 // --- HELPERS ---
 const getOverall = (p: Player) => {
@@ -12,16 +13,23 @@ const getOverall = (p: Player) => {
     return Math.round(totalSkill / relevantSkills.length);
 };
 
+const getMedalIcon = (rank: number): ReactNode => {
+    if (rank === 1) return <Medal className="h-6 w-6 text-yellow-400" />;
+    if (rank === 2) return <Medal className="h-6 w-6 text-slate-300" />;
+    if (rank === 3) return <Medal className="h-6 w-6 text-orange-500" />;
+    return null;
+};
+
 // --- PLAYER LEADERBOARD ---
 const PlayerLeaderboardRow: React.FC<{ player: Player; rank: number; clubName: string | null; }> = ({ player, rank, clubName }) => {
     const overall = useMemo(() => getOverall(player), [player]);
-    const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : null;
+    const medalIcon = getMedalIcon(rank);
 
     return (
          <div className="grid grid-cols-[auto,1fr,auto,auto,auto] items-center bg-slate-800/80 p-3 md:p-4 rounded-xl border border-slate-700/50 text-white font-bold transition-all hover:bg-slate-800 hover:border-slate-600 gap-2 md:gap-4">
             <div className="w-8 text-center text-lg md:text-xl font-black text-slate-400">{rank}</div>
             <div className="flex items-center gap-3 md:gap-4">
-                <span className="text-2xl w-6 text-center">{medal || ''}</span>
+                <div className="w-6 h-6 flex items-center justify-center">{medalIcon}</div>
                 <p className="text-base md:text-lg truncate">{player.name}</p>
             </div>
             <div className="w-20 text-center text-slate-300 font-semibold">
@@ -56,7 +64,7 @@ const PlayerLeaderboard: React.FC = () => {
         <div className="space-y-2 md:space-y-3">
            <div className="grid grid-cols-[auto,1fr,auto,auto,auto] items-center p-2 text-xs font-bold text-slate-500 uppercase tracking-wider gap-2 md:gap-4">
                 <div className="w-8 text-center">#</div>
-                <div className="pl-10">Spieler</div>
+                <div className="pl-12">Spieler</div>
                 <div className="w-20 text-center">Position</div>
                 <div className="w-28 text-center">Verein</div>
                 <div className="w-24 text-center">Gesamt</div>
@@ -81,13 +89,13 @@ interface RankedClub extends Club {
 }
 
 const ClubLeaderboardRow: React.FC<{ club: RankedClub; rank: number }> = ({ club, rank }) => {
-    const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : null;
+    const medalIcon = getMedalIcon(rank);
 
     return (
         <div className="grid grid-cols-[auto,1fr,auto,auto,auto] items-center bg-slate-800/80 p-3 md:p-4 rounded-xl border border-slate-700/50 text-white font-bold transition-all hover:bg-slate-800 hover:border-slate-600 gap-2 md:gap-4">
             <div className="w-8 text-center text-lg md:text-xl font-black text-slate-400">{rank}</div>
             <div className="flex items-center gap-3 md:gap-4">
-                 <span className="text-2xl w-6 text-center">{medal || ''}</span>
+                <div className="w-6 h-6 flex items-center justify-center">{medalIcon}</div>
                 <p className="text-base md:text-lg truncate">{club.name}</p>
             </div>
             <div className="w-28 text-center text-slate-400 text-sm truncate">{club.managerName || 'N/A'}</div>
@@ -130,7 +138,7 @@ const ClubLeaderboard: React.FC = () => {
         <div className="space-y-2 md:space-y-3">
            <div className="grid grid-cols-[auto,1fr,auto,auto,auto] items-center p-2 text-xs font-bold text-slate-500 uppercase tracking-wider gap-2 md:gap-4">
                 <div className="w-8 text-center">#</div>
-                <div className="pl-10">Club</div>
+                <div className="pl-12">Club</div>
                 <div className="w-28 text-center">Manager</div>
                 <div className="w-20 text-center">Spieler</div>
                 <div className="w-24 text-center">Gesamt</div>
@@ -147,13 +155,6 @@ type LeaderboardView = 'players' | 'clubs';
 
 export const Leaderboard: React.FC = () => {
     const [view, setView] = useState<LeaderboardView>('players');
-    const [isLoading, setIsLoading] = useState(true);
-
-    // This is just to hide the initial loading state, the actual data loading is handled in the child components
-    useEffect(() => {
-        const timer = setTimeout(() => setIsLoading(false), 1000); 
-        return () => clearTimeout(timer);
-    }, []);
 
     return (
         <div className="space-y-6 md:space-y-8 animate-in fade-in duration-300 pb-20">
@@ -167,16 +168,10 @@ export const Leaderboard: React.FC = () => {
                 <button onClick={() => setView('clubs')} className={`flex-1 text-center font-bold p-2 md:p-3 rounded-full transition-colors ${view === 'clubs' ? 'bg-emerald-600 text-white' : 'text-slate-300 hover:bg-slate-700'}`}>Vereine</button>
             </div>
 
-            {isLoading ? (
-                <div className="text-center p-10">
-                    <p className="text-lg font-bold text-slate-400 animate-pulse">Lade Rangliste...</p>
-                </div>
-            ) : (
-                 <div className="animate-in fade-in duration-500">
-                    {view === 'players' && <PlayerLeaderboard />}
-                    {view === 'clubs' && <ClubLeaderboard />}
-                 </div>
-            )}
+            <div className="animate-in fade-in duration-500">
+                {view === 'players' && <PlayerLeaderboard />}
+                {view === 'clubs' && <ClubLeaderboard />}
+            </div>
         </div>
     );
 };

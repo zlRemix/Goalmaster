@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, ElementType } from 'react';
 import { Club, Player, InfrastructureType, UserRole, ActiveTeamTraining, View } from '../types';
 import { dataService } from '../services/dataService';
 import { getSkillsForPosition } from '../utils';
 import { INFRA_UPGRADE_COSTS, INFRA_UPGRADE_TIMES, INFRA_LEVEL_BENEFITS, TEAM_TRAININGS, MAX_CLUB_PLAYERS } from '../constants';
 import { ClubManagement } from './ClubManagement';
+import { Building, Dumbbell, HeartPulse, LineChart } from 'lucide-react';
 
 // --- HOOKS ---
 const useCountdown = (endTime: number) => {
@@ -37,17 +38,18 @@ const formatDuration = (totalSeconds: number) => {
 };
 
 // --- DATA ---
-const infrastructureInfo: Record<InfrastructureType, { name: string; icon: string; description: string; }> = {
-    [InfrastructureType.STADIUM]: { name: 'Stadion', icon: '🏟️', description: 'Erhöht die Ticketeinnahmen bei Heimspielen.' },
-    [InfrastructureType.TRAINING_GROUND]: { name: 'Trainingsgelände', icon: '🏋️', description: 'Verbessert die Effektivität des Trainings (TP-Gewinn).' },
-    [InfrastructureType.MEDICAL_CENTER]: { name: 'Medizinisches Zentrum', icon: '⚕️', description: 'Verkürzt die Dauer von Spieler-Aktivitäten.' },
-    [InfrastructureType.MARKETING_DEPARTMENT]: { name: 'Marketingabteilung', icon: '📈', description: 'Erhöht die Einnahmen aus PR-Aktivitäten.' },
+const infrastructureInfo: Record<InfrastructureType, { name: string; icon: ElementType; description: string; }> = {
+    [InfrastructureType.STADIUM]: { name: 'Stadion', icon: Building, description: 'Erhöht die Ticketeinnahmen bei Heimspielen.' },
+    [InfrastructureType.TRAINING_GROUND]: { name: 'Trainingsgelände', icon: Dumbbell, description: 'Verbessert die Effektivität des Trainings (TP-Gewinn).' },
+    [InfrastructureType.MEDICAL_CENTER]: { name: 'Medizinisches Zentrum', icon: HeartPulse, description: 'Verkürzt die Dauer von Spieler-Aktivitäten.' },
+    [InfrastructureType.MARKETING_DEPARTMENT]: { name: 'Marketingabteilung', icon: LineChart, description: 'Erhöht die Einnahmen aus PR-Aktivitäten.' },
 };
 
 // --- SUB-COMPONENTS ---
 
 const InfrastructureCard: React.FC<{ type: InfrastructureType; club: Club; onUpgrade: (clubId: string, type: InfrastructureType) => void; }> = ({ type, club, onUpgrade }) => {
     const info = infrastructureInfo[type];
+    const Icon = info.icon;
     const currentLevel = club.infrastructure?.[type]?.level || 0;
     const upgradeCost = currentLevel < 10 ? INFRA_UPGRADE_COSTS[currentLevel] : null;
     const upgradeTime = currentLevel < 10 ? INFRA_UPGRADE_TIMES[currentLevel] : null;
@@ -61,7 +63,9 @@ const InfrastructureCard: React.FC<{ type: InfrastructureType; club: Club; onUpg
         <div className="bg-slate-800/80 rounded-2xl p-4 md:p-5 border border-slate-700 shadow-lg flex flex-col justify-between transition-all hover:border-slate-600/80">
             <div>
                  <div className="flex items-start justify-between gap-4 mb-4">
-                    <div className="text-4xl opacity-80 pt-1">{info.icon}</div>
+                    <div className="text-amber-400 opacity-80 pt-1">
+                        <Icon className="h-10 w-10" />
+                    </div>
                     <div className="flex-1 text-right">
                         <h3 className="text-lg font-black text-white">{info.name}</h3>
                         <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">{info.description}</p>
