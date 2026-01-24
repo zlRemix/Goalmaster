@@ -58,6 +58,11 @@ export interface Tactic {
     defenseBonus: number; 
 }
 
+export interface AvatarData {
+    style: string;
+    seed: string;
+}
+
 export interface Player {
     id: string;
     name: string;
@@ -72,6 +77,7 @@ export interface Player {
     completedActivityIds: string[];
     nextActivityReset: number;
     pendingClubInvitation?: string | null; 
+    avatar?: AvatarData;
 }
 
 export enum InfrastructureType {
@@ -146,4 +152,4 @@ export interface LeagueStanding {
     points: number;
 }
 
-export type View = 'home' | 'skills' | 'club' | 'activities' | 'staff' | 'finances' | 'match' | 'leaderboard' | 'club-search' | 'admin' | 'league';
+export type View = 'home' | 'skills' | 'club' | 'activities' | 'staff' | 'finances' | 'match' | 'leaderboard' | 'club-search' | 'admin' | 'league' | 'profile';

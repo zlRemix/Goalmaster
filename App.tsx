@@ -17,6 +17,7 @@ import { getSkillsForPosition } from './utils';
 import { Menu } from 'lucide-react';
 import LeagueManagement from './components/LeagueManagement';
 import LeagueView from './components/LeagueView'; 
+import UserProfile from './components/UserProfile';
 
 const calculateXpNeeded = (level: number): number => {
   return Math.floor(100 * Math.pow(1.15, level - 1));
@@ -150,7 +151,8 @@ const App: React.FC = () => {
   }, [player]);
 
   const renderContent = () => {
-    if (activeView === 'home') return <Dashboard player={player!} club={selectedClub} allClubs={allClubs} overallRating={overallRating} xpProgress={xpProgress} xpNeeded={xpNeeded} />;
+    if (activeView === 'home') return <Dashboard player={player!} club={selectedClub} allClubs={allClubs} overallRating={overallRating} xpProgress={xpProgress} xpNeeded={xpNeeded} setView={setActiveView} />;
+    if (activeView === 'profile') return <UserProfile />;
     if (activeView === 'skills') return <TrainingCenter player={player!} onTrain={handleTrainSkill} />;
     if (activeView === 'activities') return <ActivitiesComponent player={player!} onStart={handleStartActivity} onComplete={handleCompleteActivity} onReset={handleResetActivities} />;
     if (activeView === 'leaderboard') return <Leaderboard />;

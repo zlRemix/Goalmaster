@@ -1,6 +1,7 @@
 import React from 'react';
-import { Player, Club } from '../types';
+import { Player, Club, View } from '../types';
 import { dataService } from '../services/dataService';
+import { UserCog } from 'lucide-react';
 
 interface DashboardProps {
   player: Player;
@@ -9,6 +10,7 @@ interface DashboardProps {
   overallRating: number;
   xpProgress: number;
   xpNeeded: number;
+  setView: (view: View) => void;
 }
 
 const InvitationBanner: React.FC<{ player: Player; allClubs: Club[] }> = ({ player, allClubs }) => {
@@ -41,21 +43,26 @@ const InvitationBanner: React.FC<{ player: Player; allClubs: Club[] }> = ({ play
     );
 }
 
-export const Dashboard: React.FC<DashboardProps> = ({ player, club, allClubs, overallRating, xpProgress, xpNeeded }) => {
+export const Dashboard: React.FC<DashboardProps> = ({ player, club, allClubs, overallRating, xpProgress, xpNeeded, setView }) => {
 
   return (
     <div className="space-y-6 md:space-y-8 animate-in fade-in duration-300">
         
       {player.pendingClubInvitation && <InvitationBanner player={player} allClubs={allClubs} />}
 
-      <header className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
+      <header className="flex justify-between items-start gap-4">
         <div>
           <h1 className="text-3xl md:text-5xl font-black text-white">{player.name}</h1>
           <p className="text-lg md:text-xl text-slate-400 font-bold">{club ? club.name : 'Vereinslos'}</p>
         </div>
-        <div className="bg-slate-800 p-2 rounded-2xl flex items-center gap-2 border border-slate-700 self-start sm:self-auto">
-          <div className="bg-emerald-500 text-white text-xs font-bold px-3 py-1 rounded-xl">LEVEL</div>
-          <div className="text-white font-black text-2xl px-2">{player.level || 1}</div>
+        <div className="flex items-start gap-3">
+          <button onClick={() => setView('profile')} className="p-3 bg-slate-800 rounded-2xl border border-slate-700 text-slate-400 hover:text-white hover:border-slate-600 transition-colors">
+             <UserCog className="h-6 w-6" />
+          </button>
+          <div className="bg-slate-800 p-2 rounded-2xl flex items-center gap-2 border border-slate-700">
+            <div className="bg-emerald-500 text-white text-xs font-bold px-3 py-1 rounded-xl">LEVEL</div>
+            <div className="text-white font-black text-2xl px-2">{player.level || 1}</div>
+          </div>
         </div>
       </header>
 

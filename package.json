@@ -7,9 +7,12 @@
     "dev": "concurrently \"npm run server\" \"vite\"",
     "server": "nodemon --exec node --loader ts-node/esm server.ts",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "create-league": "npx firebase functions:call createLeague"
   },
   "dependencies": {
+    "@dicebear/collection": "^9.3.1",
+    "@dicebear/core": "^9.3.1",
     "@google/genai": "^1.38.0",
     "cors": "^2.8.5",
     "date-fns": "^4.1.0",
@@ -26,6 +29,7 @@
     "@types/node": "^22.14.0",
     "@vitejs/plugin-react": "^5.0.0",
     "concurrently": "^9.2.1",
+    "firebase-tools": "^13.11.1",
     "nodemon": "^3.1.11",
     "ts-node": "^10.9.2",
     "typescript": "~5.8.2",
