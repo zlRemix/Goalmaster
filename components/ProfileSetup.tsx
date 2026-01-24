@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { POSITIONS } from '../constants';
 import { PlayerPosition } from '../types';
 
 interface ProfileSetupProps {
   userId: string;
   onProfileCreate: (userId: string, name: string, position: PlayerPosition, wantsManagerRole: boolean, clubName?: string) => Promise<void>;
 }
+
+const POSITIONS: PlayerPosition[] = ['Stürmer', 'Mittelfeld', 'Abwehr', 'Torwart'];
 
 const ProfileSetup: React.FC<ProfileSetupProps> = ({ userId, onProfileCreate }) => {
   const [name, setName] = useState('');
@@ -29,8 +30,8 @@ const ProfileSetup: React.FC<ProfileSetupProps> = ({ userId, onProfileCreate }) 
     setError('');
     try {
       await onProfileCreate(userId, name, position, wantsManagerRole, clubName);
-    } catch (err) {
-      setError('Fehler beim Erstellen des Profils. Bitte versuche es erneut.');
+    } catch (err: any) {
+      setError(err.message || 'Fehler beim Erstellen des Profils. Bitte versuche es erneut.');
       setIsLoading(false);
     }
   };

@@ -1,6 +1,6 @@
-
 import React, { useState } from 'react';
 import { auth, createUserWithEmailAndPassword, signInWithEmailAndPassword } from '../services/firebase';
+import { FirebaseError } from 'firebase/app';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -8,9 +8,32 @@ const Login = () => {
   const [error, setError] = useState('');
   const [isRegistering, setIsRegistering] = useState(false);
 
+  const getGermanErrorMessage = (errorCode: string) => {
+    switch (errorCode) {
+      case 'auth/invalid-email':
+        return 'Ungültige E-Mail-Adresse. Bitte überprüfe deine Eingabe.';
+      case 'auth/user-disabled':
+        return 'Dieses Benutzerkonto wurde deaktiviert.';
+      case 'auth/user-not-found':
+        return 'Kein Benutzer mit dieser E-Mail gefunden. Bitte registriere dich zuerst.';
+      case 'auth/wrong-password':
+        return 'Falsches Passwort. Bitte versuche es erneut.';
+      case 'auth/email-already-in-use':
+        return 'Diese E-Mail-Adresse wird bereits verwendet. Bitte melde dich an.';
+      case 'auth/weak-password':
+        return 'Das Passwort muss mindestens 6 Zeichen lang sein.';
+      default:
+        return 'Ein unbekannter Fehler ist aufgetreten. Bitte versuche es später erneut.';
+    }
+  }
+
   const handleAuthAction = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    if (!email || !password) {
+        setError('Bitte gib sowohl E-Mail als auch Passwort ein.');
+        return;
+    }
     try {
       if (isRegistering) {
         await createUserWithEmailAndPassword(auth, email, password);
@@ -18,7 +41,11 @@ const Login = () => {
         await signInWithEmailAndPassword(auth, email, password);
       }
     } catch (err: any) {
-      setError(err.message);
+      if (err instanceof FirebaseError) {
+        setError(getGermanErrorMessage(err.code));
+      } else {
+        setError('Ein unerwarteter Fehler ist aufgetreten.');
+      }
       console.error(err);
     }
   };
@@ -52,13 +79,13 @@ const Login = () => {
               className="shadow appearance-none border border-slate-800 bg-slate-950 rounded-2xl w-full py-3 px-4 text-slate-100 mb-3 leading-tight focus:outline-none focus:border-emerald-500"
               id="password"
               type="password"
-              placeholder="******************"
+              placeholder="Mindestens 6 Zeichen"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
             />
           </div>
-          {error && <p className="bg-red-900 border border-red-700 text-red-100 px-4 py-3 rounded-xl mb-4 text-xs">{error}</p>}
+          {error && <p className="bg-red-900/50 border border-red-700/50 text-red-200 px-4 py-3 rounded-xl mb-4 text-sm text-center font-semibold">{error}</p>}
           <div className="flex flex-col gap-4">
             <button
               className="bg-emerald-600 hover:bg-emerald-500 text-white font-black py-3 px-4 rounded-2xl focus:outline-none focus:shadow-outline transition-all shadow-lg shadow-emerald-900/20"

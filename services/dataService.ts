@@ -1,7 +1,7 @@
 import { collection, doc, getDoc, onSnapshot, setDoc, updateDoc, arrayUnion, arrayRemove, runTransaction, serverTimestamp, FieldValue, query, where, getDocs, writeBatch, documentId } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import { db, functions } from './firebase';
-import { Player, Club, Fixture, PlayerPosition, UserRole, PendingUpgrade, SkillType, ActiveActivity, Reward, InfrastructureType, ActiveTeamTraining, TeamTrainingSession, Activity } from '../types';
+import { Player, Club, Fixture, PlayerPosition, UserRole, PendingUpgrade, SkillType, ActiveActivity, Reward, InfrastructureType, ActiveTeamTraining, Activity } from '../types';
 import { ACTIVITIES, INFRA_UPGRADE_COSTS, INFRA_UPGRADE_TIMES, TEAM_TRAININGS, MAX_CLUB_PLAYERS, XP_PER_SKILL_UPGRADE } from '../constants';
 
 const getNextHourlyTimestamp = () => {
@@ -44,6 +44,22 @@ const dataService = {
   // =========================================================================
 
   async createPlayerAndClub(uid: string, name: string, position: PlayerPosition, wantsManagerRole: boolean, clubName?: string): Promise<void> {
+    // Check for duplicate player name
+    const playerQuery = query(collection(db, "players"), where("name", "==", name));
+    const playerDocs = await getDocs(playerQuery);
+    if (!playerDocs.empty) {
+        throw new Error("Spielername ist bereits vergeben.");
+    }
+
+    // Check for duplicate club name if applicable
+    if (wantsManagerRole && clubName) {
+        const clubQuery = query(collection(db, "clubs"), where("name", "==", clubName));
+        const clubDocs = await getDocs(clubQuery);
+        if (!clubDocs.empty) {
+            throw new Error("Vereinsname ist bereits vergeben.");
+        }
+    }
+    
     await runTransaction(db, async (transaction) => {
         const playerRef = doc(db, 'players', uid);
         let clubId: string | null = null;
@@ -258,38 +274,22 @@ const dataService = {
     await updateDoc(clubRef, { activeTeamTraining: newTraining });
   },
 
-  async completeTeamTraining(clubId: string, playerIds: string[], training: ActiveTeamTraining): Promise<void> {
-      const trainingDef = TEAM_TRAININGS.find(t => t.id === training.trainingId);
-      
-      const batch = writeBatch(db);
-      
-      // Only grant rewards if the training is valid and exists.
-      if (trainingDef && playerIds?.length) {
-          for (const playerId of playerIds) {
-              const playerRef = doc(db, 'players', playerId);
-              // We don't need to fetch the player doc, we can increment server-side.
-              // This is faster, cheaper, and more robust.
-              const xpGain = trainingDef.reward.xp || 0;
-              const tpGain = trainingDef.reward.tp || 0;
-              
-              // Note: Firebase server-side increments are not available in the client SDK.
-              // The existing implementation is correct for client-side updates.
-               const playerDoc = await getDoc(playerRef); 
-                if (playerDoc.exists()) {
-                    const player = playerDoc.data() as Player;
-                    batch.update(playerRef, {
-                        experience: (player.experience || 0) + xpGain,
-                        trainingPoints: (player.trainingPoints || 0) + tpGain,
-                    });
-                }
-          }
-      }
-      
-      // Always set the active training to null to clear it.
-      const clubRef = doc(db, 'clubs', clubId);
-      batch.update(clubRef, { activeTeamTraining: null });
-      
-      await batch.commit();
+  async completeTeamTraining(clubId: string, uid: string): Promise<void> {
+    const url = `https://us-central1-goalmaster-56078.cloudfunctions.net/completeTeamTraining`;
+    const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ data: { clubId, uid } }),
+    });
+
+    if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Fehler beim Abschließen des Teamtrainings.");
+    }
+
+    return response.json();
   },
 
   // =========================================================================

@@ -280,7 +280,7 @@ export const ClubDashboard: React.FC<ClubDashboardProps> = ({ club, player, onUp
                 
                 if (Date.now() >= endTime) {
                     console.log(`Completing training for club ${club.id}`);
-                    dataService.completeTeamTraining(club.id, club.players || [], club.activeTeamTraining);
+                    dataService.completeTeamTraining(club.id, player.id);
                 }
             }
         };
@@ -288,7 +288,7 @@ export const ClubDashboard: React.FC<ClubDashboardProps> = ({ club, player, onUp
         const interval = setInterval(checkState, 2000); // Check every 2 seconds
 
         return () => clearInterval(interval);
-    }, [club]);
+    }, [club, player.id]);
 
     const handleStartTeamTraining = (trainingId: string) => {
         if (club) dataService.startTeamTraining(club.id, trainingId);

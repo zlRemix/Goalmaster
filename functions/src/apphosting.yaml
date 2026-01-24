@@ -1,0 +1,40 @@
+# Settings for Cloud Run
+runConfig:
+  cpu: 1
+  memoryMiB: 512
+  minInstances: 0  # 0 spart Geld, wenn die App nicht genutzt wird
+  maxInstances: 10
+  concurrency: 80
+
+# Environment variables and secrets
+env:
+  - variable: STORAGE_BUCKET
+    value: goalmaster-56078.firebasestorage.app
+    availability:
+      - BUILD
+      - RUNTIME
+
+  - variable: API_KEY
+    secret: myApiKeySecret
+
+    # Same as API_KEY above but with a pinned version.
+  - variable: PINNED_API_KEY
+    secret: myApiKeySecret@5
+
+    # Same as API_KEY above but with the long form secret reference as defined by Cloud Secret Manager.
+  - variable: VERBOSE_API_KEY
+    secret: projects/test-project/secrets/secretID
+
+    # Same as API_KEY above but with the long form secret reference with pinned version.
+  - variable: PINNED_VERBOSE_API_KEY
+    secret: projects/test-project/secrets/secretID/versions/5
+
+  scripts:
+  runCommand: node lib/index.js
+
+outputFiles:
+  serverApp:
+    include:
+      - package.json
+      - lib
+      - node_modules

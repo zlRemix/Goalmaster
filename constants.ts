@@ -1,60 +1,108 @@
-import { InfrastructureType, PlayerPosition, SkillType, UserRole } from "./types";
+import { Activity, TeamTrainingSession, UserRole, InfrastructureType, PlayerPosition } from './types.js';
 
 export const MAX_CLUB_PLAYERS = 25;
-export const XP_PER_SKILL_UPGRADE = 10; // XP gained for each skill point spent
+export const XP_PER_SKILL_UPGRADE = 10;
 
-export const POSITIONS: PlayerPosition[] = ['Torwart', 'Abwehr', 'Mittelfeld', 'Stürmer'];
+export const POSITIONS: PlayerPosition[] = ['Stürmer', 'Mittelfeld', 'Abwehr', 'Torwart'];
 
-// prettier-ignore
-export const getSkillsForPosition = (position: string): SkillType[] => {
-    switch (position) {
-        case 'TW': return ['handling', 'reflexes', 'diving', 'positioning', 'communication', 'kicking', 'strength'];
-        case 'IV': return ['tackling', 'marking', 'interceptions', 'heading', 'strength', 'aggression', 'stamina', 'passing'];
-        case 'AV': return ['tackling', 'pace', 'dribbling', 'passing', 'stamina', 'interceptions', 'vision'];
-        case 'DM': return ['tackling', 'interceptions', 'passing', 'vision', 'stamina', 'strength', 'long_shots'];
-        case 'ZM': return ['passing', 'vision', 'dribbling', 'tackling', 'stamina', 'long_shots', 'finishing', 'pace'];
-        case 'OM': return ['dribbling', 'passing', 'vision', 'finishing', 'long_shots', 'pace', 'shot_power'];
-        case 'ST': return ['finishing', 'shot_power', 'heading', 'long_shots', 'dribbling', 'pace', 'strength'];
-        default: return [];
-    }
-};
-
-export const ACTIVITIES = [
-  { id: 'light_training', name: 'Leichtes Training', type: 'training', description: 'Eine lockere Einheit, um in Form zu bleiben und Routine aufzubauen.', durationSeconds: 60 * 5, reward: { tp: 1, xp: 5 } },
-  { id: 'gym_session', name: 'Kraftraum', type: 'training', description: 'Fokus auf Kraft und Kondition, um die physische Präsenz zu stärken.', durationSeconds: 60 * 10, reward: { tp: 2, xp: 10 } },
-  { id: 'skill_drill', name: 'Technik-Drill', type: 'training', description: 'Intensive Übungen zur Verbesserung spezifischer technischer Fähigkeiten.', durationSeconds: 60 * 15, reward: { tp: 3, xp: 15 } },
-  { id: 'tactic_meeting', name: 'Taktik-Besprechung', type: 'tactic', description: 'Analyse von Gegnern und Entwicklung von Spielstrategien mit dem Team.', durationSeconds: 60 * 8, reward: { tp: 1, xp: 8 } },
-  { id: 'video_analysis', name: 'Video-Analyse', type: 'tactic', description: 'Eigenständige Analyse von Spielszenen zur Verbesserung des taktischen Verständnisses.', durationSeconds: 60 * 12, reward: { tp: 2, xp: 12 } },
-  { id: 'press_conference', name: 'Pressekonferenz', type: 'pr', description: 'Stelle dich den Fragen der Journalisten und stärke dein Markenimage.', durationSeconds: 60 * 7, reward: { xp: 15, budgetGain: 5000 }, requiredRole: UserRole.MANAGER },
-  { id: 'fan_meetup', name: 'Fan-Treffen', type: 'pr', description: 'Interagiere mit den Fans, um die Vereinsbindung zu stärken.', durationSeconds: 60 * 20, reward: { xp: 25, budgetGain: 10000 }, requiredRole: UserRole.MANAGER },
-  { id: 'yoga_session', name: 'Yoga-Einheit', type: 'fitness', description: 'Verbessere deine Flexibilität und mentale Stärke.', durationSeconds: 60 * 10, reward: { tp: 1, xp: 5 } },
-  { id: 'team_dinner', name: 'Team-Abendessen', type: 'social', description: 'Stärke den Teamgeist bei einem gemeinsamen Abendessen.', durationSeconds: 60 * 25, reward: { xp: 20 } },
-];
-
-export const INFRA_UPGRADE_COSTS = [10000, 25000, 50000, 100000, 200000, 400000, 800000, 1500000, 3000000, 5000000];
-export const INFRA_UPGRADE_TIMES = [30, 60, 120, 240, 480, 960, 1920, 3840, 7680, 15360]; // in seconds
+export const INFRA_UPGRADE_COSTS = [50000, 75000, 100000, 150000, 250000, 400000, 600000, 850000, 1200000, 2000000];
+export const INFRA_UPGRADE_TIMES = [3600, 7200, 14400, 28800, 57600, 86400, 172800, 345600, 604800, 1209600]; // in seconds
 
 export const INFRA_LEVEL_BENEFITS: Record<InfrastructureType, string[]> = {
-    [InfrastructureType.STADIUM]: [
-        "+1% Ticketeinnahmen", "+2% Ticketeinnahmen", "+3% Ticketeinnahmen", "+4% Ticketeinnahmen", "+5% Ticketeinnahmen", 
-        "+6% Ticketeinnahmen", "+7% Ticketeinnahmen", "+8% Ticketeinnahmen", "+9% Ticketeinnahmen", "+10% Ticketeinnahmen"
-    ],
-    [InfrastructureType.TRAINING_GROUND]: [
-        "+2% TP-Gewinn", "+4% TP-Gewinn", "+6% TP-Gewinn", "+8% TP-Gewinn", "+10% TP-Gewinn", 
-        "+12% TP-Gewinn", "+14% TP-Gewinn", "+16% TP-Gewinn", "+18% TP-Gewinn", "+20% TP-Gewinn"
-    ],
-    [InfrastructureType.MEDICAL_CENTER]: [
-        "-2% Aktivitätsdauer", "-4% Aktivitätsdauer", "-6% Aktivitätsdauer", "-8% Aktivitätsdauer", "-10% Aktivitätsdauer",
-        "-12% Aktivitätsdauer", "-14% Aktivitätsdauer", "-16% Aktivitätsdauer", "-18% Aktivitätsdauer", "-20% Aktivitätsdauer"
-    ],
-    [InfrastructureType.MARKETING_DEPARTMENT]: [
-        "+5% Einnahmen aus PR-Aktivitäten", "+10% Einnahmen aus PR-Aktivitäten", "+15% Einnahmen aus PR-Aktivitäten", "+20% Einnahmen aus PR-Aktivitäten", "+25% Einnahmen aus PR-Aktivitäten",
-        "+30% Einnahmen aus PR-Aktivitäten", "+35% Einnahmen aus PR-Aktivitäten", "+40% Einnahmen aus PR-Aktivitäten", "+45% Einnahmen aus PR-Aktivitäten", "+50% Einnahmen aus PR-Aktivitäten"
-    ]
+    [InfrastructureType.STADIUM]: [...Array(10)].map((_, i) => `+${(i + 1) * 5}% Ticketeinnahmen`),
+    [InfrastructureType.TRAINING_GROUND]: [...Array(10)].map((_, i) => `+${(i + 1) * 2}% TP-Gewinn`),
+    [InfrastructureType.MEDICAL_CENTER]: [...Array(10)].map((_, i) => `-${(i + 1) * 3}% Aktivitätsdauer`),
+    [InfrastructureType.MARKETING_DEPARTMENT]: [...Array(10)].map((_, i) => `+${(i + 1) * 5}% PR-Einnahmen`),
 };
 
-export const TEAM_TRAININGS = [
-    { id: 'match_prep', name: 'Spielvorbereitung', description: 'Intensive taktische Vorbereitung auf den nächsten Gegner.', durationSeconds: 60 * 30, reward: { xp: 50, tp: 5 } },
-    { id: 'endurance_camp', name: 'Ausdauer-Camp', description: 'Ein hartes Camp zur Steigerung der Grundlagenausdauer des gesamten Teams.', durationSeconds: 60 * 60 * 2, reward: { xp: 100, tp: 10 } },
-    { id: 'finishing_drills', name: 'Abschluss-Drills', description: 'Fokus auf Torschuss- und Abschlusstechniken für alle Offensivspieler.', durationSeconds: 60 * 45, reward: { xp: 75, tp: 8 } },
+export const ACTIVITIES: Activity[] = [
+    {
+        id: 'training_1',
+        name: 'Passspiel-Drills',
+        description: 'Eine intensive Einheit, um deine Passgenauigkeit und dein Stellungsspiel zu verbessern.',
+        durationSeconds: 300, // 5 minutes
+        reward: { xp: 50, tp: 8 },
+        type: 'training',
+    },
+    {
+        id: 'training_2',
+        name: 'Torschusstraining',
+        description: 'Perfektioniere deinen Abschluss vor dem Tor. Eine halbe Stunde konzentriertes Schusstraining.',
+        durationSeconds: 300, // 5 minutes
+        reward: { xp: 60, tp: 8 },
+        type: 'training',
+    },
+    {
+        id: 'fitness_1',
+        name: 'Ausdauerlauf',
+        description: 'Ein langer Lauf durch den Wald, um deine grundlegende Ausdauer zu stärken.',
+        durationSeconds: 300, // 5 minutes
+        reward: { xp: 40, tp: 3 },
+        type: 'fitness',
+    },
+    {
+        id: 'fitness_2',
+        name: 'Krafttraining',
+        description: 'Baue im Fitnessstudio gezielt Muskeln und Stärke auf, um in Zweikämpfen robuster zu sein.',
+        durationSeconds: 300, // 5 minutes
+        reward: { xp: 45, tp: 3 },
+        type: 'fitness',
+    },
+    {
+        id: 'tactic_1',
+        name: 'Videoanalyse',
+        description: 'Studiere die Taktiken deines nächsten Gegners, um besser auf ihre Spielweise vorbereitet zu sein.',
+        durationSeconds: 300, // 5 minutes
+        reward: { xp: 30, tp: 4,  },
+        type: 'tactic',
+    },
+    {
+        id: 'tactic_2',
+        name: 'Freistoßvarianten',
+        description: 'Übe mit deinen Teamkollegen einstudierte Freistoßtricks, um den Gegner zu überraschen.',
+        durationSeconds: 300, // 5 minutes
+        reward: { xp: 30, tp: 5 },
+        type: 'tactic',
+    },
+    {
+        id: 'pr_1',
+        name: 'Pressekonferenz',
+        description: 'Stelle dich den Fragen der Journalisten und stärke dein Markenimage.',
+        durationSeconds: 300, // 5 minutes
+        reward: { xp: 25, tp: 1 },
+        type: 'pr',
+    },
+    {
+        id: 'social_1',
+        name: 'Team-Abendessen',
+        description: 'Ein entspanntes Abendessen mit deinen Teamkollegen, um den Teamgeist zu fördern.',
+        durationSeconds: 300, // 5 minutes
+        reward: { xp: 20, tp: 1 },
+        type: 'social',
+    },
+    {
+        id: 'social_2',
+        name: 'Fantreffen & Autogramme',
+        description: 'Nimm dir Zeit für die Fans. Ein positives Image ist auch für die Sponsoren wichtig.',
+        durationSeconds: 300, // 5 minutes
+        reward: { xp: 25, tp: 1},
+        type: 'social',
+    }
+];
+
+export const TEAM_TRAININGS: TeamTrainingSession[] = [
+    {
+        id: 't_passing_1',
+        name: 'Passspiel-Grundlagen',
+        description: 'Verbessert das Passspiel aller Spieler im Team.',
+        durationSeconds: 3600, // 1 hour
+        reward: { xp: 50, skills: { passing: 1 } }
+    },
+    {
+        id: 't_defensive_drills_1',
+        name: 'Abwehrübungen',
+        description: 'Verbessert die Verteidigungsfähigkeiten des gesamten Teams.',
+        durationSeconds: 7200, // 2 hours
+        reward: { xp: 100, skills: { tackling: 1, marking: 1 } }
+    }
 ];

@@ -1,133 +1,77 @@
-import {onCall, HttpsError, CallableRequest} from 'firebase-functions/v2/https';
+import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
+import {TEAM_TRAININGS} from '../../constants';
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const cors = require('cors');
 
 admin.initializeApp();
 
 const db = admin.firestore();
+const corsHandler = cors({origin: true});
 
-interface ApplyToClubData {
-  clubId: string;
-}
+export const completeTeamTraining = functions.https.onRequest(async (req, res) => {
+  corsHandler(req, res, async () => {
+    if (req.method !== 'POST') {
+      res.status(405).send('Method Not Allowed');
+      return;
+    }
 
-interface AcceptApplicationData {
-  clubId: string;
-  playerId: string;
-}
+    const {clubId} = req.body.data;
+    const uid = req.body.data.uid;
 
-export const applyToClub = onCall({cors: ['https://3002-firebase-goalmaster-1769022012493.cluster-lu4mup47g5gm4rtyvhzpwbfadi.cloudworkstations.dev']}, async (request: CallableRequest<ApplyToClubData>) => {
-  const {data, auth} = request;
+    if (!uid) {
+      res.status(401).send({error: 'Der Benutzer ist nicht authentifiziert.'});
+      return;
+    }
 
-  if (!auth) {
-    throw new HttpsError(
-        'unauthenticated',
-        'The function must be called ' +
-      'while authenticated.'
-    );
-  }
-
-  const uid = auth.uid;
-  const {clubId} = data;
-
-  if (!clubId) {
-    throw new HttpsError(
-        'invalid-argument',
-        'The function must be called with a \'clubId\'.'
-    );
-  }
-
-  try {
     const clubRef = db.collection('clubs').doc(clubId);
     const clubDoc = await clubRef.get();
 
     if (!clubDoc.exists) {
-      throw new HttpsError('not-found', 'Club does not exist.');
+      res.status(404).send({error: 'Verein nicht gefunden.'});
+      return;
     }
 
-    await clubRef.update({
-      pendingApplications: admin.firestore.FieldValue.arrayUnion(uid),
-    });
-
-    return {success: true, message: 'Application submitted successfully.'};
-  } catch (error) {
-    console.error('Error applying to club:', error);
-    if (error instanceof HttpsError) {
-      throw error;
-    }
-    throw new HttpsError('internal', 'An internal error occurred.');
-  }
-});
-
-export const acceptApplication = onCall({cors: ['https://3002-firebase-goalmaster-1769022012493.cluster-lu4mup47g5gm4rtyvhzpwbfadi.cloudworkstations.dev']}, async (request: CallableRequest<AcceptApplicationData>) => {
-  const {data, auth} = request;
-
-  if (!auth) {
-    throw new HttpsError(
-        'unauthenticated',
-        'The function must be called while authenticated.'
-    );
-  }
-
-  const {clubId, playerId} = data;
-
-  if (!clubId || !playerId) {
-    throw new HttpsError(
-        'invalid-argument',
-        'The function must be called with \'clubId\' and \'playerId\'.'
-    );
-  }
-
-  const clubRef = db.collection('clubs').doc(clubId);
-  const playerRef = db.collection('players').doc(playerId);
-
-  try {
-    const clubDoc = await clubRef.get();
-    if (!clubDoc.exists) {
-      throw new HttpsError('not-found', 'Club does not exist.');
+    const club = clubDoc.data();
+    if (club?.managerId !== uid) {
+      res.status(403).send({error: 'Nur der Manager kann das Training abschließen.'});
+      return;
     }
 
-    const clubData = clubDoc.data();
-    if (!clubData) {
-      throw new HttpsError('internal', 'The club document has no data.');
+    const training = club?.activeTeamTraining;
+    if (!training) {
+      res.status(412).send({error: 'Kein aktives Teamtraining gefunden.'});
+      return;
     }
 
-    // Fallback logic for authorization
-    const isOwner = clubData.ownerId === auth.uid;
-    const isManager = clubData.managerId === auth.uid;
-
-    console.log('Auth UID:', auth.uid);
-    console.log('Club Owner ID:', clubData.ownerId);
-    console.log('Club Manager ID:', clubData.managerId);
-
-    if (!isOwner && !isManager) {
-      throw new HttpsError(
-          'permission-denied',
-          'Only the club owner or manager can accept applications.'
-      );
+    const trainingDef = TEAM_TRAININGS.find((t) => t.id === training.trainingId);
+    if (!trainingDef) {
+      res.status(500).send({error: 'Teamtraining-Definition nicht gefunden.'});
+      return;
     }
 
     const batch = db.batch();
 
-    batch.update(clubRef, {
-      players: admin.firestore.FieldValue.arrayUnion(playerId),
-      pendingApplications: admin.firestore.FieldValue.arrayRemove(playerId),
-    });
+    const playerIds = club?.players || [];
+    if (playerIds.length > 0) {
+      const playersQuery = db.collection('players').where(admin.firestore.FieldPath.documentId(), 'in', playerIds);
+      const playersSnapshot = await playersQuery.get();
 
-    batch.update(playerRef, {
-      clubId: clubId,
-    });
+      playersSnapshot.forEach((playerDoc) => {
+        const xpGain = trainingDef.reward.xp || 0;
+        const tpGain = trainingDef.reward.tp || 0;
+
+        batch.update(playerDoc.ref, {
+          experience: admin.firestore.FieldValue.increment(xpGain),
+          trainingPoints: admin.firestore.FieldValue.increment(tpGain),
+        });
+      });
+    }
+
+    batch.update(clubRef, {activeTeamTraining: null});
 
     await batch.commit();
 
-    return {success: true, message: 'Player accepted into the club.'};
-  } catch (error) {
-    console.error('Error accepting application:', error);
-    if (error instanceof HttpsError) {
-      throw error;
-    }
-    throw new HttpsError(
-        'internal',
-        'An internal error occurred ' +
-      'while accepting the application.'
-    );
-  }
+    res.status(200).send({data: {success: true}});
+  });
 });
