@@ -70,6 +70,7 @@ export interface Player {
     level: number;
     experience: number;
     trainingPoints: number;
+    euro: number; // Changed currency from coins to euro
     clubId: string | null;
     roles: UserRole[];
     skills: { [key in SkillType]?: number };
@@ -152,4 +153,4 @@ export interface LeagueStanding {
     points: number;
 }
 
-export type View = 'home' | 'skills' | 'club' | 'activities' | 'staff' | 'finances' | 'match' | 'leaderboard' | 'club-search' | 'admin' | 'league' | 'profile';
+export type View = 'home' | 'skills' | 'club' | 'activities' | 'staff' | 'finances' | 'match' | 'leaderboard' | 'club-search' | 'admin' | 'league' | 'profile' | 'shop';

@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { Player, Club, View, AvatarData } from '../types';
 import { dataService } from '../services/dataService';
+import { getRatingColor } from '../utils'; // Import the new utility
 import { UserCog, Shield } from 'lucide-react';
 import ClubLogo from './ClubLogo';
 import { createAvatar } from '@dicebear/core';
@@ -96,7 +97,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ player, club, allClubs, ov
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
         <div className="lg:col-span-1 bg-slate-800/80 rounded-3xl p-6 md:p-8 flex flex-col items-center justify-center border border-slate-700 shadow-lg">
           <p className="text-sm font-bold text-slate-400 mb-2 uppercase tracking-wider">Gesamt</p>
-          <p className="text-7xl md:text-8xl font-black text-white">{overallRating}</p>
+          <p className={`text-7xl md:text-8xl font-black ${getRatingColor(overallRating)}`}>{overallRating}</p>
         </div>
         <div className="lg:col-span-2 bg-slate-800/80 rounded-3xl p-6 md:p-8 border border-slate-700 shadow-lg">
           <div className="flex justify-between items-end mb-2">

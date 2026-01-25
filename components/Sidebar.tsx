@@ -1,14 +1,14 @@
 import React, { ElementType } from 'react';
 import { View, UserRole } from '../types';
-import { LayoutDashboard, Sparkles, Shield, Activity, Trophy, Swords, UserCog, LogOut } from 'lucide-react';
+import { Home, User, Shield, Users, Activity, ShoppingCart, Trophy, Swords, UserCog, LogOut, Settings } from 'lucide-react';
 
 interface SidebarProps {
   activeView: View;
   setView: (view: View) => void;
   roles: UserRole[];
   onLogout: () => void;
-  isOpen: boolean; 
-  setIsOpen: (isOpen: boolean) => void; 
+  isOpen: boolean;
+  setIsOpen: (isOpen: boolean) => void;
 }
 
 const NavItem: React.FC<{ 
@@ -19,19 +19,28 @@ const NavItem: React.FC<{
   Icon: ElementType;
   onClick: () => void; 
 }> = ({ label, view, activeView, setView, Icon, onClick }) => (
-  <li className="mb-2">
+  <li>
     <button
       onClick={() => { setView(view); onClick(); }}
-      className={`w-full flex items-center p-3 rounded-lg transition-all text-left ${
+      className={`w-full flex items-center px-3 py-2.5 rounded-lg transition-all text-left text-sm ${
         activeView === view
-          ? 'bg-emerald-600 text-white font-bold shadow-lg'
+          ? 'bg-emerald-600 text-white font-semibold shadow-md'
           : 'text-slate-400 hover:bg-slate-800 hover:text-white'
       }`}
     >
-      <Icon className="h-6 w-6 mr-4 flex-shrink-0" />
-      <span className="font-semibold">{label}</span>
+      <Icon className="h-5 w-5 mr-3 flex-shrink-0" />
+      <span className="font-medium">{label}</span>
     </button>
   </li>
+);
+
+const NavGroup: React.FC<{ title: string, children: React.ReactNode }> = ({ title, children }) => (
+  <div className="mb-6">
+    <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider px-3 mb-3">{title}</h3>
+    <ul className="space-y-1">
+      {children}
+    </ul>
+  </div>
 );
 
 export const Sidebar: React.FC<SidebarProps> = ({ activeView, setView, roles, onLogout, isOpen, setIsOpen }) => {
@@ -39,19 +48,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeView, setView, roles, on
 
   const handleNavItemClicked = () => {
       setIsOpen(false);
-  }
-
-  const navItems = [
-    { label: 'Dashboard', view: 'home', Icon: LayoutDashboard },
-    { label: 'Skills', view: 'skills', Icon: Sparkles },
-    { label: 'Club', view: 'club', Icon: Shield },
-    { label: 'Aktivitäten', view: 'activities', Icon: Activity },
-    { label: 'Rangliste', view: 'leaderboard', Icon: Trophy },
-    { label: 'Liga', view: 'league', Icon: Swords },
-  ];
-
-  if (isAdmin) {
-    navItems.push({ label: 'Admin', view: 'admin', Icon: UserCog });
   }
 
   return (
@@ -67,22 +63,37 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeView, setView, roles, on
             <h1 className="text-3xl font-black text-white">Pro<span className="text-emerald-500">Soccer</span></h1>
           </div>
           <nav>
-            <ul>
-              {navItems.map(item => (
-                <NavItem 
-                  key={item.view}
-                  label={item.label} 
-                  view={item.view} 
-                  activeView={activeView} 
-                  setView={setView} 
-                  Icon={item.Icon} 
-                  onClick={handleNavItemClicked} 
-                />
-              ))}
-            </ul>
+            <NavGroup title="Spieler">
+                <NavItem label="Dashboard" view="home" Icon={Home} activeView={activeView} setView={setView} onClick={handleNavItemClicked} />
+                <NavItem label="Training" view="activities" Icon={Activity} activeView={activeView} setView={setView} onClick={handleNavItemClicked} />
+                <NavItem label="Shop" view="shop" Icon={ShoppingCart} activeView={activeView} setView={setView} onClick={handleNavItemClicked} />
+            </NavGroup>
+            
+            <NavGroup title="Verein">
+                 <NavItem label="Mein Verein" view="club" Icon={Shield} activeView={activeView} setView={setView} onClick={handleNavItemClicked} />
+                 <NavItem label="Vereinssuche" view="club-search" Icon={Users} activeView={activeView} setView={setView} onClick={handleNavItemClicked} />
+            </NavGroup>
+
+            <NavGroup title="Community">
+                <NavItem label="Rangliste" view="leaderboard" Icon={Trophy} activeView={activeView} setView={setView} onClick={handleNavItemClicked} />
+                <NavItem label="Liga" view="league" Icon={Swords} activeView={activeView} setView={setView} onClick={handleNavItemClicked} />
+            </NavGroup>
+
+            {isAdmin && (
+              <NavGroup title="System">
+                <NavItem label="Admin Panel" view="admin" Icon={UserCog} activeView={activeView} setView={setView} onClick={handleNavItemClicked} />
+              </NavGroup>
+            )}
           </nav>
         </div>
         <div className="p-4 border-t border-slate-800/60">
+            <button
+                onClick={() => { setView('profile'); handleNavItemClicked(); }}
+                className="w-full flex items-center text-slate-400 hover:bg-slate-800 hover:text-white transition-all text-sm font-bold p-3 rounded-lg mb-2"
+              >
+                <Settings className="h-5 w-5 mr-3" />
+                Profil & Einstellungen
+            </button>
           <button
             onClick={onLogout}
             className="w-full flex items-center justify-center text-slate-400 hover:bg-red-900/50 hover:text-red-400 transition-all text-sm font-bold p-3 rounded-lg"

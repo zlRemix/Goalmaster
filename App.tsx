@@ -11,6 +11,7 @@ import { ClubDashboard } from './components/ClubDashboard';
 import { Activities as ActivitiesComponent } from './components/Activities';
 import { Leaderboard } from './components/Leaderboard';
 import { ClubSearch } from './components/ClubSearch';
+import { Shop } from './components/Shop'; // Import the new Shop component
 import Login from './components/Login';
 import ProfileSetup from './components/ProfileSetup';
 import { getSkillsForPosition } from './utils';
@@ -158,6 +159,7 @@ const App: React.FC = () => {
     if (activeView === 'leaderboard') return <Leaderboard />;
     if (activeView === 'club-search') return <ClubSearch player={player!} />;
     if (activeView === 'league') return <LeagueView fixtures={fixtures} allClubs={allClubs} />;
+    if (activeView === 'shop') return <Shop player={player!} />; // Add shop view
     
     if (activeView === 'admin' && player?.roles.includes(UserRole.ADMIN)) {
       return (

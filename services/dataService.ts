@@ -2,7 +2,7 @@ import { collection, doc, getDoc, onSnapshot, setDoc, updateDoc, arrayUnion, arr
 import { httpsCallable } from 'firebase/functions';
 import { db, functions } from './firebase';
 import { Player, Club, Fixture, PlayerPosition, UserRole, PendingUpgrade, SkillType, ActiveActivity, Reward, InfrastructureType, ActiveTeamTraining, Activity } from '../types';
-import { ACTIVITIES, INFRA_UPGRADE_COSTS, INFRA_UPGRADE_TIMES, TEAM_TRAININGS, MAX_CLUB_PLAYERS, XP_PER_SKILL_UPGRADE } from '../constants';
+import { ACTIVITIES, INFRA_UPGRADE_COSTS, INFRA_UPGRADE_TIMES, TEAM_TRAININGS, MAX_CLUB_PLAYERS, XP_PER_SKILL_UPGRADE, SHOP_ITEMS } from '../constants';
 
 const getNextHourlyTimestamp = () => {
     const now = new Date();
@@ -96,6 +96,7 @@ const dataService = {
             level: 1,
             experience: 0,
             trainingPoints: 5,
+            euro: 100, // Initial euro for new players
             roles,
             skills: {},
             activeActivities: [],
@@ -133,6 +134,27 @@ const dataService = {
 
   async updatePlayer(uid: string, updates: Partial<Player>): Promise<void> {
     await updateDoc(doc(db, 'players', uid), updates);
+  },
+  
+  async purchaseShopItem(playerId: string, itemId: string): Promise<void> {
+    await runTransaction(db, async (transaction) => {
+        const playerRef = doc(db, 'players', playerId);
+        const playerDoc = await transaction.get(playerRef);
+        if (!playerDoc.exists()) throw new Error("Player not found");
+
+        const player = playerDoc.data() as Player;
+        const item = SHOP_ITEMS.find(i => i.id === itemId);
+        if (!item) throw new Error("Item not found");
+
+        if ((player.euro || 0) < item.price) {
+            throw new Error("Not enough euro");
+        }
+
+        transaction.update(playerRef, {
+            euro: (player.euro || 0) - item.price,
+            trainingPoints: (player.trainingPoints || 0) + item.tp,
+        });
+    });
   },
 
   async upgradeSkill(playerId: string, skill: SkillType): Promise<void> {

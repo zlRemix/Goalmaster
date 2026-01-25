@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, ReactNode } from 'react';
 import { Player, Club, AvatarData } from '../types';
 import { dataService } from '../services/dataService';
-import { getSkillsForPosition } from '../utils';
+import { getSkillsForPosition, getRatingColor } from '../utils';
 import { MAX_CLUB_PLAYERS } from '../constants';
 import { Medal, UserCircle } from 'lucide-react';
 import ClubLogo from './ClubLogo';
@@ -76,7 +76,7 @@ const PlayerLeaderboardRow: React.FC<{ player: Player; rank: number; club: Club 
                 )}
                 </div>
             <div className="w-24 text-center">
-                 <div className="text-xl md:text-2xl font-black text-amber-400">{overall}</div>
+                 <div className={`text-xl md:text-2xl font-black ${getRatingColor(overall)}`}>{overall}</div>
                  <div className="text-[10px] text-slate-500 font-bold -mt-1">GESAMT</div>
             </div>
         </div>
@@ -142,7 +142,7 @@ const ClubLeaderboardRow: React.FC<{ club: RankedClub; rank: number }> = ({ club
             <div className="w-28 text-center text-slate-400 text-sm truncate">{club.managerName || 'N/A'}</div>
             <div className="w-20 text-center text-emerald-400 text-sm">{club.playerCount}/{MAX_CLUB_PLAYERS}</div>
              <div className="w-24 text-center">
-                 <div className="text-xl md:text-2xl font-black text-amber-400">{club.averageOverall}</div>
+                 <div className={`text-xl md:text-2xl font-black ${getRatingColor(club.averageOverall)}`}>{club.averageOverall}</div>
                  <div className="text-[10px] text-slate-500 font-bold -mt-1">GESAMT</div>
             </div>
         </div>

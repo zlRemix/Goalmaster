@@ -144,3 +144,9 @@ export const TACTICS: Tactic[] = [
         defenseBonus: -0.05
     }
 ];
+
+export const SHOP_ITEMS = [
+    { id: 'tp_pack_1', name: 'Kleines TP-Paket', description: 'Ein guter Start für dein Training.', tp: 10, price: 50 },
+    { id: 'tp_pack_2', name: 'Mittleres TP-Paket', description: 'Beschleunige deinen Fortschritt.', tp: 25, price: 110 },
+    { id: 'tp_pack_3', name: 'Großes TP-Paket', description: 'Für ambitionierte Spieler, die es wissen wollen.', tp: 50, price: 200 },
+];

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Player, SkillType } from '../types';
-import { getSkillsForPosition } from '../utils';
+import { getSkillsForPosition, getTierInfo } from '../utils'; // Updated import
 import { Zap, Plus } from 'lucide-react';
 
 interface TrainingCenterProps {
@@ -14,21 +14,6 @@ const SKILL_TRANSLATIONS: Record<SkillType, string> = {
   tackling: 'Zweikampf', stamina: 'Ausdauer', marking: 'Deckung', interceptions: 'Abfangen', 
   strength: 'Stärke', aggression: 'Aggressivität', handling: 'Fangsicherheit', reflexes: 'Reflexe', 
   diving: 'Hechten', positioning: 'Stellungsspiel', communication: 'Kommunikation', kicking: 'Abschlag',
-};
-
-const getTierInfo = (value: number) => {
-    const tier = Math.floor(value / 100);
-    const progress = (value % 100);
-    const tiers = [
-      { l: 'Amateur', c: 'from-emerald-600 to-emerald-400' }, { l: 'Profi', c: 'from-blue-600 to-blue-400' },
-      { l: 'Elite', c: 'from-purple-600 to-purple-400' }, { l: 'Weltklasse', c: 'from-cyan-600 to-cyan-400' },
-      { l: 'Star', c: 'from-orange-600 to-orange-400' }, { l: 'Superstar', c: 'from-pink-600 to-pink-400' },
-      { l: 'Titan', c: 'from-indigo-600 to-indigo-400' }, { l: 'Phänomen', c: 'from-rose-600 to-rose-400' },
-      { l: 'Legende', c: 'from-amber-600 to-amber-400' }, { l: 'Ikone', c: 'from-red-600 to-red-400' },
-      { l: 'Gottgleich', c: 'from-slate-400 to-slate-100' }, { l: 'Kosmisch', c: 'from-indigo-600 via-purple-600 to-pink-500' }
-    ];
-    const current = tiers[Math.min(tier, tiers.length - 1)];
-    return { tier, progress, colorClass: current.c, tierLabel: current.l, pointsToNext: 100 - (value % 100) };
 };
 
 export const TrainingCenter: React.FC<TrainingCenterProps> = ({ player, onTrain }) => {
