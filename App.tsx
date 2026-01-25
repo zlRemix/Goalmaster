@@ -153,6 +153,10 @@ const App: React.FC = () => {
     signOut(auth);
   }
 
+  const handleLeagueCreated = () => {
+    window.location.reload();
+  }
+
   const handleUpgrade = (clubId: string, type: InfrastructureType) => dataService.startInfrastructureUpgrade(clubId, type);
   const handleTrainSkill = (skill: SkillType) => { if (player) dataService.upgradeSkill(player.id, skill); };
   const handleStartActivity = (activityId: string) => { if(player) dataService.startActivity(player.id, activityId); };
@@ -183,10 +187,10 @@ const App: React.FC = () => {
     if (activeView === 'league') return <LeagueView fixtures={fixtures} allClubs={allClubs} />;
     if (activeView === 'shop') return <Shop player={player!} />;
 
-    if (activeView === 'admin' && player?.roles.includes(UserRole.ADMIN)) {
+    if (activeView === 'admin') {
       return (
         <div className="space-y-12">
-          <LeagueManagement />
+          <LeagueManagement onLeagueCreated={handleLeagueCreated} />
         </div>
       );
     }
