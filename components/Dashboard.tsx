@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { Player, Club, View, AvatarData, EquipmentSlot, EquipmentItem } from '../types';
 import { dataService } from '../services/dataService';
 import { getRatingColor } from '../utils';
-import { UserCog, Shield, Package, Check, X } from 'lucide-react';
+import { UserCog, Shield, Package, Check, X, AlertTriangle } from 'lucide-react';
 import ClubLogo from './ClubLogo';
 import { createAvatar } from '@dicebear/core';
 import * as collections from '@dicebear/collection';
@@ -169,6 +169,16 @@ export const Dashboard: React.FC<DashboardProps> = ({ player, club, allClubs, ov
   return (
     <div className="space-y-6 md:space-y-8 animate-in fade-in duration-300">
         
+      <div className="bg-amber-500/10 border border-amber-500/30 text-amber-300 p-4 rounded-2xl text-sm">
+        <div className="flex items-center gap-3">
+            <AlertTriangle className="w-6 h-6 text-amber-400 flex-shrink-0" />
+            <div>
+                <h3 className="font-bold text-white">Willkommen zur Pre-Alpha!</h3>
+                <p className="text-amber-300/80">Diese Version dient dem Testen von Funktionen und dem Sammeln von Feedback. Es können Fehler auftreten.</p>
+            </div>
+        </div>
+      </div>
+
       {player.pendingClubInvitation && <InvitationBanner player={player} allClubs={allClubs} />}
 
       <header className="flex justify-between items-center gap-4">

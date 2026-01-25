@@ -61,6 +61,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeView, setView, roles, on
         <div>
           <div className="text-center mb-10 pt-4">
             <h1 className="text-3xl font-black text-white">Pro<span className="text-emerald-500">Soccer</span></h1>
+            <p className="text-xs text-slate-400 mt-1">Umgebung: Prod | Pre-Alpha Version</p>
           </div>
           <nav>
             <NavGroup title="Spieler">
