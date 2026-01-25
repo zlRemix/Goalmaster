@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
-import { getFirestore, initializeFirestore } from 'firebase/firestore';
+import { getFirestore } from 'firebase/firestore';
 import { getFunctions } from 'firebase/functions';
 
 export const firebaseConfig = {
@@ -16,24 +16,12 @@ export const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 console.log("🔥🔥 VERBUNDENE PROJEKT-ID:", app.options.projectId);
 const auth = getAuth(app);
-const functions = getFunctions(app); 
+const functions = getFunctions(app);
 const googleProvider = new GoogleAuthProvider();
 
-let db;
+const databaseName = import.meta.env.VITE_FIREBASE_DATABASE_NAME || '(default)';
+console.log(`🌀 Using database: ${databaseName}`);
 
-if (import.meta.env.DEV) {
-  // A) LOKAL (Firebase Studio): Nutze die Standard-Datenbank "(default)" als Testwiese
-  console.log("🛠️ LOKAL: Nutze Standard-Datenbank (Test)");
-  db = getFirestore(app); 
+const db = getFirestore(app, databaseName);
 
-} else {
-  // B) LIVE
-  console.log("🚀 LIVE: Verbinde mit 'goalmaster-prod'");
-  
-  // WICHTIG: Der zweite Parameter ist der Name der Datenbank!
-  // Das funktioniert in den neueren SDKs viel zuverlässiger als initializeFirestore
-  db = getFirestore(app, "goalmaster-prod");
-}
-
-
-export { auth, db, functions, googleProvider, createUserWithEmailAndPassword, signInWithEmailAndPassword };
+export { auth, db, functions, googleProvider, createUserWithEmailAndPassword, signInWithEmailAndPassword, databaseName };
