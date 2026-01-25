@@ -1,10 +1,60 @@
-
 import {onCall, HttpsError} from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
-import {Player, Club, Fixture, Tactic, TacticID, SkillType, MatchResult, PlayerPosition, UserRole, AvatarData} from '../../types';
+import {Player, Club, Fixture, Tactic, TacticID, SkillType, MatchResult, PlayerPosition, UserRole, AvatarData, EquipmentItem, EquipmentSlot} from '../../types';
 
 admin.initializeApp();
 const db = admin.firestore();
+
+const EQUIPMENT_ITEMS: EquipmentItem[] = [
+    {
+        id: 'shoe_st_01',
+        name: 'Stürmer-Schuh Alpha',
+        description: 'Verbessert Schusskraft und Abschluss.',
+        price: 50,
+        slot: EquipmentSlot.SHOES,
+        allowedPositions: ['Stürmer'],
+        bonus: {
+            'shot_power': 2,
+            'finishing': 3,
+        }
+    },
+    {
+        id: 'shoe_mf_01',
+        name: 'Mittelfeld-Schuh Beta',
+        description: 'Verbessert Passen und Dribbling.',
+        price: 50,
+        slot: EquipmentSlot.SHOES,
+        allowedPositions: ['Mittelfeld'],
+        bonus: {
+            'passing': 3,
+            'dribbling': 2,
+        }
+    },
+    {
+        id: 'shoe_aw_01',
+        name: 'Abwehr-Schuh Gamma',
+        description: 'Verbessert Zweikampf und Stärke.',
+        price: 50,
+        slot: EquipmentSlot.SHOES,
+        allowedPositions: ['Abwehr'],
+        bonus: {
+            'tackling': 3,
+            'strength': 2,
+        }
+    },
+    {
+        id: 'glove_tw_01',
+        name: 'Torwart-Handschuh Titan',
+        description: 'Verbessert Fangen und Reflexe.',
+        price: 60,
+        slot: EquipmentSlot.GLOVES,
+        allowedPositions: ['Torwart'],
+        bonus: {
+            'handling': 3,
+            'reflexes': 2,
+        }
+    },
+];
 
 const TACTICS: Tactic[] = [
   {id: 'balanced', name: 'Ausgewogen', description: '...', attackBonus: 0, defenseBonus: 0},
@@ -47,7 +97,22 @@ const ensureBotClubsExist = async (): Promise<Club[]> => {
       playerIds.push(playerRef.id);
       const skills: { [key in SkillType]?: number } = {};
       ALL_SKILLS.forEach((skill) => skills[skill] = getRandomSkillValue());
-      const newPlayer: Omit<Player, 'id'> = {name: `${getRandomItem(PLAYER_FIRST_NAMES)} ${getRandomItem(PLAYER_LAST_NAMES)}`, position: getRandomItem(POSITIONS), clubId: clubRef.id, level: 1, experience: 0, trainingPoints: 0, roles: [], skills, activeActivities: [], completedActivityIds: [], nextActivityReset: 0};
+      const newPlayer: Omit<Player, 'id'> = {
+          name: `${getRandomItem(PLAYER_FIRST_NAMES)} ${getRandomItem(PLAYER_LAST_NAMES)}`,
+          position: getRandomItem(POSITIONS),
+          clubId: clubRef.id,
+          level: 1,
+          experience: 0,
+          trainingPoints: 0,
+          euro: 100,
+          roles: [],
+          skills,
+          activeActivities: [],
+          completedActivityIds: [],
+          nextActivityReset: 0,
+          equipment: [],
+          equipped: {},
+      };
       batch.set(playerRef, newPlayer);
     }
 
@@ -67,20 +132,42 @@ const getPlayersForClub = async (clubId: string): Promise<Player[]> => {
   return playersSnapshot.docs.map((doc) => ({id: doc.id, ...doc.data()} as Player));
 };
 
+const getPlayerSkillsWithBonuses = (player: Player): { [key in SkillType]?: number } => {
+    const finalSkills = { ...(player.skills || {}) };
+    if (player.equipped) {
+        for (const slot in player.equipped) {
+            const itemId = player.equipped[slot as keyof typeof player.equipped];
+            if (itemId) {
+                const item = EQUIPMENT_ITEMS.find(i => i.id === itemId);
+                if (item && item.bonus) {
+                    for (const skill in item.bonus) {
+                        const s = skill as SkillType;
+                        const currentSkill = finalSkills[s] || 0;
+                        const bonus = item.bonus[s] || 0;
+                        finalSkills[s] = currentSkill + bonus;
+                    }
+                }
+            }
+        }
+    }
+    return finalSkills;
+};
+
 const calculateTeamRating = (players: Player[]): { attack: number, defense: number } => {
   let totalAttack = 0;
   let totalDefense = 0;
   let playerContributionCount = 0;
 
   players.forEach((player) => {
-    if (!player.skills) return;
+    const effectiveSkills = getPlayerSkillsWithBonuses(player);
+    if (!effectiveSkills) return;
     playerContributionCount++;
 
     let playerAttack = 0;
     let playerDefense = 0;
 
-    ATTACK_SKILLS.forEach((skill) => playerAttack += player.skills[skill] || 0);
-    DEFENSE_SKILLS.forEach((skill) => playerDefense += player.skills[skill] || 0);
+    ATTACK_SKILLS.forEach((skill) => playerAttack += effectiveSkills[skill] || 0);
+    DEFENSE_SKILLS.forEach((skill) => playerDefense += effectiveSkills[skill] || 0);
 
     switch (player.position) {
       case 'Stürmer':
@@ -98,7 +185,7 @@ const calculateTeamRating = (players: Player[]): { attack: number, defense: numb
       case 'Torwart': {
         totalAttack += playerAttack * 0.1;
         let goalieDefense = playerDefense * 1.2;
-        GOALIE_SKILLS.forEach((skill) => goalieDefense += (player.skills[skill] || 0) * 1.5);
+        GOALIE_SKILLS.forEach((skill) => goalieDefense += (effectiveSkills[skill] || 0) * 1.5);
         totalDefense += goalieDefense;
         break;
       }

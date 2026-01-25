@@ -1,8 +1,8 @@
 import { collection, doc, getDoc, onSnapshot, setDoc, updateDoc, arrayUnion, arrayRemove, runTransaction, serverTimestamp, FieldValue, query, where, getDocs, writeBatch, documentId, orderBy } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import { db, functions } from './firebase';
-import { Player, Club, Fixture, PlayerPosition, UserRole, PendingUpgrade, SkillType, ActiveActivity, Reward, InfrastructureType, ActiveTeamTraining, Activity } from '../types';
-import { ACTIVITIES, INFRA_UPGRADE_COSTS, INFRA_UPGRADE_TIMES, TEAM_TRAININGS, MAX_CLUB_PLAYERS, XP_PER_SKILL_UPGRADE, SHOP_ITEMS } from '../constants';
+import { Player, Club, Fixture, PlayerPosition, UserRole, PendingUpgrade, SkillType, ActiveActivity, Reward, InfrastructureType, ActiveTeamTraining, Activity, EquipmentSlot } from '../types';
+import { ACTIVITIES, INFRA_UPGRADE_COSTS, INFRA_UPGRADE_TIMES, TEAM_TRAININGS, MAX_CLUB_PLAYERS, XP_PER_SKILL_UPGRADE, SHOP_ITEMS, EQUIPMENT_ITEMS } from '../constants';
 
 const getNextHourlyTimestamp = () => {
     const now = new Date();
@@ -102,6 +102,8 @@ const dataService = {
             activeActivities: [],
             completedActivityIds: [],
             nextActivityReset: getNextHourlyTimestamp(),
+            equipment: [],
+            equipped: {},
         };
         transaction.set(playerRef, newPlayer);
     });
@@ -155,6 +157,42 @@ const dataService = {
             trainingPoints: (player.trainingPoints || 0) + item.tp,
         });
     });
+  },
+
+  async purchaseEquipmentItem(playerId: string, itemId: string): Promise<void> {
+    await runTransaction(db, async (transaction) => {
+        const playerRef = doc(db, 'players', playerId);
+        const playerDoc = await transaction.get(playerRef);
+        if (!playerDoc.exists()) throw new Error("Player not found");
+
+        const player = playerDoc.data() as Player;
+        const item = EQUIPMENT_ITEMS.find(i => i.id === itemId);
+        if (!item) throw new Error("Equipment item not found");
+
+        if ((player.euro || 0) < item.price) {
+            throw new Error("Nicht genug Euro");
+        }
+        if (player.equipment?.includes(itemId)) {
+            throw new Error("Gegenstand bereits im Besitz");
+        }
+
+        transaction.update(playerRef, {
+            euro: (player.euro || 0) - item.price,
+            equipment: arrayUnion(itemId),
+        });
+    });
+  },
+
+  async equipItem(playerId: string, itemId: string, slot: EquipmentSlot): Promise<void> {
+      await updateDoc(doc(db, 'players', playerId), {
+          [`equipped.${slot}`]: itemId
+      });
+  },
+
+  async unequipItem(playerId: string, slot: EquipmentSlot): Promise<void> {
+      await updateDoc(doc(db, 'players', playerId), {
+          [`equipped.${slot}`]: null
+      });
   },
 
   async upgradeSkill(playerId: string, skill: SkillType): Promise<void> {

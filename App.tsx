@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { onAuthStateChanged, signOut, User } from 'firebase/auth';
 import { Player, Club, View, SkillType, Fixture, InfrastructureType, PlayerPosition, UserRole } from './types';
-import { TEAM_TRAININGS } from './constants';
+import { TEAM_TRAININGS, EQUIPMENT_ITEMS } from './constants';
 import { dataService } from './services/dataService';
 import { auth } from './services/firebase';
 import { Sidebar } from './components/Sidebar';
@@ -11,7 +11,7 @@ import { ClubDashboard } from './components/ClubDashboard';
 import { Activities as ActivitiesComponent } from './components/Activities';
 import { Leaderboard } from './components/Leaderboard';
 import { ClubSearch } from './components/ClubSearch';
-import { Shop } from './components/Shop'; // Import the new Shop component
+import { Shop } from './components/Shop';
 import Login from './components/Login';
 import ProfileSetup from './components/ProfileSetup';
 import { getSkillsForPosition } from './utils';
@@ -123,6 +123,28 @@ const App: React.FC = () => {
     }
   }, [player?.experience, player?.level, user?.uid]);
 
+  const playerSkillsWithBonuses = useMemo(() => {
+      if (!player) return {};
+      const finalSkills = { ...(player.skills || {}) };
+      if (player.equipped) {
+          for (const slot in player.equipped) {
+              const itemId = player.equipped[slot as keyof typeof player.equipped];
+              if (itemId) {
+                  const item = EQUIPMENT_ITEMS.find(i => i.id === itemId);
+                  if (item) {
+                      for (const skill in item.bonus) {
+                          const s = skill as SkillType;
+                          const currentSkill = finalSkills[s] || 0;
+                          const bonus = item.bonus[s] || 0;
+                          finalSkills[s] = currentSkill + bonus;
+                      }
+                  }
+              }
+          }
+      }
+      return finalSkills;
+  }, [player]);
+
   const handleProfileCreate = async (userId: string, name: string, position: PlayerPosition, wantsManagerRole: boolean, clubName?: string) => {
     await dataService.createPlayerAndClub(userId, name, position, wantsManagerRole, clubName);
   };
@@ -139,9 +161,9 @@ const App: React.FC = () => {
 
   const { overallRating, xpNeeded, xpProgress } = useMemo(() => {
     if (!player) return { overallRating: 0, xpNeeded: 100, xpProgress: 0 };
-    const skills = getSkillsForPosition(player.position);
-    const total = skills.reduce((sum, s) => sum + (player.skills?.[s] || 0), 0);
-    const overall = skills.length > 0 ? Math.round(total / skills.length) : 0;
+    const skillsForPosition = getSkillsForPosition(player.position);
+    const total = skillsForPosition.reduce((sum, s) => sum + (playerSkillsWithBonuses[s] || 0), 0);
+    const overall = skillsForPosition.length > 0 ? Math.round(total / skillsForPosition.length) : 0;
     const needed = calculateXpNeeded(player.level || 1);
     const progress = player.experience > 0 ? (player.experience / needed) * 100 : 0;
     return { 
@@ -149,18 +171,18 @@ const App: React.FC = () => {
       xpNeeded: needed, 
       xpProgress: Math.min(100, progress)
     };
-  }, [player]);
+  }, [player, playerSkillsWithBonuses]);
 
   const renderContent = () => {
     if (activeView === 'home') return <Dashboard player={player!} club={selectedClub} allClubs={allClubs} overallRating={overallRating} xpProgress={xpProgress} xpNeeded={xpNeeded} setView={setActiveView} />;
     if (activeView === 'profile') return <UserProfile />;
-    if (activeView === 'skills') return <TrainingCenter player={player!} onTrain={handleTrainSkill} />;
+    if (activeView === 'skills') return <TrainingCenter player={{...player!, skills: playerSkillsWithBonuses}} onTrain={handleTrainSkill} />;
     if (activeView === 'activities') return <ActivitiesComponent player={player!} onStart={handleStartActivity} onComplete={handleCompleteActivity} onReset={handleResetActivities} />;
     if (activeView === 'leaderboard') return <Leaderboard />;
     if (activeView === 'club-search') return <ClubSearch player={player!} />;
     if (activeView === 'league') return <LeagueView fixtures={fixtures} allClubs={allClubs} />;
-    if (activeView === 'shop') return <Shop player={player!} />; // Add shop view
-    
+    if (activeView === 'shop') return <Shop player={player!} />;
+
     if (activeView === 'admin' && player?.roles.includes(UserRole.ADMIN)) {
       return (
         <div className="space-y-12">

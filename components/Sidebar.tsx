@@ -1,6 +1,6 @@
 import React, { ElementType } from 'react';
 import { View, UserRole } from '../types';
-import { Home, User, Shield, Users, Activity, ShoppingCart, Trophy, Swords, UserCog, LogOut, Settings } from 'lucide-react';
+import { Home, User, Shield, Users, Activity, ShoppingCart, Trophy, Swords, UserCog, LogOut, Settings, Zap } from 'lucide-react';
 
 interface SidebarProps {
   activeView: View;
@@ -65,7 +65,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeView, setView, roles, on
           <nav>
             <NavGroup title="Spieler">
                 <NavItem label="Dashboard" view="home" Icon={Home} activeView={activeView} setView={setView} onClick={handleNavItemClicked} />
-                <NavItem label="Training" view="activities" Icon={Activity} activeView={activeView} setView={setView} onClick={handleNavItemClicked} />
+                <NavItem label="Trainingscenter" view="skills" Icon={Zap} activeView={activeView} setView={setView} onClick={handleNavItemClicked} />
+                <NavItem label="Aktivitäten" view="activities" Icon={Activity} activeView={activeView} setView={setView} onClick={handleNavItemClicked} />
                 <NavItem label="Shop" view="shop" Icon={ShoppingCart} activeView={activeView} setView={setView} onClick={handleNavItemClicked} />
             </NavGroup>
             

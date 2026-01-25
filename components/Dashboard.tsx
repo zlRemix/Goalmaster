@@ -1,11 +1,113 @@
-import React, { useMemo } from 'react';
-import { Player, Club, View, AvatarData } from '../types';
+import React, { useMemo, useState } from 'react';
+import { Player, Club, View, AvatarData, EquipmentSlot, EquipmentItem } from '../types';
 import { dataService } from '../services/dataService';
-import { getRatingColor } from '../utils'; // Import the new utility
-import { UserCog, Shield } from 'lucide-react';
+import { getRatingColor } from '../utils';
+import { UserCog, Shield, Package, Check, X } from 'lucide-react';
 import ClubLogo from './ClubLogo';
 import { createAvatar } from '@dicebear/core';
 import * as collections from '@dicebear/collection';
+import { EQUIPMENT_ITEMS } from '../constants';
+
+const Equipment: React.FC<{ player: Player }> = ({ player }) => {
+  const [isUpdating, setIsUpdating] = useState<EquipmentSlot | null>(null);
+
+  const handleEquip = async (item: EquipmentItem) => {
+    setIsUpdating(item.slot);
+    try {
+      await dataService.equipItem(player.id, item.id, item.slot);
+    } catch (error) {
+      console.error("Failed to equip item:", error);
+    } finally {
+      setIsUpdating(null);
+    }
+  };
+
+  const handleUnequip = async (slot: EquipmentSlot) => {
+    setIsUpdating(slot);
+    try {
+      await dataService.unequipItem(player.id, slot);
+    } catch (error) {
+      console.error("Failed to unequip item:", error);
+    } finally {
+      setIsUpdating(null);
+    }
+  };
+
+  const renderSlot = (slot: EquipmentSlot, title: string) => {
+    const equippedItemId = player.equipped?.[slot];
+    const equippedItem = equippedItemId ? EQUIPMENT_ITEMS.find(i => i.id === equippedItemId) : null;
+    const availableItems = (player.equipment || [])
+      .map(id => EQUIPMENT_ITEMS.find(i => i.id === id))
+      .filter(item => item && item.slot === slot) as EquipmentItem[];
+
+    return (
+      <div className="bg-slate-800/80 p-6 rounded-2xl border border-slate-700">
+        <h3 className="text-xl font-bold text-white mb-4">{title}</h3>
+        {equippedItem ? (
+          <div className="flex items-center justify-between bg-slate-700/50 p-4 rounded-lg">
+            <div>
+                <p className="font-bold text-emerald-400">{equippedItem.name}</p>
+                 <div className="text-xs text-slate-400">
+                    {Object.entries(equippedItem.bonus).map(([skill, value]) => (
+                        <span key={skill} className="mr-2">{`+${value} ${skill.replace('_', ' ')}`}</span>
+                    ))}
+                </div>
+            </div>
+            <button 
+                onClick={() => handleUnequip(slot)}
+                disabled={isUpdating === slot}
+                className="bg-red-600 text-white p-2 rounded-full hover:bg-red-500 disabled:bg-slate-600 transition-colors">
+             <X className="w-5 h-5" />
+            </button>
+          </div>
+        ) : (
+          <p className="text-slate-500 italic">Nichts ausgerüstet</p>
+        )}
+        
+        <div className="mt-4 space-y-2">
+          <h4 className="text-sm font-semibold text-slate-300">Verfügbar:</h4>
+          {availableItems.length > 0 ? availableItems.map(item => (
+            <div key={item.id} className="flex items-center justify-between bg-slate-900/50 p-3 rounded-lg">
+              <div>
+                  <p className="font-semibold text-slate-200">{item.name}</p>
+                  <div className="text-xs text-slate-400">
+                    {Object.entries(item.bonus).map(([skill, value]) => (
+                        <span key={skill} className="mr-2">{`+${value} ${skill.replace('_', ' ')}`}</span>
+                    ))}
+                  </div>
+              </div>
+              {equippedItemId !== item.id && (
+                 <button 
+                    onClick={() => handleEquip(item)}
+                    disabled={isUpdating === slot}
+                    className="bg-emerald-600 text-white p-2 rounded-full hover:bg-emerald-500 disabled:bg-slate-600 transition-colors">
+                    <Check className="w-5 h-5" />
+                </button>
+              )}
+            </div>
+          )) : <p className="text-slate-500 text-sm italic">Keine Gegenstände für diesen Slot.</p>}
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div className="space-y-6">
+       <header>
+          <h2 className="text-2xl md:text-3xl font-black text-white flex items-center gap-3">
+            <Package className="w-8 h-8 text-sky-400" />
+            <span>Ausrüstung verwalten</span>
+          </h2>
+          <p className="text-slate-400 mt-1">Rüste deine gekauften Gegenstände aus, um Skill-Boni zu erhalten.</p>
+      </header>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {renderSlot(EquipmentSlot.SHOES, 'Schuhe')}
+        {player.position === 'Torwart' && renderSlot(EquipmentSlot.GLOVES, 'Handschuhe')}
+      </div>
+    </div>
+  );
+};
 
 const PlayerAvatar: React.FC<{ avatar?: AvatarData; size?: number }> = ({ avatar, size = 80 }) => {
     const avatarSvg = useMemo(() => {
@@ -135,6 +237,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ player, club, allClubs, ov
           </div>
         </div>
       </div>
+      <Equipment player={player} />
     </div>
   );
 };

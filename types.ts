@@ -1,4 +1,3 @@
-
 export type PlayerPosition = 'Stürmer' | 'Mittelfeld' | 'Abwehr' | 'Torwart';
 
 export enum UserRole {
@@ -63,6 +62,25 @@ export interface AvatarData {
     seed: string;
 }
 
+// --- Equipment --- //
+export enum EquipmentSlot {
+    SHOES = 'shoes',
+    GLOVES = 'gloves',
+    SHIN_GUARDS = 'shin_guards',
+    TAPE = 'tape',
+}
+
+export interface EquipmentItem {
+    id: string;
+    name: string;
+    description: string;
+    price: number;
+    slot: EquipmentSlot;
+    bonus: Partial<Record<SkillType, number>>;
+    allowedPositions: PlayerPosition[];
+}
+// ----------------- //
+
 export interface Player {
     id: string;
     name: string;
@@ -70,7 +88,7 @@ export interface Player {
     level: number;
     experience: number;
     trainingPoints: number;
-    euro: number; // Changed currency from coins to euro
+    euro: number; 
     clubId: string | null;
     roles: UserRole[];
     skills: { [key in SkillType]?: number };
@@ -79,6 +97,8 @@ export interface Player {
     nextActivityReset: number;
     pendingClubInvitation?: string | null; 
     avatar?: AvatarData;
+    equipment?: string[]; // IDs of owned equipment items
+    equipped?: Partial<Record<EquipmentSlot, string>>; // ID of equipped item per slot
 }
 
 export enum InfrastructureType {
@@ -153,4 +173,4 @@ export interface LeagueStanding {
     points: number;
 }
 
-export type View = 'home' | 'skills' | 'club' | 'activities' | 'staff' | 'finances' | 'match' | 'leaderboard' | 'club-search' | 'admin' | 'league' | 'profile' | 'shop';
+export type View = 'home' | 'skills' | 'club' | 'activities' | 'staff' | 'finances' | 'match' | 'leaderboard' | 'club-search' | 'admin' | 'league' | 'profile' | 'shop' | 'equipment';
