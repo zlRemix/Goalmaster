@@ -92,18 +92,18 @@ const LeagueView: React.FC = () => {
   }, [fixtures]);
 
   if (loading) {
-    return <div className="text-center p-8 text-white">Lade Ligen...</div>;
+    return <div className="text-center p-8 text-white animate-pulse">Lade Ligen...</div>;
   }
 
   if (error) {
-    return <div className="text-center p-8 text-red-400">{error}</div>;
+    return <div className="text-center p-8 text-red-400 bg-red-500/10 rounded-lg">{error}</div>;
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 animate-in fade-in duration-500">
       {leagues.length === 0 ? (
-        <div className="bg-slate-800/80 p-8 rounded-2xl border border-amber-500/30 text-center">
-           <h3 className="text-lg font-bold text-amber-400">Keine Ligen gefunden</h3>
+        <div className="bg-slate-800/80 p-8 rounded-2xl border border-yellow-500/30 text-center">
+           <h3 className="text-lg font-bold text-yellow-400">Keine Ligen gefunden</h3>
            <p className="text-slate-400 mt-2 text-sm">Gehe zur Liga-Verwaltung, um eine neue Liga zu erstellen.</p>
        </div>
       ) : (
@@ -114,7 +114,7 @@ const LeagueView: React.FC = () => {
                 id="league-select"
                 value={selectedLeagueId || ''}
                 onChange={e => setSelectedLeagueId(e.target.value)}
-                className="bg-slate-800 border border-slate-600 rounded-md px-4 py-2 text-white focus:ring-indigo-500 focus:border-indigo-500 flex-grow"
+                className="bg-slate-900/80 border border-slate-700 rounded-lg px-4 py-3 text-white focus:ring-blue-500 focus:border-blue-500 flex-grow font-semibold"
               >
                 {leagues.map(l => <option key={l.id} value={l.id}>{l.name} - Saison {l.season}</option>)}
               </select>
@@ -135,7 +135,7 @@ const LeagueView: React.FC = () => {
                   </header>
 
                   {fixtures.length === 0 ? (
-                      <div className="mt-4 bg-slate-800/80 p-8 rounded-2xl border border-slate-700 text-center">
+                      <div className="mt-4 bg-slate-800/80 p-8 rounded-2xl border border-dashed border-slate-700 text-center">
                           <h3 className="text-lg font-bold text-slate-300">Kein Spielplan gefunden</h3>
                           <p className="text-slate-400 mt-2 text-sm">Für die ausgewählte Saison existiert kein Spielplan.</p>
                       </div>
@@ -143,7 +143,7 @@ const LeagueView: React.FC = () => {
                       <div className="mt-6 space-y-6">
                         {Object.entries(groupedFixtures).map(([matchday, dayFixtures]) => (
                             <div key={matchday}>
-                                <h3 className="text-xl font-bold text-amber-400 mb-3 ml-1">Spieltag {matchday}</h3>
+                                <h3 className="text-xl font-bold text-yellow-400 mb-3 ml-1">Spieltag {matchday}</h3>
                                 <div className="bg-slate-800/80 rounded-2xl border border-slate-700 shadow-lg">
                                     <ul className="divide-y divide-slate-700">
                                     {dayFixtures.map((fixture) => {
@@ -157,15 +157,15 @@ const LeagueView: React.FC = () => {
                                         return (
                                         <li key={fixture.id} className="p-4 flex items-center justify-between hover:bg-slate-800 transition-colors">
                                             <div className="flex items-center gap-4 flex-1">
-                                                <span className="font-bold text-sm text-slate-400 w-32 text-right">
-                                                    {format(matchDate, 'dd.MM.yy - HH:mm')}h
+                                                <span className="font-semibold text-sm text-slate-400 w-32 text-right">
+                                                    {format(matchDate, 'dd.MM.yy - HH:mm', { locale: de })}h
                                                 </span>
                                                 <div className="flex items-center justify-center flex-1 text-center">
                                                     <div className={`font-bold text-base text-right flex-1 flex items-center justify-end gap-3 text-white`}>
                                                         <span>{homeTeam.name}</span>
                                                         <ClubLogo logo={homeTeam.logo} size={28} />
                                                     </div>
-                                                    <span className="font-black text-amber-400 mx-4">VS</span>
+                                                    <span className="font-black text-yellow-400 mx-4">VS</span>
                                                     <div className={`font-bold text-base text-left flex-1 flex items-center justify-start gap-3 text-white`}>
                                                         <ClubLogo logo={awayTeam.logo} size={28} />
                                                         <span>{awayTeam.name}</span>
@@ -174,7 +174,7 @@ const LeagueView: React.FC = () => {
                                             </div>
                                             {fixture.result && (
                                             <div className="w-24 text-center">
-                                                <span className="bg-slate-700 px-3 py-1 rounded-lg text-white font-mono font-bold">{fixture.result}</span>
+                                                <span className="bg-slate-900/80 border border-slate-700 px-3 py-1 rounded-lg text-white font-mono font-bold text-lg">{fixture.result}</span>
                                             </div>
                                             )}
                                         </li>

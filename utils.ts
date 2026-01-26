@@ -54,14 +54,12 @@ export const getSkillsForPosition = (position: string): SkillType[] => {
 
 // --- RATING AND TIER COLOR UTILS ---
 
-// Defines the color classes for different rating thresholds.
-// from-slate-400 (Gewöhnlich) -> to-emerald-400 (Selten) -> to-blue-400 (Episch) -> to-purple-400 (Mythisch) -> to-amber-400 (Legendär)
 const RATING_COLORS = [
-    { threshold: 500, colorClass: 'text-amber-400' },
-    { threshold: 350, colorClass: 'text-purple-400' },
-    { threshold: 200, colorClass: 'text-blue-400' },
-    { threshold: 100, colorClass: 'text-emerald-400' },
-    { threshold: 0, colorClass: 'text-slate-400' },
+    { threshold: 500, colorClass: 'text-yellow-400' },
+    { threshold: 350, colorClass: 'text-pink-500' },
+    { threshold: 200, colorClass: 'text-purple-500' },
+    { threshold: 100, colorClass: 'text-blue-500' },
+    { threshold: 0, colorClass: 'text-gray-400' },
 ];
 
 /**
@@ -71,18 +69,32 @@ const RATING_COLORS = [
  */
 export const getRatingColor = (value: number): string => {
     const matchedColor = RATING_COLORS.find(c => value >= c.threshold);
-    return matchedColor ? matchedColor.colorClass : 'text-slate-400';
+    return matchedColor ? matchedColor.colorClass : 'text-gray-400';
 };
 
 
 // Defines the full tier information, including gradient colors and labels.
 const TIERS = [
-      { l: 'Amateur', c: 'from-emerald-600 to-emerald-400' }, { l: 'Profi', c: 'from-blue-600 to-blue-400' },
-      { l: 'Elite', c: 'from-purple-600 to-purple-400' }, { l: 'Weltklasse', c: 'from-cyan-600 to-cyan-400' },
-      { l: 'Star', c: 'from-orange-600 to-orange-400' }, { l: 'Superstar', c: 'from-pink-600 to-pink-400' },
-      { l: 'Titan', c: 'from-indigo-600 to-indigo-400' }, { l: 'Phänomen', c: 'from-rose-600 to-rose-400' },
-      { l: 'Legende', c: 'from-amber-600 to-amber-400' }, { l: 'Ikone', c: 'from-red-600 to-red-400' },
-      { l: 'Gottgleich', c: 'from-slate-400 to-slate-100' }, { l: 'Kosmisch', c: 'from-indigo-600 via-purple-600 to-pink-500' }
+    { l: 'Amateur', c: 'from-gray-500 to-gray-400' },
+    { l: 'Profi', c: 'from-green-500 to-teal-400' },
+    { l: 'Elite', c: 'from-blue-500 to-cyan-400' },
+    { l: 'Weltklasse', c: 'from-indigo-500 to-purple-400' },
+    { l: 'Star', c: 'from-purple-500 to-pink-500' },
+    { l: 'Superstar', c: 'from-pink-500 to-rose-500' },
+    { l: 'Titan', c: 'from-red-500 to-orange-500' },
+    { l: 'Phänomen', c: 'from-orange-500 to-yellow-400' },
+    { l: 'Legende', c: 'from-yellow-400 to-lime-400' },
+    { l: 'Ikone', c: 'from-lime-400 to-emerald-400' },
+    { l: 'Gottgleich', c: 'from-white to-gray-300' },
+    { l: 'Kosmisch', c: 'from-indigo-400 via-purple-500 to-pink-500' },
+    { l: 'Galaktisch', c: 'from-blue-300 to-pink-300' },
+    { l: 'Universal', c: 'from-green-200 to-yellow-300' },
+    { l: 'Multiversal', c: 'from-red-400 via-yellow-400 to-green-400' },
+    { l: 'Ätherisch', c: 'from-purple-300 to-indigo-400' },
+    { l: 'Transzendent', c: 'from-pink-300 to-yellow-200' },
+    { l: 'Omnipotent', c: 'from-white to-yellow-400' },
+    { l: 'Singularität', c: 'from-black to-white' },
+    { l: 'Unendlich', c: 'from-gray-900 via-purple-900 to-indigo-900' }
 ];
 
 /**

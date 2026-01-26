@@ -65,7 +65,7 @@ const InfrastructureCard: React.FC<{ type: InfrastructureType; club: Club; onUpg
         <div className="bg-slate-800/80 rounded-2xl p-4 md:p-5 border border-slate-700 shadow-lg flex flex-col justify-between transition-all hover:border-slate-600/80">
             <div>
                  <div className="flex items-start justify-between gap-4 mb-4">
-                    <div className="text-amber-400 opacity-80 pt-1">
+                    <div className="text-blue-400 opacity-80 pt-1">
                         <Icon className="h-10 w-10" />
                     </div>
                     <div className="flex-1 text-right">
@@ -75,17 +75,17 @@ const InfrastructureCard: React.FC<{ type: InfrastructureType; club: Club; onUpg
                 </div>
                 <div className="mb-5">
                     <div className="flex justify-between items-end mb-1">
-                        <span className="text-xs font-bold text-amber-400 uppercase">Level {currentLevel} / 10</span>
+                        <span className="text-xs font-bold text-blue-400 uppercase">Level {currentLevel} / 10</span>
                         {pendingUpgrade && <span className="text-xs font-bold text-cyan-400 animate-pulse">Upgrade läuft...</span>}
                     </div>
                     <div className="h-2.5 w-full bg-slate-900 rounded-full border border-slate-800 p-0.5">
-                        <div className="h-full bg-gradient-to-r from-amber-500 to-amber-400 rounded-full" style={{ width: `${currentLevel * 10}%` }}></div>
+                        <div className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full" style={{ width: `${currentLevel * 10}%` }}></div>
                     </div>
                 </div>
                 <div className="space-y-3 text-xs">
                    <div className="p-3 bg-slate-900/70 rounded-lg border border-slate-700/50">
                         <p className="font-semibold text-slate-400 mb-1">Aktueller Bonus:</p>
-                        <p className="font-bold text-emerald-300">{currentBenefit}</p>
+                        <p className="font-bold text-green-300">{currentBenefit}</p>
                     </div>
                      <div className="p-3 bg-slate-900/70 rounded-lg border border-slate-700/50">
                         <p className="font-semibold text-slate-400 mb-1">Bonus auf Level {currentLevel + 1}:</p>
@@ -97,7 +97,7 @@ const InfrastructureCard: React.FC<{ type: InfrastructureType; club: Club; onUpg
                 {pendingUpgrade ? (
                      <div className="text-center bg-slate-700/80 p-3 rounded-lg border border-slate-600">
                         <p className="text-sm font-bold text-slate-300">Verbleibende Zeit:</p>
-                        <p className="text-xl font-black text-amber-400 tracking-wider">{formatDuration(remainingTime)}</p>
+                        <p className="text-xl font-black text-blue-400 tracking-wider">{formatDuration(remainingTime)}</p>
                      </div>
                 ) : upgradeCost !== null && upgradeTime !== null ? (
                     <div className="flex flex-col gap-2">
@@ -114,13 +114,13 @@ const InfrastructureCard: React.FC<{ type: InfrastructureType; club: Club; onUpg
                         <button
                             disabled={(club.budget || 0) < upgradeCost}
                             onClick={() => onUpgrade(club.id, type)}
-                            className="w-full bg-emerald-600 text-white font-bold py-3 rounded-lg text-sm md:text-base disabled:bg-slate-600 disabled:text-slate-500 disabled:cursor-not-allowed hover:bg-emerald-500 transition-colors shadow-md active:scale-95">
+                            className="w-full bg-blue-600 text-white font-bold py-3 rounded-lg text-sm md:text-base disabled:bg-slate-600 disabled:text-slate-500 disabled:cursor-not-allowed hover:bg-blue-500 transition-colors shadow-md active:scale-95">
                             Upgrade starten
                         </button>
                     </div>
                 ) : (
-                     <div className="text-center bg-emerald-900/50 p-3 rounded-lg border border-emerald-700">
-                         <p className="text-sm font-bold text-emerald-300">Maximales Level erreicht</p>
+                     <div className="text-center bg-green-900/50 p-3 rounded-lg border border-green-700">
+                         <p className="text-sm font-bold text-green-300">Maximales Level erreicht</p>
                      </div>
                 )}
             </div>
@@ -149,7 +149,7 @@ const SquadList: React.FC<{ players: Player[] }> = ({ players }) => {
                             </div>
                         </div>
                         <div className="text-right pl-2">
-                            <p className="font-black text-lg md:text-xl text-amber-400">{getOverall(p)}</p>
+                            <p className="font-black text-lg md:text-xl text-blue-400">{getOverall(p)}</p>
                             <p className="text-[10px] md:text-xs text-slate-500 font-bold uppercase tracking-tight">GES</p>
                         </div>
                     </div>
@@ -164,10 +164,10 @@ const ActiveTeamTrainingDisplay: React.FC<{ training: ActiveTeamTraining, traini
     const remainingSeconds = useCountdown(endTime);
 
     return (
-        <div className="bg-slate-800/80 rounded-2xl p-6 md:p-8 border-2 border-dashed border-blue-500/30 text-center">
+        <div className="bg-slate-800/80 rounded-2xl p-6 md:p-8 border-2 border-dashed border-indigo-500/30 text-center">
             <p className="text-xs md:text-sm font-bold text-slate-400 uppercase tracking-widest">Aktives Team-Training</p>
             <h3 className="text-xl md:text-3xl font-black text-white my-2">{trainingDef.name}</h3>
-            <p className="text-4xl md:text-6xl font-black text-blue-400 tracking-widest my-4">{formatDuration(remainingSeconds)}</p>
+            <p className="text-4xl md:text-6xl font-black text-indigo-400 tracking-widest my-4">{formatDuration(remainingSeconds)}</p>
             <p className="text-xs md:text-sm text-slate-400">Alle Spieler erhalten nach Abschluss Belohnungen.</p>
         </div>
     );
@@ -199,15 +199,15 @@ const TeamTraining: React.FC<{club: Club, player: Player, onStart: (trainingId: 
                         <p className="text-xs md:text-sm text-slate-400 mt-1 mb-4 h-10">{t.description}</p>
                         
                         <div className="bg-slate-900/70 p-3 rounded-lg border border-slate-700/50 mb-6 space-y-1 text-sm">
-                            { (t.reward.xp ?? 0) > 0 && <p className="font-bold text-emerald-400">+{t.reward.xp} XP für jeden Spieler</p> }
-                            { (t.reward.tp ?? 0) > 0 && <p className="font-bold text-blue-400">+{t.reward.tp} TP für jeden Spieler</p> }
+                            { (t.reward.xp ?? 0) > 0 && <p className="font-bold text-green-400">+{t.reward.xp} XP für jeden Spieler</p> }
+                            { (t.reward.tp ?? 0) > 0 && <p className="font-bold text-cyan-400">+{t.reward.tp} TP für jeden Spieler</p> }
                         </div>
 
                         <div className="mt-auto">
                              <button 
                                 onClick={() => onStart(t.id)}
                                 disabled={!isManager || trainingInProgress}
-                                className="w-full bg-blue-600 text-white font-bold py-3 rounded-lg disabled:bg-slate-600 disabled:text-slate-400 disabled:cursor-not-allowed hover:bg-blue-500 transition-colors shadow-md active:scale-95 text-sm md:text-base">
+                                className="w-full bg-indigo-600 text-white font-bold py-3 rounded-lg disabled:bg-slate-600 disabled:text-slate-400 disabled:cursor-not-allowed hover:bg-indigo-500 transition-colors shadow-md active:scale-95 text-sm md:text-base">
                                 {isManager ? `Starten (${formatDuration(t.durationSeconds)})` : 'Nur für Manager'}
                             </button>
                         </div>
@@ -294,7 +294,7 @@ export const ClubDashboard: React.FC<ClubDashboardProps> = ({ club, player, onUp
                 <p className="text-slate-400 mb-6">Suche nach einem Verein, um deine Karriere voranzutreiben.</p>
                 <button 
                     onClick={() => setView('club-search')} 
-                    className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 px-8 rounded-lg transition-colors shadow-lg">
+                    className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-8 rounded-lg transition-colors shadow-lg">
                     Verein suchen
                 </button>
             </div>
@@ -303,24 +303,25 @@ export const ClubDashboard: React.FC<ClubDashboardProps> = ({ club, player, onUp
 
     return (
         <div className="space-y-6 md:space-y-8 animate-in fade-in duration-300">
-            <header className="bg-slate-800/80 p-4 md:p-6 rounded-2xl shadow-lg border-slate-700 border flex items-center gap-4">
-                <ClubLogo logo={club.logo} size={64} />
-                <div>
+            <header className="bg-slate-800/80 p-4 md:p-6 rounded-2xl shadow-lg border-slate-700 border flex flex-col md:flex-row items-center gap-4 md:gap-6">
+                <ClubLogo logo={club.logo} size={80} />
+                <div className="flex-1 text-center md:text-left">
                     <h1 className="text-2xl md:text-4xl font-black text-white">{club.name}</h1>
-                    <div className="mt-1 text-xl md:text-3xl font-bold text-emerald-400">
-                        Budget: {(club.budget || 0).toLocaleString()} €
-                    </div>
+                </div>
+                <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4 text-center">
+                    <p className="text-xs font-bold text-blue-300 uppercase tracking-wider">Budget</p>
+                    <p className="text-3xl md:text-4xl font-black text-white">{(club.budget || 0).toLocaleString('de-DE')} €</p>
                 </div>
             </header>
 
             <div className="flex flex-wrap gap-1 md:gap-2 p-1 md:p-2 bg-slate-800 border border-slate-700 rounded-full text-sm">
-                <button onClick={() => setClubNav('infrastructure')} className={`flex-1 text-center font-bold p-2 md:p-3 rounded-full transition-colors ${clubNav === 'infrastructure' ? 'bg-emerald-600 text-white' : 'text-slate-300 hover:bg-slate-700'}`}>Infrastruktur</button>
-                <button onClick={() => setClubNav('squad')} className={`flex-1 text-center font-bold p-2 md:p-3 rounded-full transition-colors ${clubNav === 'squad' ? 'bg-emerald-600 text-white' : 'text-slate-300 hover:bg-slate-700'}`}>Kader</button>
-                <button onClick={() => setClubNav('training')} className={`flex-1 text-center font-bold p-2 md:p-3 rounded-full transition-colors ${clubNav === 'training' ? 'bg-emerald-600 text-white' : 'text-slate-300 hover:bg-slate-700'}`}>Training</button>
+                <button onClick={() => setClubNav('infrastructure')} className={`flex-1 text-center font-bold p-2 md:p-3 rounded-full transition-colors ${clubNav === 'infrastructure' ? 'bg-blue-600 text-white' : 'text-slate-300 hover:bg-slate-700'}`}>Infrastruktur</button>
+                <button onClick={() => setClubNav('squad')} className={`flex-1 text-center font-bold p-2 md:p-3 rounded-full transition-colors ${clubNav === 'squad' ? 'bg-blue-600 text-white' : 'text-slate-300 hover:bg-slate-700'}`}>Kader</button>
+                <button onClick={() => setClubNav('training')} className={`flex-1 text-center font-bold p-2 md:p-3 rounded-full transition-colors ${clubNav === 'training' ? 'bg-blue-600 text-white' : 'text-slate-300 hover:bg-slate-700'}`}>Training</button>
                 {isManager && (
                     <>
-                        <button onClick={() => setClubNav('management')} className={`flex-1 text-center font-bold p-2 md:p-3 rounded-full transition-colors ${clubNav === 'management' ? 'bg-emerald-600 text-white' : 'text-slate-300 hover:bg-slate-700'}`}>Management</button>
-                        <button onClick={() => setClubNav('logo')} className={`flex-1 text-center font-bold p-2 md:p-3 rounded-full transition-colors ${clubNav === 'logo' ? 'bg-emerald-600 text-white' : 'text-slate-300 hover:bg-slate-700'}`}>Logo</button>
+                        <button onClick={() => setClubNav('management')} className={`flex-1 text-center font-bold p-2 md:p-3 rounded-full transition-colors ${clubNav === 'management' ? 'bg-blue-600 text-white' : 'text-slate-300 hover:bg-slate-700'}`}>Management</button>
+                        <button onClick={() => setClubNav('logo')} className={`flex-1 text-center font-bold p-2 md:p-3 rounded-full transition-colors ${clubNav === 'logo' ? 'bg-blue-600 text-white' : 'text-slate-300 hover:bg-slate-700'}`}>Logo</button>
                     </>
                 )}
             </div>

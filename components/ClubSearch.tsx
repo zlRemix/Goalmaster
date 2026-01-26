@@ -105,7 +105,7 @@ export const ClubSearch: React.FC<ClubSearchProps> = ({ player }) => {
                    <button 
                     onClick={() => handleCancelApplication(club.id)}
                     disabled={buttonDisabled}
-                    className="bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded-lg transition-colors text-sm disabled:bg-slate-600 disabled:cursor-wait"
+                    className="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded-lg transition-colors text-sm disabled:bg-slate-600 disabled:cursor-wait"
                   >
                     {isSubmitting === club.id ? '... ' : 'Bewerbung zurückziehen'}
                   </button>
@@ -117,7 +117,7 @@ export const ClubSearch: React.FC<ClubSearchProps> = ({ player }) => {
                   <button 
                     onClick={() => handleApply(club.id)}
                     disabled={buttonDisabled}
-                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-4 rounded-lg transition-colors text-sm disabled:bg-slate-600 disabled:cursor-wait"
+                    className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-4 rounded-lg transition-colors text-sm disabled:bg-slate-600 disabled:cursor-wait"
                   >
                     {isSubmitting === club.id ? '... ' : 'Bewerben'}
                   </button>

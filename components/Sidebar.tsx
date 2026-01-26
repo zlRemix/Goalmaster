@@ -24,7 +24,7 @@ const NavItem: React.FC<{
       onClick={() => { setView(view); onClick(); }}
       className={`w-full flex items-center px-3 py-2.5 rounded-lg transition-all text-left text-sm ${
         activeView === view
-          ? 'bg-emerald-600 text-white font-semibold shadow-md'
+          ? 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-semibold shadow-md'
           : 'text-slate-400 hover:bg-slate-800 hover:text-white'
       }`}
     >
@@ -60,7 +60,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeView, setView, roles, on
       <aside className={`fixed top-0 left-0 h-full w-64 bg-slate-900 p-4 flex flex-col justify-between border-r border-slate-800 z-40 transition-transform transform md:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div>
           <div className="text-center mb-10 pt-4">
-            <h1 className="text-3xl font-black text-white">Pro<span className="text-emerald-500">Soccer</span></h1>
+            <h1 className="text-3xl font-black text-white">Pro<span className="text-blue-500">Soccer</span></h1>
             <p className="text-xs text-slate-400 mt-1">Umgebung: Prod | Pre-Alpha Version</p>
           </div>
           <nav>

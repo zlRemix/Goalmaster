@@ -2,112 +2,10 @@ import React, { useMemo, useState } from 'react';
 import { Player, Club, View, AvatarData, EquipmentSlot, EquipmentItem } from '../types';
 import { dataService } from '../services/dataService';
 import { getRatingColor } from '../utils';
-import { UserCog, Shield, Package, Check, X, AlertTriangle } from 'lucide-react';
+import { UserCog, Shield, Package, Check, X, AlertTriangle, ChevronRight, Star, Swords } from 'lucide-react';
 import ClubLogo from './ClubLogo';
 import { createAvatar } from '@dicebear/core';
 import * as collections from '@dicebear/collection';
-import { EQUIPMENT_ITEMS } from '../constants';
-
-const Equipment: React.FC<{ player: Player }> = ({ player }) => {
-  const [isUpdating, setIsUpdating] = useState<EquipmentSlot | null>(null);
-
-  const handleEquip = async (item: EquipmentItem) => {
-    setIsUpdating(item.slot);
-    try {
-      await dataService.equipItem(player.id, item.id, item.slot);
-    } catch (error) {
-      console.error("Failed to equip item:", error);
-    } finally {
-      setIsUpdating(null);
-    }
-  };
-
-  const handleUnequip = async (slot: EquipmentSlot) => {
-    setIsUpdating(slot);
-    try {
-      await dataService.unequipItem(player.id, slot);
-    } catch (error) {
-      console.error("Failed to unequip item:", error);
-    } finally {
-      setIsUpdating(null);
-    }
-  };
-
-  const renderSlot = (slot: EquipmentSlot, title: string) => {
-    const equippedItemId = player.equipped?.[slot];
-    const equippedItem = equippedItemId ? EQUIPMENT_ITEMS.find(i => i.id === equippedItemId) : null;
-    const availableItems = (player.equipment || [])
-      .map(id => EQUIPMENT_ITEMS.find(i => i.id === id))
-      .filter(item => item && item.slot === slot) as EquipmentItem[];
-
-    return (
-      <div className="bg-slate-800/80 p-6 rounded-2xl border border-slate-700">
-        <h3 className="text-xl font-bold text-white mb-4">{title}</h3>
-        {equippedItem ? (
-          <div className="flex items-center justify-between bg-slate-700/50 p-4 rounded-lg">
-            <div>
-                <p className="font-bold text-emerald-400">{equippedItem.name}</p>
-                 <div className="text-xs text-slate-400">
-                    {Object.entries(equippedItem.bonus).map(([skill, value]) => (
-                        <span key={skill} className="mr-2">{`+${value} ${skill.replace('_', ' ')}`}</span>
-                    ))}
-                </div>
-            </div>
-            <button 
-                onClick={() => handleUnequip(slot)}
-                disabled={isUpdating === slot}
-                className="bg-red-600 text-white p-2 rounded-full hover:bg-red-500 disabled:bg-slate-600 transition-colors">
-             <X className="w-5 h-5" />
-            </button>
-          </div>
-        ) : (
-          <p className="text-slate-500 italic">Nichts ausgerüstet</p>
-        )}
-        
-        <div className="mt-4 space-y-2">
-          <h4 className="text-sm font-semibold text-slate-300">Verfügbar:</h4>
-          {availableItems.length > 0 ? availableItems.map(item => (
-            <div key={item.id} className="flex items-center justify-between bg-slate-900/50 p-3 rounded-lg">
-              <div>
-                  <p className="font-semibold text-slate-200">{item.name}</p>
-                  <div className="text-xs text-slate-400">
-                    {Object.entries(item.bonus).map(([skill, value]) => (
-                        <span key={skill} className="mr-2">{`+${value} ${skill.replace('_', ' ')}`}</span>
-                    ))}
-                  </div>
-              </div>
-              {equippedItemId !== item.id && (
-                 <button 
-                    onClick={() => handleEquip(item)}
-                    disabled={isUpdating === slot}
-                    className="bg-emerald-600 text-white p-2 rounded-full hover:bg-emerald-500 disabled:bg-slate-600 transition-colors">
-                    <Check className="w-5 h-5" />
-                </button>
-              )}
-            </div>
-          )) : <p className="text-slate-500 text-sm italic">Keine Gegenstände für diesen Slot.</p>}
-        </div>
-      </div>
-    );
-  };
-
-  return (
-    <div className="space-y-6">
-       <header>
-          <h2 className="text-2xl md:text-3xl font-black text-white flex items-center gap-3">
-            <Package className="w-8 h-8 text-sky-400" />
-            <span>Ausrüstung verwalten</span>
-          </h2>
-          <p className="text-slate-400 mt-1">Rüste deine gekauften Gegenstände aus, um Skill-Boni zu erhalten.</p>
-      </header>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {renderSlot(EquipmentSlot.SHOES, 'Schuhe')}
-        {player.position === 'Torwart' && renderSlot(EquipmentSlot.GLOVES, 'Handschuhe')}
-      </div>
-    </div>
-  );
-};
 
 const PlayerAvatar: React.FC<{ avatar?: AvatarData; size?: number }> = ({ avatar, size = 80 }) => {
     const avatarSvg = useMemo(() => {
@@ -123,40 +21,27 @@ const PlayerAvatar: React.FC<{ avatar?: AvatarData; size?: number }> = ({ avatar
     return <div style={{ width: size, height: size }} className="bg-slate-700 rounded-full" />;
 };
 
-
-interface DashboardProps {
-  player: Player;
-  club: Club | null; 
-  allClubs: Club[];
-  overallRating: number;
-  xpProgress: number;
-  xpNeeded: number;
-  setView: (view: View) => void;
-}
-
-const InvitationBanner: React.FC<{ player: Player; allClubs: Club[] }> = ({ player, allClubs }) => {
+const InvitationBanner: React.FC<{ player: Player; allClubs: Club[]; }> = ({ player, allClubs }) => {
     if (!player.pendingClubInvitation) return null;
 
     const invitingClub = allClubs.find(c => c.id === player.pendingClubInvitation);
     if (!invitingClub) return null;
 
-    const handleAccept = () => {
-        dataService.acceptClubInvitation(player.id, invitingClub.id).catch(e => console.error(e));
-    };
-
-    const handleReject = () => {
-        dataService.rejectClubInvitation(player.id).catch(e => console.error(e));
-    };
+    const handleAccept = () => dataService.acceptClubInvitation(player.id, invitingClub.id).catch(e => console.error(e));
+    const handleReject = () => dataService.rejectClubInvitation(player.id).catch(e => console.error(e));
 
     return (
-        <div className="bg-gradient-to-r from-blue-600 to-indigo-700 p-5 md:p-6 rounded-3xl border-2 border-blue-400/80 shadow-2xl animate-in fade-in duration-500">
+        <div className="bg-gradient-to-r from-indigo-500 to-blue-500 p-5 rounded-2xl border border-indigo-400/80 shadow-lg">
             <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-                <div className="text-center md:text-left">
-                    <h3 className="text-xl md:text-2xl font-black text-white">Einladung erhalten!</h3>
-                    <p className="text-blue-200 font-semibold">Der Verein <span className="font-bold">{invitingClub.name}</span> hat dich eingeladen.</p>
+                <div className="flex items-center gap-4">
+                    <ClubLogo logo={invitingClub.logo} size={40} />
+                    <div className="text-center md:text-left">
+                        <h3 className="text-lg font-black text-white">Einladung von {invitingClub.name}</h3>
+                        <p className="text-indigo-100 text-sm">Der Verein hat dich eingeladen, beizutreten.</p>
+                    </div>
                 </div>
                 <div className="flex gap-3 flex-shrink-0">
-                    <button onClick={handleAccept} className="bg-emerald-500 hover:bg-emerald-400 text-white font-bold py-2 px-5 rounded-lg transition-colors shadow-lg active:scale-95">Annehmen</button>
+                    <button onClick={handleAccept} className="bg-green-500 hover:bg-green-400 text-white font-bold py-2 px-5 rounded-lg transition-colors shadow-md active:scale-95">Annehmen</button>
                     <button onClick={handleReject} className="bg-slate-800 hover:bg-slate-700 text-white font-bold py-2 px-5 rounded-lg transition-colors active:scale-95">Ablehnen</button>
                 </div>
             </div>
@@ -165,88 +50,112 @@ const InvitationBanner: React.FC<{ player: Player; allClubs: Club[] }> = ({ play
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({ player, club, allClubs, overallRating, xpProgress, xpNeeded, setView }) => {
+    const [isSimulating, setIsSimulating] = useState(false);
+
+    const handleTestMatch = async () => {
+        setIsSimulating(true);
+        try {
+            const result = await dataService.runTestMatch();
+            console.log("--- Test-Match-Ergebnis ---", result);
+            alert("Test-Match simuliert! Überprüfe die Entwicklerkonsole für den Spielbericht.");
+        } catch (error) {
+            console.error("Fehler bei der Test-Match-Simulation:", error);
+            alert("Ein Fehler ist aufgetreten. Überprüfe die Konsole für Details.");
+        } finally {
+            setIsSimulating(false);
+        }
+    };
 
   return (
     <div className="space-y-6 md:space-y-8 animate-in fade-in duration-300">
-      <div className="bg-amber-500/10 border border-amber-500/30 text-amber-300 p-4 rounded-2xl text-sm">
-        <div className="flex items-center gap-3">
-            <AlertTriangle className="w-6 h-6 text-amber-400 flex-shrink-0" />
-            <div>
-                <h3 className="font-bold text-white">Willkommen zur Pre-Alpha!</h3>
-                <p className="text-amber-300/80">Diese Version dient dem Testen von Funktionen und dem Sammeln von Feedback. Es können Fehler auftreten.</p>
+        <div className="bg-sky-900/50 border border-sky-700 text-sky-300 p-4 rounded-2xl text-sm">
+            <div className="flex items-center gap-3">
+                <AlertTriangle className="w-5 h-5 text-sky-400 flex-shrink-0" />
+                <div>
+                    <h3 className="font-bold text-sky-200">Willkommen zur Pre-Alpha!</h3>
+                    <p className="text-sky-300/80 text-xs">Diese Version dient dem Testen. Es können Fehler auftreten und Daten zurückgesetzt werden.</p>
+                </div>
             </div>
         </div>
-      </div>
+        
+        <div className="bg-slate-800/80 p-4 rounded-2xl border border-slate-700 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div>
+                <h3 className="font-bold text-white">Simulations-Test</h3>
+                <p className="text-sm text-slate-400">Löse ein zufälliges Spiel aus, um die Match-Engine zu testen.</p>
+            </div>
+            <button
+                onClick={handleTestMatch}
+                disabled={isSimulating}
+                className="w-full sm:w-auto bg-red-600 hover:bg-red-500 text-white font-bold py-2 px-5 rounded-lg disabled:bg-slate-600 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2 active:scale-95 shadow-lg"
+            >
+                <Swords className="w-4 h-4"/>
+                {isSimulating ? 'Simuliere...' : 'Test-Match starten'}
+            </button>
+        </div>
 
       {player.pendingClubInvitation && <InvitationBanner player={player} allClubs={allClubs} />}
 
-      <header className="flex justify-between items-center gap-4">
-        <div className="flex items-center gap-4 md:gap-6">
-          <PlayerAvatar avatar={player.avatar} />
+      <header className="grid grid-cols-1 md:grid-cols-3 gap-6 items-center">
+        <div className="md:col-span-2 flex items-center gap-4 md:gap-6 bg-slate-800/80 p-5 rounded-2xl border border-slate-700">
+          <PlayerAvatar avatar={player.avatar} size={64} />
           <div>
-            <h1 className="text-3xl md:text-5xl font-black text-white">{player.name}</h1>
-            <p className="text-lg md:text-xl text-slate-400 font-bold">{club ? club.name : 'Vereinslos'}</p>
+            <h1 className="text-2xl md:text-3xl font-black text-white">{player.name}</h1>
+            <p className="text-md md:text-lg text-slate-400 font-bold flex items-center gap-2">
+              {club ? <><ClubLogo logo={club.logo} size={20}/> {club.name}</> : 'Vereinslos'}
+            </p>
           </div>
         </div>
         
-        <div className="flex items-start gap-3">
-          {club && (
-             <button onClick={() => setView('club')} className="p-3 bg-slate-800 rounded-2xl border border-slate-700 text-slate-400 hover:text-white hover:border-slate-600 transition-colors">
-                <ClubLogo logo={club.logo} size={40} />
-            </button>
-          )}
-          <button onClick={() => setView('profile')} className="p-3 bg-slate-800 rounded-2xl border border-slate-700 text-slate-400 hover:text-white hover:border-slate-600 transition-colors h-full flex items-center">
-             <UserCog className="h-6 w-6" />
-          </button>
-          <div className="bg-slate-800 p-2 rounded-2xl flex items-center gap-2 border border-slate-700 h-full">
-            <div className="bg-emerald-500 text-white text-xs font-bold px-3 py-1 rounded-xl">LEVEL</div>
-            <div className="text-white font-black text-2xl px-2">{player.level || 1}</div>
-          </div>
+        <div className="text-center md:text-right">
+            <p className="text-sm font-bold text-slate-400 uppercase tracking-wider">GES</p>
+            <p className={`text-7xl md:text-8xl font-black ${getRatingColor(overallRating)} -mt-2`}>{overallRating}</p>
         </div>
       </header>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
-        <div className="lg:col-span-1 bg-slate-800/80 rounded-3xl p-6 md:p-8 flex flex-col items-center justify-center border border-slate-700 shadow-lg">
-          <p className="text-sm font-bold text-slate-400 mb-2 uppercase tracking-wider">Gesamt</p>
-          <p className={`text-7xl md:text-8xl font-black ${getRatingColor(overallRating)}`}>{overallRating}</p>
+       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="md:col-span-2 bg-slate-800/80 rounded-2xl p-6 border border-slate-700">
+            <div className="flex justify-between items-center mb-1">
+                <h3 className="text-sm font-bold text-blue-300 uppercase tracking-wider">Level {player.level || 1}</h3>
+                <p className="text-sm text-slate-400 font-mono">{Math.round(player.experience || 0)} / {xpNeeded} XP</p>
+            </div>
+            <div className="h-4 w-full bg-slate-900 rounded-full border border-slate-800 p-0.5">
+                <div 
+                className="h-full bg-gradient-to-r from-blue-500 to-cyan-400 rounded-full transition-all duration-500"
+                style={{ width: `${xpProgress}%` }}
+                />
+            </div>
         </div>
-        <div className="lg:col-span-2 bg-slate-800/80 rounded-3xl p-6 md:p-8 border border-slate-700 shadow-lg">
-          <div className="flex justify-between items-end mb-2">
-            <h3 className="text-base md:text-lg font-bold text-slate-300">Nächstes Level</h3>
-            <p className="text-sm text-slate-400 font-mono">{Math.round(player.experience || 0)} / {xpNeeded} XP</p>
-          </div>
-          <div className="h-5 md:h-6 w-full bg-slate-900 rounded-full overflow-hidden border border-slate-800 p-1">
-            <div 
-              className="h-full bg-gradient-to-r from-emerald-500 to-cyan-500 transition-all duration-300 rounded-full"
-              style={{ width: `${xpProgress}%` }}
-            />
-          </div>
-          <p className="text-xs text-slate-500 mt-3 text-center">Sammle XP durch Training & Aktivitäten, um aufzusteigen und TP zu erhalten.</p>
-        </div>
-      </div>
 
-      <div className="bg-slate-800/80 p-6 md:p-8 rounded-3xl border border-slate-700">
-        <h3 className="text-lg font-bold text-white mb-4">Spielerdetails</h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-          <div className="text-center bg-slate-900/50 p-4 rounded-xl border border-slate-700/50">
-            <p className="text-xs md:text-sm text-slate-400">Position</p>
-            <p className="text-base md:text-xl font-bold text-white">{player.position || 'N/A'}</p>
-          </div>
-          <div className="text-center bg-slate-900/50 p-4 rounded-xl border border-slate-700/50">
-            <p className="text-xs md:text-sm text-slate-400">TP</p>
-            <p className="text-base md:text-xl font-bold text-amber-400">{(player.trainingPoints || 0).toFixed(2)}</p>
-          </div>
-          <div className="text-center bg-slate-900/50 p-4 rounded-xl border border-slate-700/50">
-            <p className="text-xs md:text-sm text-slate-400">Rolle</p>
-            <p className="text-base md:text-xl font-bold text-white capitalize">{player.roles.join(', ')}</p>
-          </div>
-          <div className="text-center bg-slate-900/50 p-4 rounded-xl border border-slate-700/50">
-            <p className="text-xs md:text-sm text-slate-400">Moral</p>
-            <p className="text-base md:text-xl font-bold text-emerald-400">Hoch</p>
-          </div>
+        <div className="flex justify-center items-center bg-slate-800/80 rounded-2xl p-3 border border-slate-700">
+             <div className="text-center">
+                <p className="text-xs text-slate-400 font-bold uppercase">TP</p>
+                <p className="text-3xl font-black text-yellow-400">{player.trainingPoints || 0}</p>
+            </div>
         </div>
+       </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <button onClick={() => setView('skills')} className="bg-slate-800/80 p-5 rounded-2xl border border-slate-700 hover:border-blue-500/50 transition-colors group text-left">
+            <Star className="w-8 h-8 text-blue-400 mb-3"/>
+            <h3 className="font-bold text-white text-lg">Training</h3>
+            <p className="text-sm text-slate-400">Verbessere deine Skills.</p>
+        </button>
+        <button onClick={() => setView(club ? 'club' : 'club-search')} className="bg-slate-800/80 p-5 rounded-2xl border border-slate-700 hover:border-blue-500/50 transition-colors group text-left">
+            <Shield className="w-8 h-8 text-blue-400 mb-3"/>
+            <h3 className="font-bold text-white text-lg">{club ? 'Mein Verein' : 'Verein finden'}</h3>
+            <p className="text-sm text-slate-400">Verwalte deine Karriere.</p>
+        </button>
+         <button onClick={() => setView('activities')} className="bg-slate-800/80 p-5 rounded-2xl border border-slate-700 hover:border-blue-500/50 transition-colors group text-left">
+            <Package className="w-8 h-8 text-blue-400 mb-3"/>
+            <h3 className="font-bold text-white text-lg">Aktivitäten</h3>
+            <p className="text-sm text-slate-400">Verdiene Geld und XP.</p>
+        </button>
+        <button onClick={() => setView('profile')} className="bg-slate-800/80 p-5 rounded-2xl border border-slate-700 hover:border-blue-500/50 transition-colors group text-left">
+            <UserCog className="w-8 h-8 text-blue-400 mb-3"/>
+            <h3 className="font-bold text-white text-lg">Profil</h3>
+            <p className="text-sm text-slate-400">Passe dein Aussehen an.</p>
+        </button>
       </div>
-      <Equipment player={player} />
     </div>
   );
 };

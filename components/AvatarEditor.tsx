@@ -71,7 +71,7 @@ const AvatarEditor: React.FC<AvatarEditorProps> = ({ player }) => {
                 <button
                   key={id}
                   onClick={() => setStyle(id as AvatarStyleId)}
-                  className={`px-4 py-2 rounded-lg font-semibold transition-colors ${style === id ? 'bg-emerald-500 text-white' : 'bg-slate-700 hover:bg-slate-600 text-slate-200'}`}>
+                  className={`px-4 py-2 rounded-lg font-semibold transition-colors ${style === id ? 'bg-blue-600 text-white' : 'bg-slate-700 hover:bg-slate-600 text-slate-200'}`}>
                   {name}
                 </button>
               ))}
@@ -96,7 +96,7 @@ const AvatarEditor: React.FC<AvatarEditorProps> = ({ player }) => {
             <button
               onClick={handleSave}
               disabled={isSaving}
-              className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 px-5 rounded-lg transition-colors shadow-lg active:scale-95 disabled:bg-slate-600 disabled:cursor-not-allowed">
+              className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-5 rounded-lg transition-colors shadow-lg active:scale-95 disabled:bg-slate-600 disabled:cursor-not-allowed">
               {isSaving ? 'Wird gespeichert...' : 'Avatar speichern'}
             </button>
           </div>

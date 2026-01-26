@@ -87,28 +87,28 @@ const LeagueManagement: React.FC = () => {
   };
 
   return (
-    <div className="p-4 bg-gray-800 text-white rounded-lg shadow-lg">
+    <div className="p-4 bg-slate-800/80 text-white rounded-3xl border border-slate-700">
       <h2 className="text-2xl font-bold mb-4">Liga-Management</h2>
-      {feedback && <div className={`p-3 mb-4 rounded ${feedback.type === 'success' ? 'bg-green-500' : 'bg-red-500'}`}>{feedback.message}</div>}
+      {feedback && <div className={`p-3 mb-4 rounded-lg ${feedback.type === 'success' ? 'bg-green-500/20 text-green-300' : 'bg-red-500/20 text-red-300'}`}>{feedback.message}</div>}
       <div className="mb-6">
         <h3 className="text-xl font-semibold mb-2">Neue Liga Erstellen</h3>
         <div className="mb-4">
-          <label htmlFor="leagueName" className="block mb-2">Name der Liga:</label>
-          <input id="leagueName" type="text" value={leagueName} onChange={(e) => setLeagueName(e.target.value)} className="w-full p-2 bg-gray-700 rounded"/>
+          <label htmlFor="leagueName" className="block mb-2 text-sm font-medium text-slate-300">Name der Liga:</label>
+          <input id="leagueName" type="text" value={leagueName} onChange={(e) => setLeagueName(e.target.value)} className="w-full p-2 bg-slate-900 border-slate-700 rounded-lg text-white"/>
         </div>
         <div className="mb-4">
-          <h4 className="block mb-2">Vereine auswählen ({selectedClubIds.length}):</h4>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 max-h-60 overflow-y-auto p-2 bg-gray-900">
-            {clubs.map(club => <div key={club.id} onClick={() => handleClubSelection(club.id)} className={`p-2 rounded cursor-pointer ${selectedClubIds.includes(club.id) ? 'bg-blue-600' : 'bg-gray-700 hover:bg-gray-600'}`}>{club.name}</div>)}
+          <h4 className="block mb-2 text-sm font-medium text-slate-300">Vereine auswählen ({selectedClubIds.length}):</h4>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 max-h-60 overflow-y-auto p-2 bg-slate-900/50 rounded-lg border border-slate-700/50">
+            {clubs.map(club => <div key={club.id} onClick={() => handleClubSelection(club.id)} className={`p-2 rounded-lg cursor-pointer transition-colors ${selectedClubIds.includes(club.id) ? 'bg-blue-600 text-white' : 'bg-slate-700 hover:bg-slate-600'}`}>{club.name}</div>)}
           </div>
         </div>
-        <button onClick={handleCreateLeague} disabled={!!loading} className="w-full bg-blue-600 hover:bg-blue-700 py-2 px-4 rounded disabled:bg-gray-500">
+        <button onClick={handleCreateLeague} disabled={!!loading} className="w-full bg-blue-600 hover:bg-blue-500 py-3 px-5 rounded-lg disabled:bg-slate-600 font-bold">
           {loading === 'Erstelle Liga...' ? 'Wird erstellt...' : 'Liga Erstellen'}
         </button>
       </div>
       <div>
         <h3 className="text-xl font-semibold mb-2">Spielsimulation</h3>
-        <button onClick={handleSimulateMatches} disabled={!!loading} className="w-full bg-green-600 hover:bg-green-700 py-2 px-4 rounded disabled:bg-gray-500">
+        <button onClick={handleSimulateMatches} disabled={!!loading} className="w-full bg-green-600 hover:bg-green-500 py-3 px-5 rounded-lg disabled:bg-slate-600 font-bold">
           {loading === 'Simuliere Ligaspiele...' ? 'Simuliert...' : 'Alle Ligaspiele Simulieren'}
         </button>
       </div>

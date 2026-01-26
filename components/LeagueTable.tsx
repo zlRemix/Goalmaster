@@ -96,15 +96,15 @@ const LeagueTable: React.FC<LeagueTableProps> = ({ fixtures, allClubs }) => {
             <table className="min-w-full divide-y divide-slate-700 text-left">
             <thead className="bg-slate-900/50">
                 <tr>
-                <th scope="col" className="px-4 py-3 text-xs font-medium text-slate-300 uppercase tracking-wider text-center">#</th>
-                <th scope="col" className="px-6 py-3 text-xs font-medium text-slate-300 uppercase tracking-wider">Club</th>
-                <th scope="col" className="px-4 py-3 text-xs font-medium text-slate-300 uppercase tracking-wider text-center">Sp</th>
-                <th scope="col" className="px-4 py-3 text-xs font-medium text-slate-300 uppercase tracking-wider text-center">S</th>
-                <th scope="col" className="px-4 py-3 text-xs font-medium text-slate-300 uppercase tracking-wider text-center">U</th>
-                <th scope="col" className="px-4 py-3 text-xs font-medium text-slate-300 uppercase tracking-wider text-center">N</th>
-                <th scope="col" className="px-4 py-3 text-xs font-medium text-slate-300 uppercase tracking-wider text-center">Tore</th>
-                <th scope="col" className="px-4 py-3 text-xs font-medium text-slate-300 uppercase tracking-wider text-center">TD</th>
-                <th scope="col" className="px-4 py-3 text-xs font-medium text-slate-300 uppercase tracking-wider text-center">Pkt</th>
+                <th scope="col" className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider text-center">#</th>
+                <th scope="col" className="px-6 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Club</th>
+                <th scope="col" className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider text-center">Sp</th>
+                <th scope="col" className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider text-center">S</th>
+                <th scope="col" className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider text-center">U</th>
+                <th scope="col" className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider text-center">N</th>
+                <th scope="col" className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider text-center">Tore</th>
+                <th scope="col" className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider text-center">TD</th>
+                <th scope="col" className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider text-center">Pkt</th>
                 </tr>
             </thead>
             <tbody className="divide-y divide-slate-700/50">
@@ -118,12 +118,12 @@ const LeagueTable: React.FC<LeagueTableProps> = ({ fixtures, allClubs }) => {
                         </div>
                     </td>
                     <td className="px-4 py-3 text-sm text-slate-300 font-mono text-center">{team.played}</td>
-                    <td className="px-4 py-3 text-sm text-slate-300 font-mono text-center">{team.wins}</td>
-                    <td className="px-4 py-3 text-sm text-slate-300 font-mono text-center">{team.draws}</td>
-                    <td className="px-4 py-3 text-sm text-slate-300 font-mono text-center">{team.losses}</td>
+                    <td className="px-4 py-3 text-sm text-green-400 font-mono text-center">{team.wins}</td>
+                    <td className="px-4 py-3 text-sm text-yellow-400 font-mono text-center">{team.draws}</td>
+                    <td className="px-4 py-3 text-sm text-red-400 font-mono text-center">{team.losses}</td>
                     <td className="px-4 py-3 text-sm text-slate-300 font-mono text-center">{`${team.goalsFor}:${team.goalsAgainst}`}</td>
-                    <td className="px-4 py-3 text-sm text-slate-300 font-mono text-center">{team.goalDifference}</td>
-                    <td className="px-4 py-3 text-sm text-white font-bold text-center">{team.points}</td>
+                    <td className="px-4 py-3 text-sm text-slate-300 font-mono text-center">{team.goalDifference > 0 ? `+${team.goalDifference}` : team.goalDifference}</td>
+                    <td className="px-4 py-3 text-sm text-white font-black text-center text-base">{team.points}</td>
                 </tr>
                 ))}
             </tbody>

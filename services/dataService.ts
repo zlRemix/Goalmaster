@@ -60,6 +60,12 @@ const calculateActivityRewards = (player: Player, activity: Activity, club: Club
 };
 
 const dataService = {
+  async runTestMatch(): Promise<any> {
+    const runTestMatchFunction = httpsCallable(functions, 'runTestMatch');
+    const result = await runTestMatchFunction();
+    return result.data;
+  },
+
   async createPlayerAndClub(uid: string, name: string, position: PlayerPosition, wantsManagerRole: boolean, clubName?: string): Promise<void> {
     const playerQuery = query(collection(db, "players"), where("name", "==", name));
     const playerDocs = await getDocs(playerQuery);

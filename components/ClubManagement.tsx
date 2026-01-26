@@ -24,7 +24,7 @@ const PlayerCard: React.FC<{ player: Player; children: React.ReactNode }> = ({ p
         </div>
         <div className="flex items-center gap-2 md:gap-4">
             <div className="text-right w-12">
-                <p className="font-black text-base md:text-xl text-amber-400">{getOverall(player)}</p>
+                <p className="font-black text-base md:text-xl text-yellow-400">{getOverall(player)}</p>
                 <p className="text-[10px] text-slate-500 font-bold uppercase">GES</p>
             </div>
             <div className="w-48 text-right">
@@ -81,7 +81,7 @@ export const ClubManagement: React.FC<ClubManagementProps> = ({ club }) => {
               <PlayerCard key={player.id} player={player}>
                 {!isClubFull ? (
                     <div className="flex gap-2 justify-end">
-                        <button onClick={() => handleAccept(player.id)} className="flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-3 rounded-lg text-xs transition-colors"> <Check className="h-4 w-4" /> Annehmen</button>
+                        <button onClick={() => handleAccept(player.id)} className="flex items-center justify-center gap-1.5 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-3 rounded-lg text-xs transition-colors"> <Check className="h-4 w-4" /> Annehmen</button>
                         <button onClick={() => handleReject(player.id)} className="flex items-center justify-center gap-1.5 bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-3 rounded-lg text-xs transition-colors"><X className="h-4 w-4" /> Ablehnen</button>
                     </div>
                 ) : (

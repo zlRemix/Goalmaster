@@ -76,7 +76,7 @@ const UserProfile: React.FC = () => {
             <p className="text-slate-400 mb-6">Verwalte hier deine Kontoinformationen und -aktionen.</p>
 
             {feedback && (
-                <div className={`p-4 rounded-lg mb-4 text-center font-bold ${feedback.type === 'success' ? 'bg-emerald-800/80 text-emerald-300' : 'bg-red-800/80 text-red-300'}`}>
+                <div className={`p-4 rounded-lg mb-4 text-center font-bold ${feedback.type === 'success' ? 'bg-green-900/50 text-green-300 border border-green-700/50' : 'bg-red-900/50 text-red-300 border border-red-700/50'}`}>
                 {feedback.message}
                 </div>
             )}
@@ -88,7 +88,7 @@ const UserProfile: React.FC = () => {
                     <button
                     onClick={handleChangePassword}
                     disabled={!!loading}
-                    className="w-full bg-gradient-to-r from-gray-600 to-gray-700 hover:opacity-90 text-white font-bold py-3 px-5 rounded-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center shadow-md"
+                    className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-5 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center shadow-md"
                     >
                     {loading === 'password' ? 'Wird gesendet...' : 'Passwort-Reset anfordern'}
                     </button>
@@ -102,7 +102,7 @@ const UserProfile: React.FC = () => {
                     <button
                     onClick={handleDeleteAccount}
                     disabled={!!loading}
-                    className="w-full bg-gradient-to-r from-red-700 to-rose-800 hover:opacity-90 text-white font-bold py-3 px-5 rounded-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center shadow-md"
+                    className="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-3 px-5 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center shadow-md"
                     >
                     {loading === 'delete' ? 'Wird gelöscht...' : 'Konto endgültig löschen'}
                     </button>

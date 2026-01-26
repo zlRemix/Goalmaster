@@ -42,11 +42,19 @@ const getOverall = (p: Player) => {
     return Math.round(totalSkill / relevantSkills.length);
 };
 
+const getMedalColor = (rank: number): string => {
+    if (rank === 1) return "text-yellow-400";
+    if (rank === 2) return "text-slate-300";
+    if (rank === 3) return "text-orange-400";
+    return "text-transparent"; // No color for other ranks
+};
+
 const getMedalIcon = (rank: number): ReactNode => {
-    if (rank === 1) return <Medal className="h-6 w-6 text-yellow-400" />;
-    if (rank === 2) return <Medal className="h-6 w-6 text-slate-300" />;
-    if (rank === 3) return <Medal className="h-6 w-6 text-orange-500" />;
-    return <div className="w-6 h-6"></div>; // Placeholder for alignment
+    const color = getMedalColor(rank);
+    if (rank > 3) {
+        return <div className="w-6 h-6"></div>; // Placeholder for alignment
+    }
+    return <Medal className={`h-6 w-6 ${color}`} />;
 };
 
 // --- PLAYER LEADERBOARD ---
@@ -140,7 +148,7 @@ const ClubLeaderboardRow: React.FC<{ club: RankedClub; rank: number }> = ({ club
                 <p className="text-base md:text-lg truncate">{club.name}</p>
             </div>
             <div className="w-28 text-center text-slate-400 text-sm truncate">{club.managerName || 'N/A'}</div>
-            <div className="w-20 text-center text-emerald-400 text-sm">{club.playerCount}/{MAX_CLUB_PLAYERS}</div>
+            <div className="w-20 text-center text-green-400 text-sm">{club.playerCount}/{MAX_CLUB_PLAYERS}</div>
              <div className="w-24 text-center">
                  <div className={`text-xl md:text-2xl font-black ${getRatingColor(club.averageOverall)}`}>{club.averageOverall}</div>
                  <div className="text-[10px] text-slate-500 font-bold -mt-1">GESAMT</div>
@@ -205,8 +213,8 @@ export const Leaderboard: React.FC = () => {
             </header>
 
             <div className="flex gap-1 md:gap-2 p-1 md:p-2 bg-slate-800 border border-slate-700 rounded-full text-sm">
-                <button onClick={() => setView('players')} className={`flex-1 text-center font-bold p-2 md:p-3 rounded-full transition-colors ${view === 'players' ? 'bg-emerald-600 text-white' : 'text-slate-300 hover:bg-slate-700'}`}>Spieler</button>
-                <button onClick={() => setView('clubs')} className={`flex-1 text-center font-bold p-2 md:p-3 rounded-full transition-colors ${view === 'clubs' ? 'bg-emerald-600 text-white' : 'text-slate-300 hover:bg-slate-700'}`}>Vereine</button>
+                <button onClick={() => setView('players')} className={`flex-1 text-center font-bold p-2 md:p-3 rounded-full transition-colors ${view === 'players' ? 'bg-blue-600 text-white' : 'text-slate-300 hover:bg-slate-700'}`}>Spieler</button>
+                <button onClick={() => setView('clubs')} className={`flex-1 text-center font-bold p-2 md:p-3 rounded-full transition-colors ${view === 'clubs' ? 'bg-blue-600 text-white' : 'text-slate-300 hover:bg-slate-700'}`}>Vereine</button>
             </div>
 
             <div className="animate-in fade-in duration-500">
