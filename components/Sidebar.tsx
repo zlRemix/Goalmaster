@@ -80,12 +80,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeView, setView, roles, on
                 <NavItem label="Rangliste" view="leaderboard" Icon={Trophy} activeView={activeView} setView={setView} onClick={handleNavItemClicked} />
                 <NavItem label="Liga" view="league" Icon={Swords} activeView={activeView} setView={setView} onClick={handleNavItemClicked} />
             </NavGroup>
-
-            {isAdmin && (
-              <NavGroup title="System">
-                <NavItem label="Admin Panel" view="admin" Icon={UserCog} activeView={activeView} setView={setView} onClick={handleNavItemClicked} />
-              </NavGroup>
-            )}
           </nav>
         </div>
         <div className="p-4 border-t border-slate-800/60">
