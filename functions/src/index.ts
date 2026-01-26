@@ -83,7 +83,6 @@ const performMatchSimulation = async (fixture: Fixture, fixtureId: string): Prom
   const awayClub = {id: awayDoc.id, ...awayDoc.data()} as Club;
   const [homePlayers, awayPlayers] = await Promise.all([getPlayersForClub(homeClub.id), getPlayersForClub(awayClub.id)]);
   if (homePlayers.length < 11 || awayPlayers.length < 11) {
-    // Not enough players, declare forfait
     const homeScore = homePlayers.length < 11 ? 0 : 3;
     const awayScore = awayPlayers.length < 11 ? 0 : 3;
     const events = [`90' Spielabbruch. ${homePlayers.length < 11 ? homeClub.name : awayClub.name} konnte keine 11 Spieler aufstellen.`];
@@ -117,10 +116,26 @@ const performMatchSimulation = async (fixture: Fixture, fixtureId: string): Prom
     }
   }
   events.push("90' Abpfiff!");
+
+  const baseIncome = 25000;
+  const stadiumLevel = homeClub.infrastructure?.stadium?.level || 0;
+  const stadiumBonus = stadiumLevel > 0 ? (stadiumLevel * 5) / 100 : 0;
+  const ticketIncome = Math.round(baseIncome * (1 + stadiumBonus));
+
+  if (ticketIncome > 0) {
+    events.push(`Der Verein ${homeClub.name} erhält ${ticketIncome}€ an Ticketeinnahmen.`);
+  }
+
   const result: MatchResult = {fixtureId, homeTeamId: homeClub.id, awayTeamId: awayClub.id, homeScore, awayScore, events};
   const batch = db.batch();
   batch.update(db.collection("fixtures").doc(fixtureId), {status: "played", result: `${homeScore}-${awayScore}`});
   batch.set(db.collection("match_results").doc(fixtureId), result);
+
+  if (ticketIncome > 0) {
+    const homeClubRef = db.collection("clubs").doc(homeClub.id);
+    batch.update(homeClubRef, {budget: admin.firestore.FieldValue.increment(ticketIncome)});
+  }
+
   await batch.commit();
   return result;
 };
@@ -157,12 +172,10 @@ export const scheduledMatchSimulator = onSchedule("every 5 minutes", async (even
 
     const simulationPromises = querySnapshot.docs.map((doc) => {
       const fixture = doc.data() as Fixture;
-      // Wrap in a try-catch to prevent one failed simulation from stopping others
       try {
         return performMatchSimulation(fixture, doc.id);
       } catch (error) {
         console.error(`Error starting simulation for fixture ${doc.id}:`, error);
-        // Update the fixture to an error status to avoid retrying indefinitely
         return db.collection("fixtures").doc(doc.id).update({status: "error"});
       }
     });

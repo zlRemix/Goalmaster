@@ -178,20 +178,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ player, club, allClubs, ov
         </div>
       </div>
 
-
-
-    
-        
-      <div className="bg-amber-500/10 border border-amber-500/30 text-amber-300 p-4 rounded-2xl text-sm">
-        <div className="flex items-center gap-3">
-            <AlertTriangle className="w-6 h-6 text-amber-400 flex-shrink-0" />
-            <div>
-                <h3 className="font-bold text-white">Willkommen zur Pre-Alpha!</h3>
-                <p className="text-amber-300/80">Diese Version dient dem Testen von Funktionen und dem Sammeln von Feedback. Es können Fehler auftreten.</p>
-            </div>
-        </div>
-      </div>
-
       {player.pendingClubInvitation && <InvitationBanner player={player} allClubs={allClubs} />}
 
       <header className="flex justify-between items-center gap-4">

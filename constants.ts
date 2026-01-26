@@ -20,7 +20,7 @@ export const ACTIVITIES: Activity[] = [
         id: 'training_1',
         name: 'Passspiel-Drills',
         description: 'Eine intensive Einheit, um deine Passgenauigkeit und dein Stellungsspiel zu verbessern.',
-        durationSeconds: 10, // 7 minutes
+        durationSeconds: 480, // 8 minutes
         reward: { xp: 50, tp: 8 },
         type: 'training',
     },
@@ -28,7 +28,7 @@ export const ACTIVITIES: Activity[] = [
         id: 'training_2',
         name: 'Torschusstraining',
         description: 'Perfektioniere deinen Abschluss vor dem Tor. Eine halbe Stunde konzentriertes Schusstraining.',
-        durationSeconds: 10, // 7 minutes
+        durationSeconds: 480, // 8 minutes
         reward: { xp: 60, tp: 8 },
         type: 'training',
     },
@@ -36,7 +36,7 @@ export const ACTIVITIES: Activity[] = [
         id: 'fitness_1',
         name: 'Ausdauerlauf',
         description: 'Ein langer Lauf durch den Wald, um deine grundlegende Ausdauer zu stärken.',
-        durationSeconds: 10, // 5 minutes
+        durationSeconds: 360, // 6 minutes
         reward: { xp: 40, tp: 3 },
         type: 'fitness',
     },
@@ -44,7 +44,7 @@ export const ACTIVITIES: Activity[] = [
         id: 'fitness_2',
         name: 'Krafttraining',
         description: 'Baue im Fitnessstudio gezielt Muskeln und Stärke auf, um in Zweikämpfen robuster zu sein.',
-        durationSeconds: 10, // 5 minutes
+        durationSeconds: 360, // 6 minutes
         reward: { xp: 45, tp: 3 },
         type: 'fitness',
     },
@@ -52,7 +52,7 @@ export const ACTIVITIES: Activity[] = [
         id: 'tactic_1',
         name: 'Videoanalyse',
         description: 'Studiere die Taktiken deines nächsten Gegners, um besser auf ihre Spielweise vorbereitet zu sein.',
-        durationSeconds: 10, // 4 minutes
+        durationSeconds: 300, // 5 minutes
         reward: { xp: 30, tp: 4,  },
         type: 'tactic',
     },
@@ -60,7 +60,7 @@ export const ACTIVITIES: Activity[] = [
         id: 'tactic_2',
         name: 'Freistoßvarianten',
         description: 'Übe mit deinen Teamkollegen einstudierte Freistoßtricks, um den Gegner zu überraschen.',
-        durationSeconds: 10, // 4 minutes
+        durationSeconds: 300, // 5 minutes
         reward: { xp: 30, tp: 5 },
         type: 'tactic',
     },
@@ -68,7 +68,7 @@ export const ACTIVITIES: Activity[] = [
         id: 'pr_1',
         name: 'Pressekonferenz',
         description: 'Stelle dich den Fragen der Journalisten und stärke dein Markenimage.',
-        durationSeconds: 10, // 2 minutes
+        durationSeconds: 180, // 3 minutes
         reward: { xp: 25, tp: 1 },
         type: 'pr',
     },
@@ -76,7 +76,7 @@ export const ACTIVITIES: Activity[] = [
         id: 'social_1',
         name: 'Team-Abendessen',
         description: 'Ein entspanntes Abendessen mit deinen Teamkollegen, um den Teamgeist zu fördern.',
-        durationSeconds: 10, // 2 minutes
+        durationSeconds: 120, // 2 minutes
         reward: { xp: 20, tp: 1 },
         type: 'social',
     },
@@ -84,7 +84,7 @@ export const ACTIVITIES: Activity[] = [
         id: 'social_2',
         name: 'Fantreffen & Autogramme',
         description: 'Nimm dir Zeit für die Fans. Ein positives Image ist auch für die Sponsoren wichtig.',
-        durationSeconds: 10, // 2 minutes
+        durationSeconds: 120, // 2 minutes
         reward: { xp: 25, tp: 1},
         type: 'social',
     }
@@ -95,14 +95,14 @@ export const TEAM_TRAININGS: TeamTrainingSession[] = [
         id: 't_passing_1',
         name: 'Passspiel-Grundlagen',
         description: 'Verbessert das Passspiel aller Spieler im Team.',
-        durationSeconds: 10, // 1 hour
+        durationSeconds: 3600, // 1 hour
         reward: { xp: 50, skills: { passing: 1 } }
     },
     {
         id: 't_defensive_drills_1',
         name: 'Abwehrübungen',
         description: 'Verbessert die Verteidigungsfähigkeiten des gesamten Teams.',
-        durationSeconds: 10, // 2 hours
+        durationSeconds: 7200, // 2 hours
         reward: { xp: 100, skills: { tackling: 1, marking: 1 } }
     }
 ];
