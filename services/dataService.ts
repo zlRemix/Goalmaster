@@ -18,12 +18,27 @@ const getXpForSkillUpgrade = (currentSkillLevel: number): number => {
     return (1 + rank) * XP_PER_SKILL_UPGRADE;
 };
 
-const calculateActivityRewards = (player: Player, activity: Activity) => {
+const calculateActivityRewards = (player: Player, activity: Activity, club: Club | null) => {
     const playerUpdates: { [key: string]: any } = {};
     let totalXpGain = activity.reward.xp || 0;
-    const budgetGain = activity.reward.budgetGain || 0;
 
-    playerUpdates.trainingPoints = (player.trainingPoints || 0) + (activity.reward.tp || 0);
+    // --- TP BONUS CALCULATION ---
+    let tpGain = activity.reward.tp || 0;
+    if (activity.type === 'training' && club?.infrastructure?.training_ground?.level) {
+        const trainingGroundLevel = club.infrastructure.training_ground.level;
+        const tpBonus = (trainingGroundLevel * 2) / 100; // 2% per level
+        tpGain = tpGain * (1 + tpBonus);
+    }
+    playerUpdates.trainingPoints = (player.trainingPoints || 0) + tpGain;
+
+    // --- BUDGET BONUS CALCULATION ---
+    let budgetGain = activity.reward.budgetGain || 0;
+    if ((activity.type === 'pr' || activity.type === 'social') && club?.infrastructure?.marketing_department?.level) {
+        const marketingDeptLevel = club.infrastructure.marketing_department.level;
+        const prBonus = (marketingDeptLevel * 5) / 100; // 5% per level
+        budgetGain = budgetGain * (1 + prBonus);
+    }
+
 
     if (activity.reward.skills && typeof activity.reward.skills === 'object') {
         for (const [skill, value] of Object.entries(activity.reward.skills)) {
@@ -238,18 +253,24 @@ const dataService = {
 
         const activityInstance = player.activeActivities?.[0];
         if (!activityInstance || activityInstance.activityId !== activityId) return;
+
+        let club: Club | null = null;
+        if (player.clubId) {
+            const clubRef = doc(db, 'clubs', player.clubId);
+            const clubDoc = await transaction.get(clubRef);
+            if (clubDoc.exists()) {
+                club = clubDoc.data() as Club;
+            }
+        }
         
-        const { playerUpdates, budgetGain } = calculateActivityRewards(player, activityDef as Activity);
+        const { playerUpdates, budgetGain } = calculateActivityRewards(player, activityDef as Activity, club);
         playerUpdates.activeActivities = []; 
         playerUpdates.completedActivityIds = arrayUnion(activityId);
         transaction.update(playerRef, playerUpdates);
 
-        if (budgetGain > 0 && player.clubId) {
-            const clubRef = doc(db, 'clubs', player.clubId);
-            const clubDoc = await transaction.get(clubRef);
-            if (clubDoc.exists()) {
-                transaction.update(clubRef, { budget: (clubDoc.data().budget || 0) + budgetGain });
-            }
+        if (budgetGain > 0 && club) {
+            const clubRef = doc(db, 'clubs', club.id);
+            transaction.update(clubRef, { budget: (club.budget || 0) + budgetGain });
         }
     });
   },

@@ -1,9 +1,9 @@
-import React, { ElementType, useEffect } from 'react';
-import { Player, Activity, ActiveActivity } from '../types';
+import React, { ElementType, useEffect, useState } from 'react';
+import { Player, Activity, ActiveActivity, Club } from '../types';
 import { ACTIVITIES } from '../constants';
 import { useCountdown, formatDuration } from '../hooks/useTimers';
-import { BrainCircuit, ClipboardList, Mic, Footprints, Pizza, File, Timer } from 'lucide-react';
-
+import { dataService } from '../services/dataService';
+import { BrainCircuit, ClipboardList, Mic, Footprints, Pizza, File, Timer, DollarSign, PlusCircle } from 'lucide-react';
 
 const getAppearanceAndCategory = (activity: Activity): { icon: ElementType; color: string; category: string } => {
     const id = activity.type;
@@ -17,8 +17,9 @@ const getAppearanceAndCategory = (activity: Activity): { icon: ElementType; colo
 
 // --- CHILD COMPONENTS --- //
 
-const ActiveActivityStatus: React.FC<{ activeInstance: ActiveActivity, activityDef: Activity }> = ({ activeInstance, activityDef }) => {
-    const totalDurationMs = activityDef.durationSeconds * 1000;
+const ActiveActivityStatus: React.FC<{ activeInstance: ActiveActivity, activityDef: Activity, durationReduction: number }> = ({ activeInstance, activityDef, durationReduction }) => {
+    const effectiveDurationSeconds = activityDef.durationSeconds * (1 - durationReduction);
+    const totalDurationMs = effectiveDurationSeconds * 1000;
     const endTime = activeInstance.startTime + totalDurationMs;
     const remainingMs = useCountdown(endTime);
     
@@ -49,7 +50,6 @@ const ActiveActivityStatus: React.FC<{ activeInstance: ActiveActivity, activityD
     );
 };
 
-
 const ResetCountdown: React.FC<{ nextResetTime: number }> = ({ nextResetTime }) => {
     const remainingMs = useCountdown(nextResetTime || 0);
     const remainingSecondsForDisplay = Math.ceil(remainingMs / 1000);
@@ -70,22 +70,49 @@ const ResetCountdown: React.FC<{ nextResetTime: number }> = ({ nextResetTime }) 
     );
 };
 
-
-// --- MAIN COMPONENT --- //
+// --- MAIN COMPONENT (NOW SELF-SUFFICIENT) --- //
 
 export const Activities: React.FC<{ player: Player; onStart: (activityId: string) => void; onComplete: (activityId: string) => void; onReset: () => void; }> = ({ player, onStart, onComplete, onReset }) => {
+    const [club, setClub] = useState<Club | null>(null);
+
+    // This effect makes the component self-sufficient. It fetches its own club data.
+    useEffect(() => {
+        if (!player.clubId) {
+            setClub(null);
+            return;
+        }
+        const unsubscribe = dataService.listenToClub(player.clubId, (fetchedClub) => {
+            setClub(fetchedClub);
+        });
+        // Cleanup listener on component unmount
+        return () => unsubscribe();
+    }, [player.clubId]);
+
     const activeInstance = player.activeActivities?.[0];
     const activeDef = activeInstance ? ACTIVITIES.find(a => a.id === activeInstance.activityId) : undefined;
 
+    // Bonus calculations are now reliable because the component controls its own data
+    const medicalCenterLevel = club?.infrastructure?.medical_center?.level || 0;
+    const durationReduction = medicalCenterLevel > 0 ? (medicalCenterLevel * 3) / 100 : 0;
+
+    const trainingGroundLevel = club?.infrastructure?.training_ground?.level || 0;
+    const tpBonusPercentage = trainingGroundLevel > 0 ? (trainingGroundLevel * 2) / 100 : 0;
+    
+    const marketingDeptLevel = club?.infrastructure?.marketing_department?.level || 0;
+    const prBonusPercentage = marketingDeptLevel > 0 ? (marketingDeptLevel * 5) / 100 : 0;
+
+    // Activity completion timer
     useEffect(() => {
         if (!activeInstance || !activeDef) return;
-        const endTime = activeInstance.startTime + (activeDef.durationSeconds * 1000);
+        const effectiveDurationSeconds = activeDef.durationSeconds * (1 - durationReduction);
+        const endTime = activeInstance.startTime + (effectiveDurationSeconds * 1000);
         const remainingTime = endTime - Date.now();
         if (remainingTime <= 0) { onComplete(activeDef.id); return; }
         const timer = setTimeout(() => onComplete(activeDef.id), remainingTime);
         return () => clearTimeout(timer);
-    }, [activeInstance?.activityId, onComplete]);
+    }, [activeInstance?.activityId, onComplete, durationReduction]);
 
+    // Hourly reset timer
     useEffect(() => {
         if (!player.nextActivityReset) return;
         const remainingTime = player.nextActivityReset - Date.now();
@@ -93,7 +120,6 @@ export const Activities: React.FC<{ player: Player; onStart: (activityId: string
         const timer = setTimeout(() => onReset(), remainingTime);
         return () => clearTimeout(timer);
     }, [player.nextActivityReset, onReset]);
-
 
     const availableActivities = ACTIVITIES;
     const isActivityRunning = !!activeDef;
@@ -106,18 +132,32 @@ export const Activities: React.FC<{ player: Player; onStart: (activityId: string
             </header>
 
             {isActivityRunning && activeDef && activeInstance && (
-                <ActiveActivityStatus activeInstance={activeInstance} activityDef={activeDef} />
+                <ActiveActivityStatus activeInstance={activeInstance} activityDef={activeDef} durationReduction={durationReduction} />
             )}
             
-            {!isActivityRunning && <ResetCountdown nextResetTime={player.nextActivityReset || 0} />}
+            {!isActivityRunning && <ResetCountdown nextResetTime={player.nextActivityReset || 0} /> }
 
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6">
                 {availableActivities.map((activity) => {
                     const { icon: Icon, category } = getAppearanceAndCategory(activity as Activity);
-                    const reward = activity.reward || {tp: 0, xp: 0};
+                    const { tp = 0, xp = 0, budgetGain = 0 } = activity.reward || {};
+                    
                     const isCompleted = player.completedActivityIds?.includes(activity.id);
                     const canPerformRole = !activity.requiredRole || player.roles?.includes(activity.requiredRole);
                     const canStart = !isActivityRunning && !isCompleted && canPerformRole;
+                    const effectiveDurationSeconds = Math.round(activity.durationSeconds * (1 - durationReduction));
+
+                    let finalTp = tp;
+                    let bonusTp = 0;
+                    if (activity.type === 'training' && tpBonusPercentage > 0) {
+                        bonusTp = tp * tpBonusPercentage;
+                        finalTp = tp + bonusTp;
+                    }
+
+                    let finalBudget = budgetGain;
+                    if ((activity.type === 'pr' || activity.type === 'social') && prBonusPercentage > 0) {
+                        finalBudget = Math.round(budgetGain * (1 + prBonusPercentage));
+                    }
 
                     return (
                         <div key={activity.id} className={`bg-slate-800/80 rounded-3xl p-6 border border-slate-700 flex flex-col justify-between shadow-lg transition-all relative overflow-hidden group ${!canStart ? 'opacity-40 grayscale' : ''}`}>
@@ -127,9 +167,15 @@ export const Activities: React.FC<{ player: Player; onStart: (activityId: string
                             <div>
                                 <div className="flex justify-between items-start mb-4">
                                     <div className="p-3 bg-slate-900 rounded-2xl border border-slate-700 shadow-inner"><Icon className="w-8 h-8" /></div>
-                                    <div className="text-right">
-                                        <p className="text-emerald-400 font-bold text-lg">+{reward.tp || 0} TP</p>
-                                        <p className="text-blue-400 font-bold text-xs">+{reward.xp || 0} XP</p>
+                                    <div className="text-right space-y-1">
+                                        {finalTp > 0 && (
+                                            <div className="flex items-center justify-end gap-2">
+                                                <p className="text-emerald-400 font-bold text-lg">+{finalTp.toFixed(2)} TP</p>
+                                                {bonusTp > 0 && <PlusCircle className="w-4 h-4 text-emerald-500/50" title={`Bonus: +${bonusTp.toFixed(2)} TP`} />}
+                                            </div>
+                                        )}
+                                        {xp > 0 && <p className="text-blue-400 font-bold text-xs">+{xp} XP</p>}
+                                        {finalBudget > 0 && <p className="text-yellow-400 font-bold text-xs">+{finalBudget} €</p>}
                                     </div>
                                 </div>
                                 <h3 className="text-lg font-black mb-1 text-white">{activity.name}</h3>
@@ -147,7 +193,7 @@ export const Activities: React.FC<{ player: Player; onStart: (activityId: string
                                         onClick={() => onStart(activity.id)}
                                         className={`w-full py-3 rounded-xl font-bold transition-all transform active:scale-95 flex items-center justify-center gap-3 shadow-lg ${!canStart ? 'bg-slate-700 text-slate-500 cursor-not-allowed' : 'bg-emerald-600 hover:bg-emerald-500 text-white'}`}>
                                         <span className="text-sm uppercase tracking-tight">Starten</span>
-                                        <span className="text-xs opacity-70 font-mono">({formatDuration(activity.durationSeconds)})</span>
+                                        <span className="text-xs opacity-70 font-mono">({formatDuration(effectiveDurationSeconds)})</span>
                                     </button>
                                 )}
                             </div>
