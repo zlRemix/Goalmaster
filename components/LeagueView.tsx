@@ -15,7 +15,6 @@ const LeagueView: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // 1. Fetch all leagues and set up a real-time listener
   useEffect(() => {
     setLoading(true);
     const q = query(collection(db, 'leagues'));
@@ -28,17 +27,15 @@ const LeagueView: React.FC = () => {
       setError("Ligen konnten nicht geladen werden.");
       setLoading(false);
     });
-    return () => unsubscribe(); // Cleanup listener on unmount
-  }, []); // Empty dependency array ensures this runs only once
+    return () => unsubscribe();
+  }, []);
 
-  // 2. Set the initially selected league when leagues are loaded for the first time
   useEffect(() => {
     if (!selectedLeagueId && leagues.length > 0) {
       setSelectedLeagueId(leagues[0].id);
     }
-  }, [leagues]); // This effect runs whenever the leagues array changes
+  }, [leagues]);
 
-  // 3. Fetch all clubs (once, with listener)
   useEffect(() => {
     const q = collection(db, 'clubs');
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -51,7 +48,6 @@ const LeagueView: React.FC = () => {
     leagues.find(l => l.id === selectedLeagueId)
   , [leagues, selectedLeagueId]);
 
-  // 4. Fetch fixtures for the selected league and its latest season
   useEffect(() => {
     if (!selectedLeague) {
       setFixtures([]);
@@ -62,6 +58,7 @@ const LeagueView: React.FC = () => {
       collection(db, 'fixtures'),
       where('leagueId', '==', selectedLeague.id),
       where('season', '==', selectedLeague.season),
+      orderBy('matchday', 'asc'),
       orderBy('date', 'asc')
     );
 
@@ -83,6 +80,17 @@ const LeagueView: React.FC = () => {
     [allClubs]
   );
 
+  const groupedFixtures = useMemo(() => {
+    return fixtures.reduce((acc, fixture) => {
+        const matchday = fixture.matchday || 0;
+        if (!acc[matchday]) {
+            acc[matchday] = [];
+        }
+        acc[matchday].push(fixture);
+        return acc;
+    }, {} as { [key: number]: Fixture[] });
+  }, [fixtures]);
+
   if (loading) {
     return <div className="text-center p-8 text-white">Lade Ligen...</div>;
   }
@@ -100,7 +108,6 @@ const LeagueView: React.FC = () => {
        </div>
       ) : (
         <>
-          {/* League Selector */}
           <div className="flex items-center gap-4">
               <label htmlFor="league-select" className="text-lg font-bold text-white">Liga:</label>
               <select 
@@ -119,10 +126,8 @@ const LeagueView: React.FC = () => {
             </div>
           ) : (
             <>
-              {/* League Table */}
               <LeagueTable fixtures={fixtures} allClubs={leagueClubs} />
 
-              {/* Fixture List */}
               <div>
                   <header>
                       <h2 className="text-2xl md:text-3xl font-black text-white">Spielplan (Saison {selectedLeague.season})</h2>
@@ -135,43 +140,50 @@ const LeagueView: React.FC = () => {
                           <p className="text-slate-400 mt-2 text-sm">Für die ausgewählte Saison existiert kein Spielplan.</p>
                       </div>
                   ) : (
-                      <div className="mt-4 bg-slate-800/80 rounded-2xl border border-slate-700 shadow-lg">
-                          <ul className="divide-y divide-slate-700">
-                          {fixtures.map((fixture) => {
-                              const homeTeam = clubsById[fixture.homeTeam];
-                              const awayTeam = clubsById[fixture.awayTeam];
-                              
-                              if (!homeTeam || !awayTeam) return null;
+                      <div className="mt-6 space-y-6">
+                        {Object.entries(groupedFixtures).map(([matchday, dayFixtures]) => (
+                            <div key={matchday}>
+                                <h3 className="text-xl font-bold text-amber-400 mb-3 ml-1">Spieltag {matchday}</h3>
+                                <div className="bg-slate-800/80 rounded-2xl border border-slate-700 shadow-lg">
+                                    <ul className="divide-y divide-slate-700">
+                                    {dayFixtures.map((fixture) => {
+                                        const homeTeam = clubsById[fixture.homeTeam];
+                                        const awayTeam = clubsById[fixture.awayTeam];
+                                        
+                                        if (!homeTeam || !awayTeam) return null;
 
-                              const matchDate = new Date(fixture.date);
+                                        const matchDate = new Date(fixture.date);
 
-                              return (
-                              <li key={fixture.id} className="p-4 flex items-center justify-between hover:bg-slate-800 transition-colors">
-                                  <div className="flex items-center gap-4 flex-1">
-                                      <span className="font-bold text-sm text-slate-400 w-32 text-right">
-                                          {format(matchDate, 'dd.MM.yy - HH:mm')}h
-                                      </span>
-                                      <div className="flex items-center justify-center flex-1 text-center">
-                                          <div className={`font-bold text-base text-right flex-1 flex items-center justify-end gap-3 text-white`}>
-                                              <span>{homeTeam.name}</span>
-                                              <ClubLogo logo={homeTeam.logo} size={28} />
-                                          </div>
-                                          <span className="font-black text-amber-400 mx-4">VS</span>
-                                          <div className={`font-bold text-base text-left flex-1 flex items-center justify-start gap-3 text-white`}>
-                                              <ClubLogo logo={awayTeam.logo} size={28} />
-                                              <span>{awayTeam.name}</span>
-                                          </div>
-                                      </div>
-                                  </div>
-                                  {fixture.result && (
-                                  <div className="w-24 text-center">
-                                      <span className="bg-slate-700 px-3 py-1 rounded-lg text-white font-mono font-bold">{fixture.result}</span>
-                                  </div>
-                                  )}
-                              </li>
-                              );
-                          })}
-                          </ul>
+                                        return (
+                                        <li key={fixture.id} className="p-4 flex items-center justify-between hover:bg-slate-800 transition-colors">
+                                            <div className="flex items-center gap-4 flex-1">
+                                                <span className="font-bold text-sm text-slate-400 w-32 text-right">
+                                                    {format(matchDate, 'dd.MM.yy - HH:mm')}h
+                                                </span>
+                                                <div className="flex items-center justify-center flex-1 text-center">
+                                                    <div className={`font-bold text-base text-right flex-1 flex items-center justify-end gap-3 text-white`}>
+                                                        <span>{homeTeam.name}</span>
+                                                        <ClubLogo logo={homeTeam.logo} size={28} />
+                                                    </div>
+                                                    <span className="font-black text-amber-400 mx-4">VS</span>
+                                                    <div className={`font-bold text-base text-left flex-1 flex items-center justify-start gap-3 text-white`}>
+                                                        <ClubLogo logo={awayTeam.logo} size={28} />
+                                                        <span>{awayTeam.name}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            {fixture.result && (
+                                            <div className="w-24 text-center">
+                                                <span className="bg-slate-700 px-3 py-1 rounded-lg text-white font-mono font-bold">{fixture.result}</span>
+                                            </div>
+                                            )}
+                                        </li>
+                                        );
+                                    })}
+                                    </ul>
+                                </div>
+                            </div>
+                        ))}
                       </div>
                   )}
               </div>

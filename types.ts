@@ -151,6 +151,7 @@ export interface Fixture {
   status: 'scheduled' | 'played';
   leagueId: string;
   season: number;
+  matchday?: number;
 }
 
 export interface MatchResult {
