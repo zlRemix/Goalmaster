@@ -25,7 +25,7 @@ const auth = getAuth(app);
 const functions = getFunctions(app);
 const googleProvider = new GoogleAuthProvider();
 
-const databaseName = import.meta.env.VITE_FIREBASE_DATABASE_NAME || '(default)';
+const databaseName = import.meta.env.VITE_FIREBASE_DATABASE_NAME || 'goalmaster-prod';
 console.log(`🌀 Using database: ${databaseName}`);
 
 const db = getFirestore(app, databaseName);
