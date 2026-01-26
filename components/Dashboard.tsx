@@ -1,11 +1,13 @@
-import React, { useMemo, useState } from 'react';
-import { Player, Club, View, AvatarData, EquipmentSlot, EquipmentItem } from '../types';
+import React, { useMemo } from 'react';
+import { Player, Club, View, AvatarData, EquipmentSlot } from '../types';
 import { dataService } from '../services/dataService';
 import { getRatingColor } from '../utils';
-import { UserCog, Shield, Package, Check, X, AlertTriangle, ChevronRight, Star, Swords } from 'lucide-react';
+import { UserCog, Shield, Package, AlertTriangle, Star } from 'lucide-react';
 import ClubLogo from './ClubLogo';
 import { createAvatar } from '@dicebear/core';
 import * as collections from '@dicebear/collection';
+import { EQUIPMENT_ITEMS } from '../constants';
+import { EquipmentItem } from '../types';
 
 const PlayerAvatar: React.FC<{ avatar?: AvatarData; size?: number }> = ({ avatar, size = 80 }) => {
     const avatarSvg = useMemo(() => {
@@ -49,22 +51,95 @@ const InvitationBanner: React.FC<{ player: Player; allClubs: Club[]; }> = ({ pla
     );
 }
 
-export const Dashboard: React.FC<DashboardProps> = ({ player, club, allClubs, overallRating, xpProgress, xpNeeded, setView }) => {
-    const [isSimulating, setIsSimulating] = useState(false);
+const EquipmentManager: React.FC<{ player: Player }> = ({ player }) => {
+    const { id: playerId, equipment: ownedIds, equipped, position } = player;
 
-    const handleTestMatch = async () => {
-        setIsSimulating(true);
-        try {
-            const result = await dataService.runTestMatch();
-            console.log("--- Test-Match-Ergebnis ---", result);
-            alert("Test-Match simuliert! Überprüfe die Entwicklerkonsole für den Spielbericht.");
-        } catch (error) {
-            console.error("Fehler bei der Test-Match-Simulation:", error);
-            alert("Ein Fehler ist aufgetreten. Überprüfe die Konsole für Details.");
-        } finally {
-            setIsSimulating(false);
-        }
+    const handleToggle = (itemId: string, slot: EquipmentSlot) => {
+        dataService.toggleEquipment(playerId, itemId, slot).catch(err => {
+            console.error("Fehler beim Ändern der Ausrüstung:", err);
+            alert(`Fehler: ${err.message}`);
+        });
     };
+
+    const ownedItems = useMemo(() =>
+        (ownedIds || []).map(id => EQUIPMENT_ITEMS.find(item => item.id === id)).filter(Boolean) as EquipmentItem[],
+        [ownedIds]
+    );
+
+    const renderSlot = (slot: EquipmentSlot, title: string) => {
+        const itemsForSlot = ownedItems.filter(item => item.slot === slot);
+        const equippedItemId = equipped?.[slot];
+
+        return (
+            <div className="bg-slate-900/70 p-4 rounded-xl border border-slate-700">
+                <h4 className="font-bold text-white mb-3">{title}</h4>
+                {itemsForSlot.length === 0 ? (
+                    <p className="text-slate-500 text-sm">Keine Gegenstände für diesen Slot vorhanden.</p>
+                ) : (
+                    <div className="space-y-3">
+                        {itemsForSlot.map(item => {
+                            const isEquipped = equippedItemId === item.id;
+                            return (
+                                <div key={item.id} className={`bg-slate-800 p-3 rounded-lg border-2 ${isEquipped ? 'border-green-500' : 'border-slate-700'}`}>
+                                    <div className="flex justify-between items-start gap-2">
+                                        <div>
+                                            <p className="font-bold text-white text-sm">{item.name}</p>
+                                            <div className="text-xs text-cyan-400 mt-1">
+                                                {Object.entries(item.bonus).map(([skill, bonus]) => (
+                                                    <span key={skill} className="mr-3">+{bonus} {skill.replace(/_/g, ' ')}</span>
+                                                ))}
+                                            </div>
+                                        </div>
+                                        <button
+                                            onClick={() => handleToggle(item.id, item.slot)}
+                                            className={`text-xs font-bold py-1 px-3 rounded whitespace-nowrap ${isEquipped ? 'bg-red-600 hover:bg-red-500' : 'bg-green-600 hover:bg-green-500'} transition-colors flex-shrink-0`}
+                                        >
+                                            {isEquipped ? 'Ablegen' : 'Anlegen'}
+                                        </button>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                )}
+            </div>
+        );
+    };
+
+    return (
+        <div className="bg-slate-800/80 p-5 rounded-2xl border border-slate-700">
+            <header className="mb-4">
+                <h2 className="text-xl md:text-2xl font-black text-white flex items-center gap-3">
+                    <Package className="w-7 h-7 text-sky-400" />
+                    <span>Ausrüstung verwalten</span>
+                </h2>
+                <p className="text-slate-400 mt-1 text-sm">Rüste deine gekauften Gegenstände aus, um Skill-Boni zu erhalten.</p>
+            </header>
+
+            {ownedItems.length === 0 ? (
+                <p className="text-slate-400 text-center py-4">Du besitzt keine Ausrüstungsgegenstände. Besuche den Shop!</p>
+            ) : (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    {renderSlot(EquipmentSlot.SHOES, 'Schuhe')}
+                    {position === 'Torwart' && renderSlot(EquipmentSlot.GLOVES, 'Handschuhe')}
+                </div>
+            )}
+        </div>
+    );
+};
+
+
+interface DashboardProps {
+  player: Player;
+  club: Club | null;
+  allClubs: Club[];
+  overallRating: number;
+  xpProgress: number;
+  xpNeeded: number;
+  setView: (view: View) => void;
+}
+
+export const Dashboard: React.FC<DashboardProps> = ({ player, club, allClubs, overallRating, xpProgress, xpNeeded, setView }) => {
 
   return (
     <div className="space-y-6 md:space-y-8 animate-in fade-in duration-300">
@@ -76,21 +151,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ player, club, allClubs, ov
                     <p className="text-sky-300/80 text-xs">Diese Version dient dem Testen. Es können Fehler auftreten und Daten zurückgesetzt werden.</p>
                 </div>
             </div>
-        </div>
-        
-        <div className="bg-slate-800/80 p-4 rounded-2xl border border-slate-700 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div>
-                <h3 className="font-bold text-white">Simulations-Test</h3>
-                <p className="text-sm text-slate-400">Löse ein zufälliges Spiel aus, um die Match-Engine zu testen.</p>
-            </div>
-            <button
-                onClick={handleTestMatch}
-                disabled={isSimulating}
-                className="w-full sm:w-auto bg-red-600 hover:bg-red-500 text-white font-bold py-2 px-5 rounded-lg disabled:bg-slate-600 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2 active:scale-95 shadow-lg"
-            >
-                <Swords className="w-4 h-4"/>
-                {isSimulating ? 'Simuliere...' : 'Test-Match starten'}
-            </button>
         </div>
 
       {player.pendingClubInvitation && <InvitationBanner player={player} allClubs={allClubs} />}
@@ -134,8 +194,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ player, club, allClubs, ov
         </div>
        </div>
 
+        <EquipmentManager player={player} />
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <button onClick={() => setView('skills')} className="bg-slate-800/80 p-5 rounded-2xl border border-slate-700 hover:border-blue-500/50 transition-colors group text-left">
+        <button onClick={() => setView('training')} className="bg-slate-800/80 p-5 rounded-2xl border border-slate-700 hover:border-blue-500/50 transition-colors group text-left">
             <Star className="w-8 h-8 text-blue-400 mb-3"/>
             <h3 className="font-bold text-white text-lg">Training</h3>
             <p className="text-sm text-slate-400">Verbessere deine Skills.</p>
@@ -145,10 +207,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ player, club, allClubs, ov
             <h3 className="font-bold text-white text-lg">{club ? 'Mein Verein' : 'Verein finden'}</h3>
             <p className="text-sm text-slate-400">Verwalte deine Karriere.</p>
         </button>
-         <button onClick={() => setView('activities')} className="bg-slate-800/80 p-5 rounded-2xl border border-slate-700 hover:border-blue-500/50 transition-colors group text-left">
+         <button onClick={() => setView('shop')} className="bg-slate-800/80 p-5 rounded-2xl border border-slate-700 hover:border-blue-500/50 transition-colors group text-left">
             <Package className="w-8 h-8 text-blue-400 mb-3"/>
-            <h3 className="font-bold text-white text-lg">Aktivitäten</h3>
-            <p className="text-sm text-slate-400">Verdiene Geld und XP.</p>
+            <h3 className="font-bold text-white text-lg">Shop</h3>
+            <p className="text-sm text-slate-400">Kaufe Boosts & Ausrüstung.</p>
         </button>
         <button onClick={() => setView('profile')} className="bg-slate-800/80 p-5 rounded-2xl border border-slate-700 hover:border-blue-500/50 transition-colors group text-left">
             <UserCog className="w-8 h-8 text-blue-400 mb-3"/>

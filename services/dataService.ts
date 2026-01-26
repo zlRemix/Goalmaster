@@ -22,6 +22,11 @@ const calculateActivityRewards = (player: Player, activity: Activity, club: Club
     const playerUpdates: { [key: string]: any } = {};
     let totalXpGain = activity.reward.xp || 0;
 
+    // --- EURO GAIN ---
+    if (activity.reward.euro) {
+        playerUpdates.euro = (player.euro || 0) + activity.reward.euro;
+    }
+
     // --- TP BONUS CALCULATION ---
     let tpGain = activity.reward.tp || 0;
     if (activity.type === 'training' && club?.infrastructure?.training_ground?.level) {
@@ -39,7 +44,6 @@ const calculateActivityRewards = (player: Player, activity: Activity, club: Club
         const prBonus = (marketingDeptLevel * 5) / 100; // 5% per level
         budgetGain = budgetGain * (1 + prBonus);
     }
-
 
     if (activity.reward.skills && typeof activity.reward.skills === 'object') {
         for (const [skill, value] of Object.entries(activity.reward.skills)) {
@@ -206,16 +210,20 @@ const dataService = {
     });
   },
 
-  async equipItem(playerId: string, itemId: string, slot: EquipmentSlot): Promise<void> {
-      await updateDoc(doc(db, 'players', playerId), {
-          [`equipped.${slot}`]: itemId
-      });
-  },
+  async toggleEquipment(playerId: string, itemId: string, slot: EquipmentSlot): Promise<void> {
+    const playerRef = doc(db, 'players', playerId);
+    await runTransaction(db, async (transaction) => {
+      const playerDoc = await transaction.get(playerRef);
+      if (!playerDoc.exists()) throw new Error("Spieler nicht gefunden");
 
-  async unequipItem(playerId: string, slot: EquipmentSlot): Promise<void> {
-      await updateDoc(doc(db, 'players', playerId), {
-          [`equipped.${slot}`]: null
+      const player = playerDoc.data() as Player;
+      const currentlyEquipped = player.equipped?.[slot];
+      const isEquipping = currentlyEquipped !== itemId;
+
+      transaction.update(playerRef, {
+        [`equipped.${slot}`]: isEquipping ? itemId : null
       });
+    });
   },
 
   async upgradeSkill(playerId: string, skill: SkillType): Promise<void> {

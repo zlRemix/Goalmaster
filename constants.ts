@@ -87,7 +87,72 @@ export const ACTIVITIES: Activity[] = [
         durationSeconds: 120, // 2 minutes
         reward: { xp: 25, tp: 1},
         type: 'social',
-    }
+    },
+    // Work Activities
+    {
+        id: 'work_1',
+        name: 'Teilzeitjob (1h)',
+        description: 'Verdiene etwas Geld nebenbei. Jede Stunde zählt.',
+        durationSeconds: 3600, // 1 hour
+        reward: { xp: 10, euro: 20 },
+        type: 'work',
+    },
+    {
+        id: 'work_2',
+        name: 'Teilzeitjob (2h)',
+        description: 'Verdiene etwas Geld nebenbei. Jede Stunde zählt.',
+        durationSeconds: 7200, // 2 hours
+        reward: { xp: 20, euro: 40 },
+        type: 'work',
+    },
+    {
+        id: 'work_3',
+        name: 'Teilzeitjob (3h)',
+        description: 'Verdiene etwas Geld nebenbei. Jede Stunde zählt.',
+        durationSeconds: 10800, // 3 hours
+        reward: { xp: 30, euro: 60 },
+        type: 'work',
+    },
+    {
+        id: 'work_4',
+        name: 'Teilzeitjob (4h)',
+        description: 'Verdiene etwas Geld nebenbei. Jede Stunde zählt.',
+        durationSeconds: 14400, // 4 hours
+        reward: { xp: 40, euro: 80 },
+        type: 'work',
+    },
+    {
+        id: 'work_5',
+        name: 'Teilzeitjob (5h)',
+        description: 'Verdiene etwas Geld nebenbei. Jede Stunde zählt.',
+        durationSeconds: 18000, // 5 hours
+        reward: { xp: 50, euro: 100 },
+        type: 'work',
+    },
+    {
+        id: 'work_6',
+        name: 'Teilzeitjob (6h)',
+        description: 'Verdiene etwas Geld nebenbei. Jede Stunde zählt.',
+        durationSeconds: 21600, // 6 hours
+        reward: { xp: 60, euro: 120 },
+        type: 'work',
+    },
+    {
+        id: 'work_7',
+        name: 'Teilzeitjob (7h)',
+        description: 'Verdiene etwas Geld nebenbei. Jede Stunde zählt.',
+        durationSeconds: 25200, // 7 hours
+        reward: { xp: 70, euro: 140 },
+        type: 'work',
+    },
+    {
+        id: 'work_8',
+        name: 'Teilzeitjob (8h)',
+        description: 'Verdiene etwas Geld nebenbei. Jede Stunde zählt.',
+        durationSeconds: 28800, // 8 hours
+        reward: { xp: 80, euro: 160 },
+        type: 'work',
+    },
 ];
 
 export const TEAM_TRAININGS: TeamTrainingSession[] = [

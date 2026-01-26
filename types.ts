@@ -15,6 +15,7 @@ export type SkillType =
 export interface Reward {
     xp?: number;
     tp?: number;
+    euro?: number;
     budgetGain?: number;
     skills?: Partial<Record<SkillType, number>>;
 }
@@ -26,7 +27,7 @@ export interface Activity {
     durationSeconds: number;
     reward: Reward;
     requiredRole?: UserRole;
-    type: 'training' | 'fitness' | 'tactic' | 'pr' | 'social';
+    type: 'training' | 'fitness' | 'tactic' | 'pr' | 'social' | 'work';
 }
 
 export interface ActiveActivity {
@@ -39,7 +40,7 @@ export interface TeamTrainingSession {
     name: string;
     description: string;
     durationSeconds: number;
-    reward: Omit<Reward, 'budgetGain'>; // Team trainings don't give budget
+    reward: Omit<Reward, 'budgetGain' | 'euro'>; // Team trainings don't give budget or euro
 }
 
 export interface ActiveTeamTraining {
@@ -173,7 +174,6 @@ export interface League {
 export interface LeagueStanding {
     clubId: string;
     clubName: string;
-    clubLogo: string;
     played: number;
     won: number;
     drawn: number;

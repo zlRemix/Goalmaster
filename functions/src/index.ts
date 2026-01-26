@@ -142,6 +142,77 @@ const performMatchSimulation = async (fixture: Fixture, fixtureId: string): Prom
 
 // --- Callable Functions ---
 
+export const runTestMatch = onCall({cors: true}, async (request) => {
+  const allClubsSnapshot = await db.collection("clubs").get();
+  const allClubs = allClubsSnapshot.docs.map((doc) => ({id: doc.id, ...doc.data()}) as Club);
+  if (allClubs.length < 2) {
+    throw new HttpsError("failed-precondition", "Nicht genügend Vereine für ein Test-Match vorhanden.");
+  }
+
+  const club1Index = Math.floor(Math.random() * allClubs.length);
+  let club2Index = Math.floor(Math.random() * allClubs.length);
+  while (club1Index === club2Index) {
+    club2Index = Math.floor(Math.random() * allClubs.length);
+  }
+
+  const fixtureData = {
+    homeTeam: allClubs[club1Index].id,
+    awayTeam: allClubs[club2Index].id,
+    date: Date.now(),
+    status: "scheduled" as const,
+    leagueId: "test-league",
+    season: 0,
+  };
+
+  const fixtureRef = await db.collection("fixtures").add(fixtureData);
+  const fixture: Fixture = {
+    ...fixtureData,
+    id: fixtureRef.id,
+  };
+
+  console.log(`Test-Match created: ${allClubs[club1Index].name} vs ${allClubs[club2Index].name}`);
+
+  return await performMatchSimulation(fixture, fixtureRef.id);
+});
+
+export const toggleEquipment = onCall({cors: true}, async (request) => {
+  const {itemId, slot} = request.data;
+  const uid = request.auth?.uid;
+
+  if (!uid) {
+    throw new HttpsError("unauthenticated", "You must be logged in.");
+  }
+  if (!itemId || !slot) {
+    throw new HttpsError("invalid-argument", "Missing itemId or slot.");
+  }
+
+  const playerRef = db.collection("players").doc(uid);
+  const playerDoc = await playerRef.get();
+
+  if (!playerDoc.exists) {
+    throw new HttpsError("not-found", "Player not found.");
+  }
+
+  const player = playerDoc.data() as Player;
+
+  if (!player.equipment?.includes(itemId)) {
+    throw new HttpsError("permission-denied", "Player does not own this item.");
+  }
+
+  const equipped = player.equipped || {};
+
+  if (equipped[slot] === itemId) {
+    delete equipped[slot];
+  } else {
+    equipped[slot] = itemId;
+  }
+
+  await playerRef.update({equipped});
+
+  return {success: true, equipped};
+});
+
+
 export const createLeague = onCall({cors: true}, async (request) => {
   // ... (Die createLeague Funktion bleibt unverändert)
 });
