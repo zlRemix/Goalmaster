@@ -1,13 +1,24 @@
 import React, { useMemo } from 'react';
-import { Player, Club, View, AvatarData, EquipmentSlot } from '../types';
+import { Player, Club, View, AvatarData, EquipmentSlot, PlayerPosition } from '../types';
 import { dataService } from '../services/dataService';
 import { getRatingColor } from '../utils';
-import { UserCog, Shield, Package, AlertTriangle, Star } from 'lucide-react';
+import { UserCog, Shield, Package, AlertTriangle, Star, Rocket, Users, Hand } from 'lucide-react';
 import ClubLogo from './ClubLogo';
 import { createAvatar } from '@dicebear/core';
 import * as collections from '@dicebear/collection';
 import { EQUIPMENT_ITEMS } from '../constants';
 import { EquipmentItem } from '../types';
+
+const PositionIcon: React.FC<{ position: PlayerPosition, className?: string }> = ({ position, className = 'w-5 h-5' }) => {
+    const icons: Record<PlayerPosition, React.ElementType> = {
+        'Stürmer': Rocket,
+        'Mittelfeld': Users,
+        'Abwehr': Shield,
+        'Torwart': Hand,
+    };
+    const Icon = icons[position];
+    return Icon ? <Icon className={className} /> : null;
+};
 
 const PlayerAvatar: React.FC<{ avatar?: AvatarData; size?: number }> = ({ avatar, size = 80 }) => {
     const avatarSvg = useMemo(() => {
@@ -159,7 +170,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ player, club, allClubs, ov
         <div className="md:col-span-2 flex items-center gap-4 md:gap-6 bg-slate-800/80 p-5 rounded-2xl border border-slate-700">
           <PlayerAvatar avatar={player.avatar} size={64} />
           <div>
-            <h1 className="text-2xl md:text-3xl font-black text-white">{player.name}</h1>
+            <div className="flex items-center gap-3">
+                <h1 className="text-2xl md:text-3xl font-black text-white">{player.name}</h1>
+                <PositionIcon position={player.position} className="w-6 h-6 text-slate-400" />
+            </div>
             <p className="text-md md:text-lg text-slate-400 font-bold flex items-center gap-2">
               {club ? <><ClubLogo logo={club.logo} size={20}/> {club.name}</> : 'Vereinslos'}
             </p>

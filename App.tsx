@@ -19,6 +19,7 @@ import { Menu } from 'lucide-react';
 import LeagueManagement from './components/LeagueManagement';
 import LeagueView from './components/LeagueView'; 
 import UserProfile from './components/UserProfile';
+import { ClubManagement } from './components/ClubManagement';
 
 const calculateXpNeeded = (level: number): number => {
   return Math.floor(100 * Math.pow(1.15, level - 1));
@@ -29,6 +30,7 @@ const App: React.FC = () => {
   const [player, setPlayer] = useState<Player | null>(null);
   const [selectedClub, setSelectedClub] = useState<Club | null>(null);
   const [allClubs, setAllClubs] = useState<Club[]>([]);
+  const [allPlayers, setAllPlayers] = useState<Player[]>([]);
   const [fixtures, setFixtures] = useState<Fixture[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   
@@ -39,18 +41,21 @@ const App: React.FC = () => {
     let playerUnsubscribe: (() => void) | null = null;
     let clubUnsubscribe: (() => void) | null = null;
     let allClubsUnsubscribe: (() => void) | null = null;
+    let allPlayersUnsubscribe: (() => void) | null = null;
     let fixturesUnsubscribe: (() => void) | null = null;
 
     const authUnsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       playerUnsubscribe?.();
       clubUnsubscribe?.();
       allClubsUnsubscribe?.();
+      allPlayersUnsubscribe?.();
       fixturesUnsubscribe?.();
 
       setUser(firebaseUser);
 
       if (firebaseUser) {
         allClubsUnsubscribe = dataService.listenToAllClubs(setAllClubs);
+        allPlayersUnsubscribe = dataService.listenToAllPlayers(setAllPlayers);
         fixturesUnsubscribe = dataService.listenToFixtures(setFixtures);
 
         playerUnsubscribe = dataService.listenToPlayer(firebaseUser.uid, (p) => {
@@ -68,6 +73,7 @@ const App: React.FC = () => {
         setPlayer(null);
         setSelectedClub(null);
         setAllClubs([]);
+        setAllPlayers([]);
         setFixtures([]);
         setLoading(false);
       }
@@ -78,17 +84,18 @@ const App: React.FC = () => {
       playerUnsubscribe?.();
       clubUnsubscribe?.();
       allClubsUnsubscribe?.();
+      allPlayersUnsubscribe?.();
       fixturesUnsubscribe?.();
     };
   }, []);
 
   useEffect(() => {
-    if (!player || !user || !selectedClub) return;
+    if (!player || !user || !selectedClub || !selectedClub.pendingUpgrades) return;
     const gameTick = setInterval(() => {
         const now = Date.now();
-        const finishedUpgrades = selectedClub.pendingUpgrades?.filter(upg => now >= upg.endTime);
+        const finishedUpgrades = selectedClub.pendingUpgrades!.filter(upg => now >= upg.endTime);
         if (finishedUpgrades?.length > 0) {
-            dataService.completeInfrastructureUpgrades(selectedClub.id, finishedUpgrades);
+            // dataService.completeInfrastructureUpgrades(selectedClub.id, finishedUpgrades);
         }
 
         if (selectedClub.activeTeamTraining && selectedClub.players) {
@@ -145,6 +152,11 @@ const App: React.FC = () => {
       return finalSkills;
   }, [player]);
 
+  const playersInClub = useMemo(() => {
+      if (!selectedClub) return [];
+      return allPlayers.filter(p => p.clubId === selectedClub.id);
+  }, [allPlayers, selectedClub]);
+
   const handleProfileCreate = async (userId: string, name: string, position: PlayerPosition, wantsManagerRole: boolean, clubName?: string) => {
     await dataService.createPlayerAndClub(userId, name, position, wantsManagerRole, clubName);
   };
@@ -186,6 +198,7 @@ const App: React.FC = () => {
     if (activeView === 'club-search') return <ClubSearch player={player!} />;
     if (activeView === 'league') return <LeagueView fixtures={fixtures} allClubs={allClubs} />;
     if (activeView === 'shop') return <Shop player={player!} />;
+    if (activeView === 'club-management') return <ClubManagement club={selectedClub!} />;
 
     if (activeView === 'admin') {
       return (
@@ -199,7 +212,7 @@ const App: React.FC = () => {
       if (player?.clubId && !selectedClub) {
         return <div className="h-full flex items-center justify-center"><h1 className="text-emerald-500 font-black animate-pulse text-2xl">LADE VEREINSDATEN...</h1></div>;
       }
-      return <ClubDashboard club={selectedClub || null} player={player!} setView={setActiveView} onUpgrade={handleUpgrade} />;
+      return <ClubDashboard club={selectedClub || null} player={player!} playersInClub={playersInClub} setView={setActiveView} onUpgrade={handleUpgrade} />;
     }
     return null;
   };

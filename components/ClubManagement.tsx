@@ -1,12 +1,22 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Club, Player } from '../types';
+import { Club, Player, PlayerPosition } from '../types';
 import { dataService } from '../services/dataService';
 import { getSkillsForPosition } from '../utils';
 import { MAX_CLUB_PLAYERS } from '../constants';
-import { Check, X, Plus, Minus, Ban, Info } from 'lucide-react';
-import { TacticSelection } from './TacticSelection'; // Import the new component
+import { Check, X, Plus, Minus, Ban, Info, Rocket, Users, Shield, Hand } from 'lucide-react';
+import { TacticSelection } from './TacticSelection';
 
-// Helper to calculate overall rating
+const PositionIcon: React.FC<{ position: PlayerPosition, className?: string }> = ({ position, className = 'w-5 h-5' }) => {
+    const icons: Record<PlayerPosition, React.ElementType> = {
+        'Stürmer': Rocket,
+        'Mittelfeld': Users,
+        'Abwehr': Shield,
+        'Torwart': Hand,
+    };
+    const Icon = icons[position];
+    return Icon ? <Icon className={className} /> : null;
+};
+
 const getOverall = (p: Player) => {
     const relevantSkills = getSkillsForPosition(p.position);
     if (!p.skills || relevantSkills.length === 0) return 0;
@@ -14,10 +24,11 @@ const getOverall = (p: Player) => {
     return Math.round(totalSkill / relevantSkills.length);
 };
 
-// Player card component
 const PlayerCard: React.FC<{ player: Player; children: React.ReactNode }> = ({ player, children }) => (
     <div className="grid grid-cols-[auto,1fr,auto] items-center bg-slate-900/50 p-2 md:p-3 rounded-lg border border-slate-700/50 gap-3">
-        <div className="font-bold text-slate-300 text-xs md:text-sm w-7 h-7 md:w-8 md:h-8 flex items-center justify-center bg-slate-700 rounded-full flex-shrink-0">{player.position}</div>
+        <div className="w-7 h-7 md:w-8 md:h-8 flex items-center justify-center bg-slate-700 rounded-full flex-shrink-0">
+            <PositionIcon position={player.position} className="w-4 h-4 md:w-5 md:h-5 text-slate-300" />
+        </div>
         <div>
             <p className="font-bold text-white text-sm md:text-base">{player.name}</p>
             <p className="text-xs text-slate-400">Level {player.level}</p>
@@ -70,7 +81,6 @@ export const ClubManagement: React.FC<ClubManagementProps> = ({ club }) => {
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
-      {/* Add the TacticSelection component here */}
       <TacticSelection club={club} />
 
       <section>

@@ -147,7 +147,7 @@ export const Activities: React.FC<{ player: Player; onStart: (activityId: string
                         onClick={() => setActiveTab('personal')}
                         className={`px-6 py-3 font-bold text-sm uppercase tracking-wider transition-colors ${activeTab === 'personal' ? 'border-b-2 border-blue-500 text-white' : 'text-slate-400 hover:text-white border-b-2 border-transparent'}`}
                     >
-                        Persönliches
+                        Arbeiten
                     </button>
                 </div>
             </div>
@@ -187,38 +187,38 @@ export const Activities: React.FC<{ player: Player; onStart: (activityId: string
                                     }
 
                                     return (
-                                        <div key={activity.id} className={`bg-slate-800/80 rounded-2xl p-5 border border-slate-700 flex flex-col justify-between shadow-md transition-all relative overflow-hidden group ${!canStart ? 'opacity-40 grayscale' : 'hover:border-blue-500/50'}`}>
+                                        <div key={activity.id} className={`bg-slate-800/80 rounded-2xl p-4 border border-slate-700 flex flex-col justify-between shadow-md transition-all relative overflow-hidden group ${!canStart ? 'opacity-40 grayscale' : 'hover:border-blue-500/50'}`}>
                                             <div>
-                                                <div className="flex justify-between items-start mb-3">
-                                                    <div className={`p-3 bg-slate-900 rounded-xl border border-slate-700`}><Icon className={`w-8 h-8 ${color}`} /></div>
-                                                    <div className="text-right space-y-1">
-                                                        {euro > 0 && <p className="text-green-400 font-bold text-sm">+{euro} €</p>}
+                                                <div className="flex justify-between items-start mb-2">
+                                                    <div className={`p-2 bg-slate-900 rounded-xl border border-slate-700`}><Icon className={`w-6 h-6 ${color}`} /></div>
+                                                    <div className="text-right">
+                                                        {euro > 0 && <p className="text-green-400 font-bold text-xs">+{euro} €</p>}
                                                         {finalTp > 0 && (
-                                                            <div className="flex items-center justify-end gap-2 text-yellow-400 font-bold text-lg">
+                                                            <div className="flex items-center justify-end gap-1 text-yellow-400 font-bold text-base">
                                                                 +{finalTp.toFixed(1)} TP
-                                                                {bonusTp > 0 && <PlusCircle className="w-4 h-4 text-yellow-500/50" title={`Bonus: +${bonusTp.toFixed(2)} TP`} />}
+                                                                {bonusTp > 0 && <PlusCircle className="w-3 h-3 text-yellow-500/50" title={`Bonus: +${bonusTp.toFixed(2)} TP`} />}
                                                             </div>
                                                         )}
-                                                        {xp > 0 && <p className="text-blue-400 font-bold text-sm">+{xp} XP</p>}
-                                                        {finalBudget > 0 && <p className="text-green-500 font-bold text-sm">+{finalBudget} Club-€</p>}
+                                                        {xp > 0 && <p className="text-blue-400 font-bold text-xs">+{xp} XP</p>}
+                                                        {finalBudget > 0 && <p className="text-green-500 font-bold text-xs">+{finalBudget} Club-€</p>}
                                                     </div>
                                                 </div>
-                                                <h3 className="text-lg font-black mb-1 text-white">{activity.name}</h3>
+                                                <h3 className="text-base font-black mb-1 text-white">{activity.name}</h3>
                                                 <span className="text-[10px] bg-slate-900 px-2 py-1 rounded-full border border-slate-700 text-slate-400 font-bold uppercase">{category}</span>
-                                                <p className="text-sm text-slate-400 mt-3 mb-5 leading-relaxed font-medium">{activity.description}</p>
+                                                <p className="text-xs text-slate-400 mt-2 mb-4 leading-normal font-medium">{activity.description}</p>
                                             </div>
                                             <div className="mt-auto">
                                                 {isCompleted ? (
-                                                    <div className="w-full py-3 bg-slate-900/50 rounded-xl text-center border border-slate-800">
+                                                    <div className="w-full py-2 bg-slate-900/50 rounded-xl text-center border border-slate-800">
                                                         <p className="text-xs font-black text-slate-500 uppercase tracking-widest">Erledigt</p>
                                                     </div>
                                                 ) : (
                                                     <button
                                                         disabled={!canStart}
                                                         onClick={() => onStart(activity.id)}
-                                                        className={`w-full py-3 rounded-xl font-bold transition-all transform active:scale-95 flex items-center justify-center gap-3 shadow-lg ${!canStart ? 'bg-slate-700 text-slate-500 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-500 text-white'}`}>
-                                                        <span className="text-sm uppercase tracking-tight">Starten</span>
-                                                        <span className="text-xs opacity-70 font-mono">({formatDuration(effectiveDurationSeconds)})</span>
+                                                        className={`w-full py-2 rounded-xl font-bold transition-all transform active:scale-95 flex items-center justify-center gap-3 shadow-lg ${!canStart ? 'bg-slate-700 text-slate-500 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-500 text-white'}`}>
+                                                        <span className="text-xs uppercase tracking-tight">Starten</span>
+                                                        <span className="text-[10px] opacity-70 font-mono">({formatDuration(effectiveDurationSeconds)})</span>
                                                     </button>
                                                 )}
                                             </div>
