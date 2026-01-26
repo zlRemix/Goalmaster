@@ -22,12 +22,12 @@ const app = initializeApp(firebaseConfig);
 const analytics = getAnalytics(app);
 console.log("🔥🔥 VERBUNDENE PROJEKT-ID:", app.options.projectId);
 const auth = getAuth(app);
-const functions = getFunctions(app); 
+const functions = getFunctions(app);
 const googleProvider = new GoogleAuthProvider();
 
-// WICHTIG: Es wird immer die 'goalmaster-prod' Datenbank genutzt!
-console.log("🚀 Verbinde mit 'goalmaster-prod'");
-const db = getFirestore(app, "goalmaster-prod");
+const databaseName = import.meta.env.VITE_FIREBASE_DATABASE_NAME || '(default)';
+console.log(`🌀 Using database: ${databaseName}`);
 
+const db = getFirestore(app, databaseName);
 
-export { auth, db, functions, googleProvider, createUserWithEmailAndPassword, signInWithEmailAndPassword };
+export { auth, db, functions, googleProvider, createUserWithEmailAndPassword, signInWithEmailAndPassword, databaseName };

@@ -149,6 +149,9 @@ export interface Fixture {
   date: number; 
   result?: string; 
   status: 'scheduled' | 'played';
+  leagueId: string;
+  season: number;
+  matchday?: number;
 }
 
 export interface MatchResult {
@@ -158,6 +161,13 @@ export interface MatchResult {
     homeScore: number;
     awayScore: number;
     events: string[];
+}
+
+export interface League {
+    id: string;
+    name: string;
+    clubIds: string[];
+    season: number;
 }
 
 export interface LeagueStanding {
@@ -171,6 +181,7 @@ export interface LeagueStanding {
     goalsFor: number;
     goalsAgainst: number;
     points: number;
+    season: number;
 }
 
 export type View = 'home' | 'skills' | 'club' | 'activities' | 'staff' | 'finances' | 'match' | 'leaderboard' | 'club-search' | 'admin' | 'league' | 'profile' | 'shop' | 'equipment';
