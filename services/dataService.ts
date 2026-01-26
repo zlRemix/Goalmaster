@@ -29,7 +29,8 @@ const calculateActivityRewards = (player: Player, activity: Activity, club: Club
         const tpBonus = (trainingGroundLevel * 2) / 100; // 2% per level
         tpGain = tpGain * (1 + tpBonus);
     }
-    playerUpdates.trainingPoints = (player.trainingPoints || 0) + tpGain;
+    const newTps = (player.trainingPoints || 0) + tpGain;
+    playerUpdates.trainingPoints = Math.round(newTps * 100) / 100;
 
     // --- BUDGET BONUS CALCULATION ---
     let budgetGain = activity.reward.budgetGain || 0;
@@ -166,10 +167,11 @@ const dataService = {
         if ((player.euro || 0) < item.price) {
             throw new Error("Not enough euro");
         }
-
+        
+        const newTps = (player.trainingPoints || 0) + item.tp;
         transaction.update(playerRef, {
             euro: (player.euro || 0) - item.price,
-            trainingPoints: (player.trainingPoints || 0) + item.tp,
+            trainingPoints: Math.round(newTps * 100) / 100,
         });
     });
   },
@@ -226,8 +228,9 @@ const dataService = {
       }
 
       const xpGained = getXpForSkillUpgrade(currentSkillLevel);
+      const newTps = (player.trainingPoints || 0) - cost;
       transaction.update(playerRef, {
-        trainingPoints: (player.trainingPoints || 0) - cost,
+        trainingPoints: Math.round(newTps * 100) / 100,
         experience: (player.experience || 0) + xpGained, 
         [`skills.${skill}`]: currentSkillLevel + 1,
       });

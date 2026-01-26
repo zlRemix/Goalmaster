@@ -234,7 +234,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ player, club, allClubs, ov
           </div>
           <div className="text-center bg-slate-900/50 p-4 rounded-xl border border-slate-700/50">
             <p className="text-xs md:text-sm text-slate-400">TP</p>
-            <p className="text-base md:text-xl font-bold text-amber-400">{player.trainingPoints || 0}</p>
+            <p className="text-base md:text-xl font-bold text-amber-400">{(player.trainingPoints || 0).toFixed(2)}</p>
           </div>
           <div className="text-center bg-slate-900/50 p-4 rounded-xl border border-slate-700/50">
             <p className="text-xs md:text-sm text-slate-400">Rolle</p>
