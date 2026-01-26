@@ -184,4 +184,4 @@ export interface LeagueStanding {
     season: number;
 }
 
-export type View = 'home' | 'skills' | 'club' | 'activities' | 'staff' | 'finances' | 'match' | 'leaderboard' | 'club-search' | 'admin' | 'league' | 'profile' | 'shop' | 'equipment';
+export type View = 'home' | 'skills' | 'club' | 'activities' | 'staff' | 'finances' | 'match' | 'leaderboard' | 'club-search' | 'admin' | 'league' | 'profile' | 'shop' | 'equipment' | 'impressum' | 'privacy' | 'terms';

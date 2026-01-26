@@ -20,6 +20,11 @@ import LeagueManagement from './components/LeagueManagement';
 import LeagueView from './components/LeagueView'; 
 import UserProfile from './components/UserProfile';
 import { ClubManagement } from './components/ClubManagement';
+import Impressum from './components/Impressum';
+import Privacy from './components/Privacy';
+import Terms from './components/Terms';
+import ConsentNotice from './components/ConsentNotice';
+import Footer from './components/Footer';
 
 const calculateXpNeeded = (level: number): number => {
   return Math.floor(100 * Math.pow(1.15, level - 1));
@@ -199,6 +204,9 @@ const App: React.FC = () => {
     if (activeView === 'league') return <LeagueView fixtures={fixtures} allClubs={allClubs} />;
     if (activeView === 'shop') return <Shop player={player!} />;
     if (activeView === 'club-management') return <ClubManagement club={selectedClub!} />;
+    if (activeView === 'impressum') return <Impressum />;
+    if (activeView === 'privacy') return <Privacy />;
+    if (activeView === 'terms') return <Terms />;
 
     if (activeView === 'admin') {
       return (
@@ -252,7 +260,9 @@ const App: React.FC = () => {
             {renderContent()}
           </div>
         </main>
+        <Footer setView={setActiveView} />
       </div>
+      <ConsentNotice />
     </div>
   );
 };
