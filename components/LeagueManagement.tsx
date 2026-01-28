@@ -8,7 +8,11 @@ import { Club } from '../types';
 const createLeagueFunction = httpsCallable(functions, 'createLeague');
 const simulateLeagueMatchesFunction = httpsCallable(functions, 'simulateLeagueMatches');
 
-const LeagueManagement: React.FC = () => {
+interface LeagueManagementProps {
+  onLeagueCreated?: () => void;
+}
+
+const LeagueManagement: React.FC<LeagueManagementProps> = ({ onLeagueCreated }) => {
   const [loading, setLoading] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [clubs, setClubs] = useState<Club[]>([]);
@@ -57,6 +61,7 @@ const LeagueManagement: React.FC = () => {
 
       if (data.success) {
         setFeedback({ type: 'success', message: data.message });
+        onLeagueCreated?.();
       } else {
         throw new Error(data.message || 'Ein unbekannter Fehler ist aufgetreten.');
       }

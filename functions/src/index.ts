@@ -1,7 +1,7 @@
 import {onCall, HttpsError} from "firebase-functions/v2/https";
 import {onSchedule} from "firebase-functions/v2/scheduler";
 import * as admin from "firebase-admin";
-import {Player, Club, Fixture, Tactic, SkillType, MatchResult, League, EquipmentItem, SkillBonus, EQUIPMENT_ITEMS} from "../../types";
+import {Player, Club, Fixture, Tactic, SkillType, MatchResult, League, EquipmentItem, SkillBonus, EQUIPMENT_ITEMS} from "../types";
 
 admin.initializeApp();
 const db = admin.firestore();

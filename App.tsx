@@ -17,7 +17,7 @@ import ProfileSetup from './components/ProfileSetup';
 import { getSkillsForPosition } from './utils';
 import { Menu } from 'lucide-react';
 import LeagueManagement from './components/LeagueManagement';
-import LeagueView from './components/LeagueView'; 
+import LeagueView from './components/LeagueView';
 import UserProfile from './components/UserProfile';
 import { ClubManagement } from './components/ClubManagement';
 import Impressum from './components/Impressum';
@@ -127,7 +127,7 @@ const App: React.FC = () => {
       while (playerAfterLvlUp.experience >= xpNeeded) {
         playerAfterLvlUp.experience -= xpNeeded;
         playerAfterLvlUp.level = (playerAfterLvlUp.level || 1) + 1;
-        playerAfterLvlUp.trainingPoints = (playerAfterLvlUp.trainingPoints || 0) + 5; 
+        playerAfterLvlUp.trainingPoints = (playerAfterLvlUp.trainingPoints || 0) + 5;
         xpNeeded = calculateXpNeeded(playerAfterLvlUp.level);
       }
 
@@ -170,10 +170,6 @@ const App: React.FC = () => {
     signOut(auth);
   }
 
-  const handleLeagueCreated = () => {
-    window.location.reload();
-  }
-
   const handleUpgrade = (clubId: string, type: InfrastructureType) => dataService.startInfrastructureUpgrade(clubId, type);
   const handleTrainSkill = (skill: SkillType) => { if (player) dataService.upgradeSkill(player.id, skill); };
   const handleStartActivity = (activityId: string) => { if(player) dataService.startActivity(player.id, activityId); };
@@ -201,7 +197,7 @@ const App: React.FC = () => {
     if (activeView === 'activities') return <ActivitiesComponent player={player!} onStart={handleStartActivity} onComplete={handleCompleteActivity} onReset={handleResetActivities} />;
     if (activeView === 'leaderboard') return <Leaderboard />;
     if (activeView === 'club-search') return <ClubSearch player={player!} />;
-    if (activeView === 'league') return <LeagueView fixtures={fixtures} allClubs={allClubs} />;
+    if (activeView === 'league') return <LeagueView />;
     if (activeView === 'shop') return <Shop player={player!} />;
     if (activeView === 'club-management') return <ClubManagement club={selectedClub!} />;
     if (activeView === 'impressum') return <Impressum />;
@@ -211,7 +207,7 @@ const App: React.FC = () => {
     if (activeView === 'admin') {
       return (
         <div className="space-y-12">
-          <LeagueManagement onLeagueCreated={handleLeagueCreated} />
+          <LeagueManagement />
         </div>
       );
     }
@@ -220,7 +216,7 @@ const App: React.FC = () => {
       if (player?.clubId && !selectedClub) {
         return <div className="h-full flex items-center justify-center"><h1 className="text-emerald-500 font-black animate-pulse text-2xl">LADE VEREINSDATEN...</h1></div>;
       }
-      return <ClubDashboard club={selectedClub || null} player={player!} playersInClub={playersInClub} setView={setActiveView} onUpgrade={handleUpgrade} />;
+      return <ClubDashboard club={selectedClub || null} player={player!} setView={setActiveView} onUpgrade={handleUpgrade} />;
     }
     return null;
   };

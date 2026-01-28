@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { collection, getDocs, query, where, documentId } from 'firebase/firestore';
+import { collection, getDocs, query, where, documentId, FieldPath } from 'firebase/firestore';
 import { db as firestore } from '../services/firebase';
 import { MatchResult, Player, Club } from '../types';
 import { Trophy, ShieldCheck, Square } from 'lucide-react';
@@ -18,7 +18,7 @@ interface PlayerStat {
 }
 
 // Helper to run queries on chunks of data to avoid the 30-item limit for 'in' queries
-const queryInChunks = async <T>(collectionName: string, field: string, ids: string[]): Promise<T[]> => {
+const queryInChunks = async <T extends { id: string }>(collectionName: string, field: string | FieldPath, ids: string[]): Promise<T[]> => {
     if (ids.length === 0) {
         return [];
     }
@@ -76,13 +76,13 @@ const LeagueLeaderboards: React.FC<LeagueLeaderboardsProps> = ({ leagueId, seaso
                 return;
             }
             
-            const allMatchResults = await queryInChunks<MatchResult>('match_results', documentId(), fixtureIds);
+            const allMatchResults = await queryInChunks<MatchResult & { id: string }>('match_results', documentId(), fixtureIds);
 
             const allClubIds = Array.from(new Set(allMatchResults.flatMap(r => [r.homeTeamId, r.awayTeamId])));
 
             const [allPlayers, allClubs] = await Promise.all([
                 queryInChunks<Player>('players', 'clubId', allClubIds),
-                queryInChunks<Club>('clubs', documentId(), allClubIds)
+                queryInChunks<Club & { id: string }>('clubs', documentId(), allClubIds)
             ]);
 
             const tempClubs: { [id: string]: Club } = {};
@@ -92,7 +92,7 @@ const LeagueLeaderboards: React.FC<LeagueLeaderboardsProps> = ({ leagueId, seaso
             const playerMap: { [id: string]: Player } = {};
             allPlayers.forEach(p => playerMap[p.id] = p);
 
-            const tempPlayerStats: { [id: string]: { name: string; clubId: string; goals: number; yellow: number; red: aumber; } } = {};
+            const tempPlayerStats: { [id: string]: { name: string; clubId: string; goals: number; yellow: number; red: number; } } = {};
             const tempGoalieStats: { [id: string]: { name: string; clubId: string; cleanSheets: number; } } = {};
 
             const getStat = (id: string) => {

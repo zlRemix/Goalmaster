@@ -140,7 +140,8 @@ export interface Club {
     pendingApplications?: string[]; 
     isAcceptingApplications?: boolean;
     activeTacticId?: TacticID;
-    logo?: ClubLogoData; 
+    logo?: ClubLogoData;
+    motto?: string;
 }
 
 export interface Fixture {
@@ -184,4 +185,6 @@ export interface LeagueStanding {
     season: number;
 }
 
-export type View = 'home' | 'skills' | 'club' | 'activities' | 'staff' | 'finances' | 'match' | 'leaderboard' | 'club-search' | 'admin' | 'league' | 'profile' | 'shop' | 'equipment' | 'impressum' | 'privacy' | 'terms';
+export type SkillBonus = Partial<Record<SkillType, number>>;
+
+export type View = 'home' | 'skills' | 'club' | 'activities' | 'staff' | 'finances' | 'match' | 'leaderboard' | 'club-search' | 'admin' | 'league' | 'profile' | 'shop' | 'equipment' | 'impressum' | 'privacy' | 'terms' | 'club-management';
