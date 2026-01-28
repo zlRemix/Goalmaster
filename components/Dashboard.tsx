@@ -8,6 +8,7 @@ import { createAvatar } from '@dicebear/core';
 import * as collections from '@dicebear/collection';
 import { EQUIPMENT_ITEMS } from '../constants';
 import { EquipmentItem } from '../types';
+import NextMatchday from './NextMatchday';
 
 const PositionIcon: React.FC<{ position: PlayerPosition, className?: string }> = ({ position, className = 'w-5 h-5' }) => {
     const icons: Record<PlayerPosition, React.ElementType> = {
@@ -208,10 +209,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ player, club, allClubs, ov
         </div>
        </div>
 
+        <NextMatchday club={club} allClubs={allClubs} />
+
         <EquipmentManager player={player} />
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <button onClick={() => setView('training')} className="bg-slate-800/80 p-5 rounded-2xl border border-slate-700 hover:border-blue-500/50 transition-colors group text-left">
+        <button onClick={() => setView('skills')} className="bg-slate-800/80 p-5 rounded-2xl border border-slate-700 hover:border-blue-500/50 transition-colors group text-left">
             <Star className="w-8 h-8 text-blue-400 mb-3"/>
             <h3 className="font-bold text-white text-lg">Training</h3>
             <p className="text-sm text-slate-400">Verbessere deine Skills.</p>

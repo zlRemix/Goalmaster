@@ -1,8 +1,7 @@
-
 import {onCall, HttpsError} from "firebase-functions/v2/https";
 import {onSchedule} from "firebase-functions/v2/scheduler";
 import * as admin from "firebase-admin";
-import {Player, Club, Fixture, Tactic, SkillType, MatchResult, League} from "../../types";
+import {Player, Club, Fixture, Tactic, SkillType, MatchResult, League, EquipmentItem, SkillBonus, EQUIPMENT_ITEMS} from "../../types";
 
 admin.initializeApp();
 const db = admin.firestore();
@@ -28,8 +27,35 @@ const getPlayersForClub = async (clubId: string): Promise<Player[]> => {
 };
 
 const getPlayerSkillsWithBonuses = (player: Player): { [key in SkillType]?: number } => {
-  return {...player.skills || {}};
+  const baseSkills = player.skills || {};
+  const bonuses: SkillBonus = {};
+
+  if (player.equipped) {
+    for (const slot in player.equipped) {
+      const itemId = player.equipped[slot as keyof typeof player.equipped];
+      if (itemId) {
+        const item = (EQUIPMENT_ITEMS as EquipmentItem[]).find((i) => i.id === itemId);
+        if (item && item.bonus) {
+          for (const skill in item.bonus) {
+            const s = skill as SkillType;
+            const b = item.bonus[s as keyof typeof item.bonus] as number;
+            bonuses[s] = (bonuses[s] || 0) + b;
+          }
+        }
+      }
+    }
+  }
+
+  const finalSkills: { [key in SkillType]?: number } = {};
+  const allSkillKeys = [...new Set([...Object.keys(baseSkills), ...Object.keys(bonuses)])] as SkillType[];
+
+  for (const skill of allSkillKeys) {
+    finalSkills[skill] = (baseSkills[skill] || 0) + (bonuses[skill] || 0);
+  }
+
+  return finalSkills;
 };
+
 
 const calculateTeamRating = (players: Player[]): { attack: number, defense: number } => {
   let totalAttack = 0;
@@ -75,69 +101,125 @@ const calculateTeamRating = (players: Player[]): { attack: number, defense: numb
 };
 
 const performMatchSimulation = async (fixture: Fixture, fixtureId: string): Promise<MatchResult> => {
-  const [homeDoc, awayDoc] = await Promise.all([db.collection("clubs").doc(fixture.homeTeam).get(), db.collection("clubs").doc(fixture.awayTeam).get()]);
-  if (!homeDoc.exists || !awayDoc.exists) {
-    throw new HttpsError("not-found", "Verein nicht gefunden.");
-  }
-  const homeClub = {id: homeDoc.id, ...homeDoc.data()} as Club;
-  const awayClub = {id: awayDoc.id, ...awayDoc.data()} as Club;
-  const [homePlayers, awayPlayers] = await Promise.all([getPlayersForClub(homeClub.id), getPlayersForClub(awayClub.id)]);
-  if (homePlayers.length < 11 || awayPlayers.length < 11) {
-    const homeScore = homePlayers.length < 11 ? 0 : 3;
-    const awayScore = awayPlayers.length < 11 ? 0 : 3;
-    const events = [`90' Spielabbruch. ${homePlayers.length < 11 ? homeClub.name : awayClub.name} konnte keine 11 Spieler aufstellen.`];
+    const [homeDoc, awayDoc] = await Promise.all([
+        db.collection("clubs").doc(fixture.homeTeam).get(),
+        db.collection("clubs").doc(fixture.awayTeam).get(),
+    ]);
+
+    if (!homeDoc.exists || !awayDoc.exists) {
+        throw new HttpsError("not-found", "Verein nicht gefunden.");
+    }
+
+    const homeClub = {id: homeDoc.id, ...homeDoc.data()} as Club;
+    const awayClub = {id: awayDoc.id, ...awayDoc.data()} as Club;
+
+    const [homePlayers, awayPlayers] = await Promise.all([
+        getPlayersForClub(homeClub.id),
+        getPlayersForClub(awayClub.id),
+    ]);
+
+    const events: string[] = [];
+    let homeScore = 0;
+    let awayScore = 0;
+    let ticketIncome = 0;
+
+    if (homePlayers.length === 0) {
+        homeScore = 0;
+        awayScore = 3;
+        events.push(`0' Spielabbruch. ${homeClub.name} konnte keine Spieler aufstellen.`);
+    } else if (awayPlayers.length === 0) {
+        homeScore = 3;
+        awayScore = 0;
+        events.push(`0' Spielabbruch. ${awayClub.name} konnte keine Spieler aufstellen.`);
+    } else {
+        const homeRating = calculateTeamRating(homePlayers);
+        const awayRating = calculateTeamRating(awayPlayers);
+        const homeTactic = TACTICS.find((t) => t.id === (homeClub.activeTacticId || "balanced")) || TACTICS[0];
+        const awayTactic = TACTICS.find((t) => t.id === (awayClub.activeTacticId || "balanced")) || TACTICS[0];
+
+        let homeAttack = homeRating.attack * (1 + homeTactic.attackBonus);
+        let homeDefense = homeRating.defense * (1 + homeTactic.defenseBonus);
+        let awayAttack = awayRating.attack * (1 + awayTactic.attackBonus);
+        let awayDefense = awayRating.defense * (1 + awayTactic.defenseBonus);
+
+        const playerStatuses: { [playerId: string]: { yellowCards: number, sentOff: boolean } } = {};
+        [...homePlayers, ...awayPlayers].forEach((p) => {
+            playerStatuses[p.id] = { yellowCards: 0, sentOff: false };
+        });
+
+        for (let minute = 1; minute <= 90; minute++) {
+            if (Math.random() < homeAttack / (homeAttack + awayDefense) * 0.035) {
+                homeScore++;
+                events.push(`${minute}' Tor für ${homeClub.name}!`);
+            }
+            if (Math.random() < awayAttack / (awayAttack + homeDefense) * 0.035) {
+                awayScore++;
+                events.push(`${minute}' Tor für ${awayClub.name}!`);
+            }
+
+            const FOUL_PROBABILITY_PER_MINUTE = 0.025;
+            const CARD_PROBABILITY_PER_FOUL = 0.1;
+            const RED_CARD_PROBABILITY_PER_CARD = 0.05;
+
+            if (Math.random() < FOUL_PROBABILITY_PER_MINUTE) {
+                const isHomeFoul = Math.random() < 0.5;
+                const foulTeamPlayers = (isHomeFoul ? homePlayers : awayPlayers).filter((p) => !playerStatuses[p.id].sentOff);
+                const foulTeamClub = isHomeFoul ? homeClub : awayClub;
+
+                if (foulTeamPlayers.length > 0 && Math.random() < CARD_PROBABILITY_PER_FOUL) {
+                    const playerToCard = foulTeamPlayers[Math.floor(Math.random() * foulTeamPlayers.length)];
+                    const status = playerStatuses[playerToCard.id];
+
+                    if (status.yellowCards === 1 || Math.random() < RED_CARD_PROBABILITY_PER_CARD) {
+                        if (!status.sentOff) {
+                            status.sentOff = true;
+                            if (status.yellowCards === 1) {
+                                events.push(`${minute}' Gelb-Rote Karte für ${playerToCard.name} (${foulTeamClub.name}).`);
+                            } else {
+                                events.push(`${minute}' Rote Karte für ${playerToCard.name} (${foulTeamClub.name}).`);
+                            }
+
+                            if (isHomeFoul) {
+                                homeAttack *= 0.9;
+                                homeDefense *= 0.9;
+                            } else {
+                                awayAttack *= 0.9;
+                                awayDefense *= 0.9;
+                            }
+                        }
+                    } else {
+                        status.yellowCards = 1;
+                        events.push(`${minute}' Gelbe Karte für ${playerToCard.name} (${foulTeamClub.name}).`);
+                    }
+                }
+            }
+        }
+        
+        const baseIncome = 25000;
+        const stadiumLevel = homeClub.infrastructure?.stadium?.level || 0;
+        const stadiumBonus = stadiumLevel > 0 ? (stadiumLevel * 5) / 100 : 0;
+        ticketIncome = Math.round(baseIncome * (1 + stadiumBonus));
+
+        if (ticketIncome > 0) {
+            events.push(`Der Verein ${homeClub.name} erhält ${ticketIncome}€ an Ticketeinnahmen.`);
+        }
+    }
+
+    events.push("90' Abpfiff!");
+
     const result: MatchResult = {fixtureId, homeTeamId: homeClub.id, awayTeamId: awayClub.id, homeScore, awayScore, events};
     const batch = db.batch();
+
     batch.update(db.collection("fixtures").doc(fixtureId), {status: "played", result: `${homeScore}-${awayScore}`});
     batch.set(db.collection("match_results").doc(fixtureId), result);
+
+    if (ticketIncome > 0) {
+        const homeClubRef = db.collection("clubs").doc(homeClub.id);
+        batch.update(homeClubRef, {budget: admin.firestore.FieldValue.increment(ticketIncome)});
+    }
+
     await batch.commit();
     return result;
-  }
-  const homeRating = calculateTeamRating(homePlayers.slice(0, 11));
-  const awayRating = calculateTeamRating(awayPlayers.slice(0, 11));
-  const homeTactic = TACTICS.find((t) => t.id === (homeClub.activeTacticId || "balanced")) || TACTICS[0];
-  const awayTactic = TACTICS.find((t) => t.id === (awayClub.activeTacticId || "balanced")) || TACTICS[0];
-  const homeAttack = homeRating.attack * (1 + homeTactic.attackBonus);
-  const homeDefense = homeRating.defense * (1 + homeTactic.defenseBonus);
-  const awayAttack = awayRating.attack * (1 + awayTactic.attackBonus);
-  const awayDefense = awayRating.defense * (1 + awayTactic.defenseBonus);
-  let homeScore = 0;
-  let awayScore = 0;
-  const events: string[] = [];
-
-  for (let minute = 1; minute <= 90; minute++) {
-    if (Math.random() < homeAttack / (homeAttack + awayDefense) * 0.025) {
-      homeScore++;
-      events.push(`${minute}' Tor für ${homeClub.name}!`);
-    }
-    if (Math.random() < awayAttack / (awayAttack + homeDefense) * 0.025) {
-      awayScore++;
-      events.push(`${minute}' Tor für ${awayClub.name}!`);
-    }
-  }
-  events.push("90' Abpfiff!");
-
-  const baseIncome = 25000;
-  const stadiumLevel = homeClub.infrastructure?.stadium?.level || 0;
-  const stadiumBonus = stadiumLevel > 0 ? (stadiumLevel * 5) / 100 : 0;
-  const ticketIncome = Math.round(baseIncome * (1 + stadiumBonus));
-
-  if (ticketIncome > 0) {
-    events.push(`Der Verein ${homeClub.name} erhält ${ticketIncome}€ an Ticketeinnahmen.`);
-  }
-
-  const result: MatchResult = {fixtureId, homeTeamId: homeClub.id, awayTeamId: awayClub.id, homeScore, awayScore, events};
-  const batch = db.batch();
-  batch.update(db.collection("fixtures").doc(fixtureId), {status: "played", result: `${homeScore}-${awayScore}`});
-  batch.set(db.collection("match_results").doc(fixtureId), result);
-
-  if (ticketIncome > 0) {
-    const homeClubRef = db.collection("clubs").doc(homeClub.id);
-    batch.update(homeClubRef, {budget: admin.firestore.FieldValue.increment(ticketIncome)});
-  }
-
-  await batch.commit();
-  return result;
 };
 
 // --- Callable Functions ---
@@ -213,15 +295,6 @@ export const toggleEquipment = onCall({cors: true}, async (request) => {
 });
 
 
-export const createLeague = onCall({cors: true}, async (request) => {
-  // ... (Die createLeague Funktion bleibt unverändert)
-});
-
-export const simulateLeagueMatches = onCall({cors: true}, async () => {
-  // ... (Die simulateLeagueMatches Funktion bleibt unverändert)
-});
-
-
 // --- Scheduled Functions ---
 
 export const scheduledMatchSimulator = onSchedule("every 5 minutes", async (event) => {
@@ -256,4 +329,125 @@ export const scheduledMatchSimulator = onSchedule("every 5 minutes", async (even
   } catch (error) {
     console.error("FATAL ERROR in scheduledMatchSimulator:", error);
   }
+});
+
+const generateNewSeason = async () => {
+  const leagueName = "Meister-Liga";
+
+  const latestSeasonQuery = await db.collection("leagues")
+      .where("name", "==", leagueName)
+      .orderBy("season", "desc")
+      .limit(1)
+      .get();
+
+  let season: number;
+  let clubIds: string[];
+
+  if (!latestSeasonQuery.empty) {
+    const latestSeasonDoc = latestSeasonQuery.docs[0];
+    const latestLeague = latestSeasonDoc.data() as League;
+    
+    season = (latestLeague.season || 0) + 1;
+    clubIds = latestLeague.clubIds; // Use the same clubs
+    console.log(`Bestehende Liga "${leagueName}" gefunden. Erstelle Saison ${season}...`);
+
+  } else {
+    console.log(`Liga "${leagueName}" nicht gefunden. Erstelle neue Liga mit Saison 1...`);
+    season = 1;
+    
+    console.log("Lese Vereine aus der Datenbank...");
+    const clubsSnapshot = await db.collection("clubs").limit(10).get();
+    if (clubsSnapshot.empty) {
+      console.error("Keine Vereine in der Datenbank gefunden.");
+      return;
+    }
+    clubIds = clubsSnapshot.docs.map((doc) => doc.id);
+    console.log(`Gefundene Vereine (Limitiert auf 10): ${clubIds.join(", ")}`);
+  }
+
+  const leagueRef = db.collection("leagues").doc();
+  const newLeague: League = {
+    id: leagueRef.id, 
+    name: leagueName, 
+    clubIds, 
+    season
+  };
+  await leagueRef.set(newLeague);
+  console.log(`Neue Liga-Saison erstellt mit ID: ${newLeague.id}`);
+
+  const teams = [...clubIds];
+  if (teams.length % 2 !== 0) {
+    teams.push("dummy");
+  }
+
+  const fixtures: Omit<Fixture, "id">[] = [];
+  const numTeams = teams.length;
+  const numMatchdays = numTeams - 1;
+
+  const now = new Date();
+  const startDateHinrunde = new Date(now.getFullYear(), now.getMonth(), 3, 12, 0, 0, 0);
+  console.log(`Hinrundenstart ist am ${startDateHinrunde.toLocaleString('de-DE')}`);
+
+  // Hinrunde
+  console.log("Erstelle Hinrunden-Spielplan...");
+  for (let round = 0; round < numMatchdays; round++) {
+    const matchday = round + 1;
+    const matchDate = new Date(startDateHinrunde.getTime());
+    matchDate.setDate(matchDate.getDate() + round);
+
+    for (let i = 0; i < numTeams / 2; i++) {
+      const home = teams[i];
+      const away = teams[numTeams - 1 - i];
+      if (home !== "dummy" && away !== "dummy") {
+        fixtures.push({
+          homeTeam: home,
+          awayTeam: away,
+          date: matchDate.getTime(),
+          status: "scheduled",
+          leagueId: newLeague.id, // Use the new ID
+          season: season,
+          matchday: matchday,
+        });
+      }
+    }
+    teams.splice(1, 0, teams.pop()!);
+  }
+
+  const startDateRueckrunde = new Date(now.getFullYear(), now.getMonth(), 20, 12, 0, 0, 0);
+  console.log(`Rückrundenstart ist am ${startDateRueckrunde.toLocaleString('de-DE')}`);
+  console.log("Erstelle Rückrunden-Spielplan...");
+
+  const hinrundeFixtures = fixtures.slice(0, (numMatchdays * (numTeams / 2)));
+  for (const hinrundeFixture of hinrundeFixtures) {
+    const matchdayOffset = hinrundeFixture.matchday ? hinrundeFixture.matchday -1 : 0;
+    const rueckrundeMatchday = (hinrundeFixture.matchday || 0) + numMatchdays;
+    const rueckrundeDate = new Date(startDateRueckrunde.getTime());
+    rueckrundeDate.setDate(rueckrundeDate.getDate() + matchdayOffset);
+
+    fixtures.push({
+      homeTeam: hinrundeFixture.awayTeam,
+      awayTeam: hinrundeFixture.homeTeam,
+      date: rueckrundeDate.getTime(),
+      status: "scheduled",
+      leagueId: newLeague.id, // Use the new ID
+      season: season,
+      matchday: rueckrundeMatchday,
+    });
+  }
+
+  console.log(`Erstelle ${fixtures.length} Spiele für die Saison ${season}.`);
+
+  const batch = db.batch();
+  fixtures.forEach((fixture) => {
+    const fixtureRef = db.collection("fixtures").doc();
+    batch.set(fixtureRef, fixture);
+  });
+
+  await batch.commit();
+  console.log("Alle Spiele für die neue Saison wurden erfolgreich in die Datenbank geschrieben.");
+};
+
+export const scheduledSeasonGenerator = onSchedule("0 0 1 * *", async () => {
+  console.log("Scheduled function run: Generating new season...");
+  await generateNewSeason();
 });
