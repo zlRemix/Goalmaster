@@ -148,13 +148,16 @@ const performMatchSimulation = async (fixture: Fixture, fixtureId: string): Prom
         });
 
         for (let minute = 1; minute <= 90; minute++) {
+            // Goal scoring logic
             if (Math.random() < homeAttack / (homeAttack + awayDefense) * 0.035) {
                 homeScore++;
-                events.push(`${minute}' Tor für ${homeClub.name}!`);
+                const scoringPlayer = homePlayers[Math.floor(Math.random() * homePlayers.length)];
+                events.push(`${minute}' Tor für ${homeClub.name}! Torschütze: ${scoringPlayer.name} [${scoringPlayer.id}].`);
             }
             if (Math.random() < awayAttack / (awayAttack + homeDefense) * 0.035) {
                 awayScore++;
-                events.push(`${minute}' Tor für ${awayClub.name}!`);
+                const scoringPlayer = awayPlayers[Math.floor(Math.random() * awayPlayers.length)];
+                events.push(`${minute}' Tor für ${awayClub.name}! Torschütze: ${scoringPlayer.name} [${scoringPlayer.id}].`);
             }
 
             const FOUL_PROBABILITY_PER_MINUTE = 0.025;
@@ -174,9 +177,9 @@ const performMatchSimulation = async (fixture: Fixture, fixtureId: string): Prom
                         if (!status.sentOff) {
                             status.sentOff = true;
                             if (status.yellowCards === 1) {
-                                events.push(`${minute}' Gelb-Rote Karte für ${playerToCard.name} (${foulTeamClub.name}).`);
+                                events.push(`${minute}' Gelb-Rote Karte für ${playerToCard.name} [${playerToCard.id}] (${foulTeamClub.name}).`);
                             } else {
-                                events.push(`${minute}' Rote Karte für ${playerToCard.name} (${foulTeamClub.name}).`);
+                                events.push(`${minute}' Rote Karte für ${playerToCard.name} [${playerToCard.id}] (${foulTeamClub.name}).`);
                             }
 
                             if (isHomeFoul) {
@@ -189,7 +192,7 @@ const performMatchSimulation = async (fixture: Fixture, fixtureId: string): Prom
                         }
                     } else {
                         status.yellowCards = 1;
-                        events.push(`${minute}' Gelbe Karte für ${playerToCard.name} (${foulTeamClub.name}).`);
+                        events.push(`${minute}' Gelbe Karte für ${playerToCard.name} [${playerToCard.id}] (${foulTeamClub.name}).`);
                     }
                 }
             }

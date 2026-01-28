@@ -8,6 +8,7 @@ import { collection, query, where, onSnapshot, orderBy, doc, getDoc } from 'fire
 import LeagueTable from './LeagueTable';
 import ClubLogo from './ClubLogo';
 import MatchReport from './MatchReport';
+import LeagueLeaderboards from './LeagueLeaderboards';
 
 interface GroupedLeagues {
     [name: string]: League[];
@@ -21,7 +22,7 @@ const LeagueView: React.FC = () => {
     const [allClubs, setAllClubs] = useState<Club[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [activeTab, setActiveTab] = useState<'table' | 'fixtures'>('table');
+    const [activeTab, setActiveTab] = useState<'table' | 'fixtures' | 'stats'>('table');
     const [selectedReport, setSelectedReport] = useState<MatchResult | null>(null);
     const [loadingReport, setLoadingReport] = useState(false);
 
@@ -198,6 +199,12 @@ const LeagueView: React.FC = () => {
                                     >
                                         Spielplan
                                     </button>
+                                    <button
+                                        onClick={() => setActiveTab('stats')}
+                                        className={`${activeTab === 'stats' ? 'border-yellow-400 text-yellow-400' : 'border-transparent text-slate-400 hover:text-white hover:border-slate-500'} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors`}
+                                    >
+                                        Statistiken
+                                    </button>
                                 </nav>
                             </div>
 
@@ -265,6 +272,9 @@ const LeagueView: React.FC = () => {
                                         </div>
                                     )}
                                 </div>
+                            )}
+                            {activeTab === 'stats' && selectedLeague && (
+                                <LeagueLeaderboards leagueId={selectedLeague.id} season={selectedLeague.season} />
                             )}
                         </div>
                     )}
