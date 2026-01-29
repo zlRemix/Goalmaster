@@ -100,6 +100,7 @@ export interface Player {
     avatar?: AvatarData;
     equipment?: string[]; // IDs of owned equipment items
     equipped?: Partial<Record<EquipmentSlot, string>>; // ID of equipped item per slot
+    overall?: number;
 }
 
 export enum InfrastructureType {
@@ -142,6 +143,7 @@ export interface Club {
     activeTacticId?: TacticID;
     logo?: ClubLogoData;
     motto?: string;
+    leagueName?: string;
 }
 
 export interface Fixture {

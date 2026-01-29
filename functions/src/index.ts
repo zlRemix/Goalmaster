@@ -1,7 +1,8 @@
 import {onCall, HttpsError} from "firebase-functions/v2/https";
 import {onSchedule} from "firebase-functions/v2/scheduler";
 import * as admin from "firebase-admin";
-import {Player, Club, Fixture, Tactic, SkillType, MatchResult, League, EquipmentItem, SkillBonus, EQUIPMENT_ITEMS} from "../types";
+import {Player, Club, Fixture, Tactic, SkillType, MatchResult, League, EquipmentItem, SkillBonus, EquipmentSlot} from "../../types";
+import { EQUIPMENT_ITEMS } from "../../constants";
 
 admin.initializeApp();
 const db = admin.firestore();
@@ -261,14 +262,14 @@ export const runTestMatch = onCall({cors: true}, async (request) => {
 });
 
 export const toggleEquipment = onCall({cors: true}, async (request) => {
-  const {itemId, slot} = request.data;
+  const {itemId, slot} = request.data as {itemId: string, slot: EquipmentSlot };
   const uid = request.auth?.uid;
 
   if (!uid) {
     throw new HttpsError("unauthenticated", "You must be logged in.");
   }
-  if (!itemId || !slot) {
-    throw new HttpsError("invalid-argument", "Missing itemId or slot.");
+  if (!itemId || !slot || !Object.values(EquipmentSlot).includes(slot)) {
+    throw new HttpsError("invalid-argument", "Missing or invalid itemId or slot.");
   }
 
   const playerRef = db.collection("players").doc(uid);

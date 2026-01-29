@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { onAuthStateChanged, signOut, User } from 'firebase/auth';
 import { Player, Club, View, SkillType, Fixture, InfrastructureType, PlayerPosition, UserRole } from './types';
 import { TEAM_TRAININGS, EQUIPMENT_ITEMS } from './constants';
@@ -172,9 +172,18 @@ const App: React.FC = () => {
 
   const handleUpgrade = (clubId: string, type: InfrastructureType) => dataService.startInfrastructureUpgrade(clubId, type);
   const handleTrainSkill = (skill: SkillType) => { if (player) dataService.upgradeSkill(player.id, skill); };
-  const handleStartActivity = (activityId: string) => { if(player) dataService.startActivity(player.id, activityId); };
-  const handleCompleteActivity = (activityId: string) => { if(player) dataService.completeActivity(player.id, activityId); };
-  const handleResetActivities = () => { if(player) dataService.resetCompletedActivities(player.id); };
+  
+  const handleStartActivity = useCallback((activityId: string) => {
+    if (user) dataService.startActivity(user.uid, activityId);
+  }, [user]);
+
+  const handleCompleteActivity = useCallback((activityId: string) => {
+    if (user) dataService.completeActivity(user.uid, activityId);
+  }, [user]);
+
+  const handleResetActivities = useCallback(() => {
+    if (user) dataService.resetCompletedActivities(user.uid);
+  }, [user]);
 
   const { overallRating, xpNeeded, xpProgress } = useMemo(() => {
     if (!player) return { overallRating: 0, xpNeeded: 100, xpProgress: 0 };
