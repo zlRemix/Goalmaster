@@ -5,6 +5,7 @@ import { getSkillsForPosition } from '../utils';
 import { MAX_CLUB_PLAYERS } from '../constants';
 import { Check, X, Plus, Minus, Ban, Info, Rocket, Users, Shield, Hand, Mail } from 'lucide-react';
 import { TacticSelection } from './TacticSelection';
+import { PlaystyleSelection } from './PlaystyleSelection';
 import { MentalitySelection } from './MentalitySelection';
 
 // --- HILFSKOMPONENTEN ---
@@ -137,7 +138,10 @@ export const ClubManagement: React.FC<ClubManagementProps> = ({ club }) => {
 
   return (
     <div className="space-y-12 animate-in fade-in duration-500 pb-20">
-      <TacticSelection club={club} />
+        <div className="space-y-8">
+            <TacticSelection club={club} />
+            <PlaystyleSelection club={club} />
+        </div>
 
       {/* SEKTION: MEIN KADER */}
       <section className="space-y-4">

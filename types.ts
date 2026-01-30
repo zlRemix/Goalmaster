@@ -58,6 +58,16 @@ export interface Tactic {
     defenseBonus: number; 
 }
 
+export type PlaystyleID = 'balanced' | 'short_passes' | 'long_balls' | 'wing_play';
+
+export interface Playstyle {
+    id: PlaystyleID;
+    name: string;
+    description: string;
+    attackBonus: number;
+    defenseBonus: number;
+}
+
 export type PlayerMentalityID = 'aggressive' | 'balanced' | 'cautious' | 'playmaker' | 'workhorse';
 
 export interface PlayerMentality {
@@ -154,6 +164,7 @@ export interface Club {
     pendingApplications?: string[]; 
     isAcceptingApplications?: boolean;
     activeTacticId?: TacticID;
+    activePlaystyleId?: PlaystyleID;
     logo?: ClubLogoData;
     motto?: string;
     leagueName?: string;

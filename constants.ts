@@ -1,5 +1,5 @@
 
-import { Activity, TeamTrainingSession, UserRole, InfrastructureType, PlayerPosition, Tactic, EquipmentItem, EquipmentSlot, PlayerMentality } from './types.js';
+import { Activity, TeamTrainingSession, UserRole, InfrastructureType, PlayerPosition, Tactic, Playstyle, EquipmentItem, EquipmentSlot, PlayerMentality } from './types.js';
 
 export const MAX_CLUB_PLAYERS = 5;
 export const XP_PER_SKILL_UPGRADE = 10;
@@ -207,6 +207,37 @@ export const TACTICS: Tactic[] = [
         name: 'Gegenpressing',
         description: 'Sofortiges Jagen des Balls nach Ballverlust.',
         attackBonus: 0.10,
+        defenseBonus: -0.05
+    }
+];
+
+export const PLAYSTYLES: Playstyle[] = [
+    {
+        id: 'balanced',
+        name: 'Ausgewogen',
+        description: 'Ein ausbalancierter Spielstil ohne klare Stärken.',
+        attackBonus: 0,
+        defenseBonus: 0
+    },
+    {
+        id: 'short_passes',
+        name: 'Kurzpassspiel',
+        description: 'Geduldiger Spielaufbau mit sicheren Pässen.',
+        attackBonus: 0.05,
+        defenseBonus: 0.05
+    },
+    {
+        id: 'long_balls',
+        name: 'Lange Bälle',
+        description: 'Das Mittelfeld schnell mit hohen Bällen überbrücken.',
+        attackBonus: 0.1,
+        defenseBonus: -0.05
+    },
+    {
+        id: 'wing_play',
+        name: 'Flügelspiel',
+        description: 'Das Spiel auf die Außenbahnen verlagern und flanken.',
+        attackBonus: 0.1,
         defenseBonus: -0.05
     }
 ];
