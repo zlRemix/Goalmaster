@@ -66,7 +66,8 @@ export interface AvatarData {
 // --- Equipment --- //
 export enum EquipmentSlot {
     SHOES = 'shoes',
-    GLOVES = 'gloves',
+    JERSEY = 'jersey',
+    SHORTS = 'shorts',
     SHIN_GUARDS = 'shin_guards',
     TAPE = 'tape',
 }

@@ -225,7 +225,7 @@ export const EQUIPMENT_ITEMS: EquipmentItem[] = [
         price: 50,
         slot: EquipmentSlot.SHOES,
         allowedPositions: ['Stürmer'],
-        bonus: {
+        bonus: { 
             'shot_power': 2,
             'finishing': 3,
         }
@@ -256,17 +256,115 @@ export const EQUIPMENT_ITEMS: EquipmentItem[] = [
             'strength': 2,
         }
     },
-    // --- Handschuhe (Torwart) ---
+    // --- Torwart-Schuhe ---
     {
-        id: 'glove_tw_01',
-        name: 'Torwart-Handschuh Titan',
-        description: 'Verbessert Fangen und Reflexe.',
-        price: 60,
-        slot: EquipmentSlot.GLOVES,
+        id: 'shoe_tw_01',
+        name: 'Torwart-Schuh Alpha',
+        description: 'Verbessert Abschlag und Reflexe.',
+        price: 55,
+        slot: EquipmentSlot.SHOES,
         allowedPositions: ['Torwart'],
         bonus: {
-            'handling': 3,
+            'kicking': 3,
             'reflexes': 2,
         }
     },
+    // --- Trikots ---
+    {
+        id: 'jersey_st_01',
+        name: 'Stürmer-Trikot Alpha',
+        description: 'Verbessert Abschluss und Schusskraft.',
+        price: 40,
+        slot: EquipmentSlot.JERSEY,
+        allowedPositions: ['Stürmer'],
+        bonus: {
+            'finishing': 3,
+            'shot_power': 2,
+        }
+    },
+    {
+        id: 'jersey_mf_01',
+        name: 'Mittelfeld-Trikot Beta',
+        description: 'Verbessert Übersicht und Passspiel.',
+        price: 40,
+        slot: EquipmentSlot.JERSEY,
+        allowedPositions: ['Mittelfeld'],
+        bonus: {
+            'vision': 3,
+            'passing': 2,
+        }
+    },
+    {
+        id: 'jersey_aw_01',
+        name: 'Abwehr-Trikot Gamma',
+        description: 'Verbessert Manndeckung und Abfangen.',
+        price: 40,
+        slot: EquipmentSlot.JERSEY,
+        allowedPositions: ['Abwehr'],
+        bonus: {
+            'marking': 3,
+            'interceptions': 2,
+        }
+    },
+    {
+        id: 'jersey_tw_01',
+        name: 'Torwart-Trikot Alpha',
+        description: 'Verbessert Kommunikation und Positionierung.',
+        price: 40,
+        slot: EquipmentSlot.JERSEY,
+        allowedPositions: ['Torwart'],
+        bonus: {
+            'communication': 2,
+            'positioning': 3,
+        }
+    },
+    // --- Hosen ---
+    {
+        id: 'shorts_st_01',
+        name: 'Stürmer-Hose Alpha',
+        description: 'Verbessert Antritt und Dribbling.',
+        price: 35,
+        slot: EquipmentSlot.SHORTS,
+        allowedPositions: ['Stürmer'],
+        bonus: {
+            'pace': 3,
+            'dribbling': 2,
+        }
+    },
+    {
+        id: 'shorts_mf_01',
+        name: 'Mittelfeld-Hose Beta',
+        description: 'Verbessert Ausdauer und Dribbling.',
+        price: 35,
+        slot: EquipmentSlot.SHORTS,
+        allowedPositions: ['Mittelfeld'],
+        bonus: {
+            'stamina': 3,
+            'dribbling': 2,
+        }
+    },
+    {
+        id: 'shorts_aw_01',
+        name: 'Abwehr-Hose Gamma',
+        description: 'Verbessert Zweikampf und Stärke.',
+        price: 35,
+        slot: EquipmentSlot.SHORTS,
+        allowedPositions: ['Abwehr'],
+        bonus: {
+            'tackling': 3,
+            'strength': 2,
+        }
+    },
+    {
+        id: 'shorts_tw_01',
+        name: 'Torwart-Hose Alpha',
+        description: 'Verbessert Hechten und Stärke.',
+        price: 35,
+        slot: EquipmentSlot.SHORTS,
+        allowedPositions: ['Torwart'],
+        bonus: {
+            'diving': 3,
+            'strength': 2,
+        }
+    }
 ];

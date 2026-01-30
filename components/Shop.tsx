@@ -30,7 +30,7 @@ export const Shop: React.FC<ShopProps> = ({ player }) => {
     }
   };
 
-  const playerEquipment = EQUIPMENT_ITEMS.filter(item => item.allowedPositions.includes(player.position));
+  const playerEquipment = EQUIPMENT_ITEMS;
 
   return (
     <div className="space-y-6 md:space-y-8 animate-in fade-in duration-300">
