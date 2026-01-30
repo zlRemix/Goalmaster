@@ -176,8 +176,8 @@ const App: React.FC = () => {
     if (user) dataService.startActivity(user.uid, activityId);
   }, [user]);
 
-  const handleCompleteActivity = useCallback((activityId: string) => {
-    if (user) dataService.completeActivity(user.uid, activityId);
+  const handleCompleteActivity = useCallback((activityId: string, correct?: boolean) => {
+    if (user) dataService.completeActivity(user.uid, activityId, correct);
   }, [user]);
 
   const handleResetActivities = useCallback(() => {
@@ -243,6 +243,7 @@ const App: React.FC = () => {
   return (
     <div className="h-screen bg-slate-950 text-slate-100 font-sans">
       <Sidebar 
+        player={player}
         activeView={activeView} 
         setView={setActiveView} 
         roles={player.roles || []} 

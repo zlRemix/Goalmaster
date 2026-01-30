@@ -27,7 +27,7 @@ export interface Activity {
     durationSeconds: number;
     reward: Reward;
     requiredRole?: UserRole;
-    type: 'training' | 'fitness' | 'tactic' | 'pr' | 'social' | 'work';
+    type: 'training' | 'fitness' | 'tactic' | 'pr' | 'social' | 'work' | 'quiz';
 }
 
 export interface ActiveActivity {
@@ -124,6 +124,7 @@ export interface Player {
     equipped?: Partial<Record<EquipmentSlot, string>>; // ID of equipped item per slot
     overall?: number;
     activeMentalityId?: PlayerMentalityID;
+    lastQuizTimestamp?: number;
 }
 
 export enum InfrastructureType {

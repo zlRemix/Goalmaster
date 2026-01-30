@@ -1,14 +1,13 @@
-import React, { useState, useEffect, ElementType, useId, memo } from 'react';
+import React, { useState, useEffect, ElementType, useId } from 'react';
 import { Club, Player, InfrastructureType, UserRole, ActiveTeamTraining, View, SpecializationID, PendingUpgrade } from '../types';
 import { dataService } from '../services/dataService';
-import { getSkillsForPosition } from '../utils';
+import { getSkillsForPosition, getTierInfo } from '../utils';
 import { INFRA_UPGRADE_COSTS, INFRA_UPGRADE_TIMES, INFRA_LEVEL_BENEFITS, TEAM_TRAININGS, MAX_CLUB_PLAYERS, INFRASTRUCTURE_SPECIALIZATIONS } from '../constants';
 import { ClubManagement } from './ClubManagement';
 import LogoEditor from './LogoEditor';
 import ClubLogo from './ClubLogo';
-import { Timer, TrendingUp, Users, Zap, ShieldCheck, Euro, Building2, Star } from 'lucide-react';
+import { Timer, TrendingUp, Users, Zap, ShieldCheck, Euro, Building2, Star, ChevronDown, ChevronUp } from 'lucide-react';
 import { EliteSpecialization } from './EliteSpecialization';
-
 
 const InfraVisual: React.FC<{ type: InfrastructureType; color: string; rarityId: string }> = ({ type, color, rarityId }) => {
     const getPaths = () => {
@@ -155,17 +154,84 @@ const InfrastructureCard: React.FC<{ type: InfrastructureType; club: Club; onUpg
     );
 };
 
-const SquadList: React.FC<{ players: Player[] }> = ({ players }) => {
+const PlayerCard: React.FC<{ player: Player; isOpen: boolean; onToggle: () => void; }> = ({ player, isOpen, onToggle }) => {
+
     const getOverall = (p: Player) => {
         const relevantSkills = getSkillsForPosition(p.position);
         const totalSkill = relevantSkills.reduce((sum, s) => sum + (p.skills[s] || 0), 0);
         return relevantSkills.length > 0 ? Math.round(totalSkill / relevantSkills.length) : 0;
     };
+
+    const sortedSkills = Object.entries(player.skills)
+        .filter(([_, value]) => value > 0)
+        .sort(([, a], [, b]) => b - a);
+
+    return (
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl transition-all hover:bg-slate-800/50">
+            <div className="p-4 flex justify-between items-center cursor-pointer" onClick={onToggle}>
+                <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 bg-slate-800 rounded-full flex items-center justify-center font-black text-[10px] text-blue-400 border border-white/5">{player.position}</div>
+                    <div>
+                        <p className="font-black text-white uppercase italic text-sm">{player.name}</p>
+                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-tighter">Level {player.level}</p>
+                    </div>
+                </div>
+                <div className="flex items-center gap-4">
+                    <div className="text-right">
+                        <p className="text-2xl font-black text-blue-400 italic leading-none">{getOverall(player)}</p>
+                        <p className="text-[8px] font-black text-slate-600 uppercase">GES</p>
+                    </div>
+                    <button className="p-1 text-slate-500 hover:text-white">
+                        {isOpen ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+                    </button>
+                </div>
+            </div>
+            {isOpen && (
+                <div className="p-4 border-t border-slate-800/50 animate-in fade-in duration-300">
+                    <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Top-Skills</h4>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-xs">
+                        {sortedSkills.map(([skill, value]) => {
+                            const { colorClass, tierLabel } = getTierInfo(value);
+                            return (
+                                <div key={skill} className="bg-slate-800/50 p-2 rounded-lg flex justify-between items-center">
+                                    <span className="font-bold text-slate-400 capitalize">{skill.replace(/_/g, ' ')}</span>
+                                    <span className={`font-black text-sm bg-clip-text text-transparent bg-gradient-to-r ${colorClass}`}>{value}</span>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
+
+const SquadList: React.FC<{ players: Player[] }> = ({ players }) => {
+    const [openPlayerId, setOpenPlayerId] = useState<string | null>(null);
+
+    const handleToggle = (playerId: string) => {
+        setOpenPlayerId(prevId => (prevId === playerId ? null : playerId));
+    };
+
+    const getOverall = (p: Player) => {
+        const relevantSkills = getSkillsForPosition(p.position);
+        const totalSkill = relevantSkills.reduce((sum, s) => sum + (p.skills[s] || 0), 0);
+        return relevantSkills.length > 0 ? Math.round(totalSkill / relevantSkills.length) : 0;
+    };
+
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {players.sort((a,b) => getOverall(b) - getOverall(a)).map(p => (
-                <div key={p.id} className="bg-slate-900 border border-slate-800 p-4 rounded-2xl flex justify-between items-center transition-all hover:bg-slate-800/50"><div className="flex items-center gap-4"><div className="w-10 h-10 bg-slate-800 rounded-full flex items-center justify-center font-black text-[10px] text-blue-400 border border-white/5">{p.position}</div><div><p className="font-black text-white uppercase italic text-sm">{p.name}</p><p className="text-[10px] font-bold text-slate-500 uppercase tracking-tighter">Level {p.level}</p></div></div><div className="text-right"><p className="text-2xl font-black text-blue-400 italic leading-none">{getOverall(p)}</p><p className="text-[8px] font-black text-slate-600 uppercase">GES</p></div></div>
-            ))}
+            {players
+                .sort((a,b) => getOverall(b) - getOverall(a))
+                .map(p => 
+                    <PlayerCard 
+                        key={p.id} 
+                        player={p} 
+                        isOpen={openPlayerId === p.id}
+                        onToggle={() => handleToggle(p.id)}
+                    />
+                )
+            }
         </div>
     );
 };
@@ -194,7 +260,7 @@ interface ClubDashboardProps {
 }
 
 export const ClubDashboard: React.FC<ClubDashboardProps> = ({ club, player, onUpgrade, setView, forceUpdate }) => {
-    const [clubNav, setClubNav] = useState<ClubNavView>('infrastructure');
+    const [clubNav, setClubNav] = useState<ClubNavView>('squad');
     const [squadPlayers, setSquadPlayers] = useState<Player[]>([]);
     const isManager = player.roles.includes(UserRole.MANAGER);
 

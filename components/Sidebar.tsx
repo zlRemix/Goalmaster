@@ -1,5 +1,5 @@
 import React, { ElementType } from 'react';
-import { View, UserRole } from '../types';
+import { View, UserRole, Player } from '../types';
 import { Home, User, Shield, Users, Activity, ShoppingCart, Trophy, Swords, UserCog, LogOut, Settings, Zap } from 'lucide-react';
 
 interface SidebarProps {
@@ -9,6 +9,7 @@ interface SidebarProps {
   onLogout: () => void;
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
+  player: Player;
 }
 
 const NavItem: React.FC<{ 
@@ -43,7 +44,7 @@ const NavGroup: React.FC<{ title: string, children: React.ReactNode }> = ({ titl
   </div>
 );
 
-export const Sidebar: React.FC<SidebarProps> = ({ activeView, setView, roles, onLogout, isOpen, setIsOpen }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ activeView, setView, roles, onLogout, isOpen, setIsOpen, player }) => {
   const isAdmin = true; // roles.includes(UserRole.ADMIN);
 
   const handleNavItemClicked = () => {
@@ -71,8 +72,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeView, setView, roles, on
             </NavGroup>
             
             <NavGroup title="Verein">
-                 <NavItem label="Mein Verein" view="club" Icon={Shield} activeView={activeView} setView={setView} onClick={handleNavItemClicked} />
-                 <NavItem label="Vereinssuche" view="club-search" Icon={Users} activeView={activeView} setView={setView} onClick={handleNavItemClicked} />
+                {player.clubId ? (
+                    <NavItem label="Mein Verein" view="club" Icon={Shield} activeView={activeView} setView={setView} onClick={handleNavItemClicked} />
+                ) : (
+                    <NavItem label="Vereinssuche" view="club-search" Icon={Users} activeView={activeView} setView={setView} onClick={handleNavItemClicked} />
+                )}
             </NavGroup>
 
             <NavGroup title="Community">

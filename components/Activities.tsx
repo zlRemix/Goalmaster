@@ -3,13 +3,14 @@ import { Player, Activity, ActiveActivity, Club, SkillType } from '../types';
 import { ACTIVITIES } from '../constants';
 import { useCountdown, formatDuration } from '../hooks/useTimers';
 import { dataService } from '../services/dataService';
-import { TrainingCenter } from './TrainingCenter'; // Import TrainingCenter
+import { TrainingCenter } from './TrainingCenter';
+import Quiz from './Quiz'; // Import the Quiz component
 import { 
   ClipboardList, Mic, Footprints, Pizza, Timer, 
-  Star, Briefcase, Euro, ShieldCheck, Zap 
+  Star, Briefcase, Euro, ShieldCheck, Zap, BrainCircuit
 } from 'lucide-react';
 
-type ActivityTab = 'career' | 'personal' | 'training';
+type ActivityTab = 'career' | 'personal' | 'training' | 'quiz';
 
 const activityCategorization: Record<Activity['type'], { icon: ElementType; color: string; groupTitle: string; tab: ActivityTab }> = {
     training: { icon: Star, color: '#38BDF8', groupTitle: 'Training', tab: 'career' },
@@ -18,9 +19,9 @@ const activityCategorization: Record<Activity['type'], { icon: ElementType; colo
     pr: { icon: Mic, color: '#F472B6', groupTitle: 'Medien & PR', tab: 'career' },
     social: { icon: Pizza, color: '#FB7185', groupTitle: 'Team & Soziales', tab: 'career' },
     work: { icon: Briefcase, color: '#34D399', groupTitle: 'Arbeit & Finanzen', tab: 'personal' },
+    quiz: { icon: BrainCircuit, color: '#A78BFA', groupTitle: 'Wissen & Quiz', tab: 'quiz' },
 };
 
-// --- UNTERKOMPONENTEN (Verhindern Hook-Fehler) ---
 
 const ActivityGraphic: React.FC<{ type: Activity['type']; color: string }> = ({ type, color }) => {
     const rarityId = useId().replace(/:/g, ""); 
@@ -32,6 +33,7 @@ const ActivityGraphic: React.FC<{ type: Activity['type']; color: string }> = ({ 
             case 'pr': return <g><rect x="65" y="50" width="20" height="40" rx="10" /><rect x="70" y="90" width="10" height="30" /><path d="M55 75C55 85 65 95 75 95C85 95 95 85 95 75" stroke="currentColor" strokeWidth="4" fill="none" /></g>;
             case 'social': return <g><path d="M75 45L110 110H40L75 45Z" /><circle cx="75" cy="70" r="4" fill="white" fillOpacity="0.4" /></g>;
             case 'work': return <g><rect x="45" y="65" width="60" height="45" rx="4" /><path d="M60 65V55C60 50 65 45 75 45C85 45 90 50 90 55V65" stroke="currentColor" strokeWidth="4" fill="none" /></g>;
+            case 'quiz': return <g><path d="M75 50 C 50 50, 50 70, 60 80 S 75 100, 90 80 S 100 50, 75 50" stroke="currentColor" strokeWidth="3" fill="none" /><circle cx="75" cy="75" r="5" fill="white" /></g>;
             default: return <circle cx="75" cy="80" r="30" />;
         }
     };
@@ -79,11 +81,10 @@ const ActiveActivityStatus: React.FC<{ activeInstance: ActiveActivity, activityD
     );
 };
 
-// --- HAUPTKOMPONENTE ---
-
-export const Activities: React.FC<{ player: Player; onStart: (activityId: string) => void; onComplete: (activityId: string) => void; onReset: () => void; onTrain: (skill: SkillType) => void; }> = memo(({ player, onStart, onComplete, onReset, onTrain }) => {
+export const Activities: React.FC<{ player: Player; onStart: (activityId: string) => void; onComplete: (activityId: string, correct?: boolean) => void; onReset: () => void; onTrain: (skill: SkillType) => void; }> = memo(({ player, onStart, onComplete, onReset, onTrain }) => {
     const [club, setClub] = useState<Club | null>(null);
     const [activeTab, setActiveTab] = useState<ActivityTab>('career');
+    const [isQuizActive, setIsQuizActive] = useState(false);
 
     useEffect(() => {
         if (!player.clubId) { setClub(null); return; }
@@ -94,13 +95,18 @@ export const Activities: React.FC<{ player: Player; onStart: (activityId: string
     const activeInstance = player.activeActivities?.[0];
     const activeDef = activeInstance ? ACTIVITIES.find(a => a.id === activeInstance.activityId) : undefined;
     
+    useEffect(() => {
+        if (activeDef?.type === 'quiz') {
+            setIsQuizActive(true);
+        }
+    }, [activeDef]);
+
     const medicalCenterLevel = club?.infrastructure?.medical_center?.level || 0;
     const durationReduction = medicalCenterLevel > 0 ? (medicalCenterLevel * 3) / 100 : 0;
     const tpBonusPercentage = (club?.infrastructure?.training_ground?.level || 0) * 0.02;
 
-    // Timer-Logik für Abschluss
     useEffect(() => {
-        if (!activeInstance || !activeDef) return;
+        if (!activeInstance || !activeDef || activeDef.type === 'quiz') return;
         const effectiveDuration = activeDef.durationSeconds * (1 - durationReduction);
         const endTime = activeInstance.startTime + (effectiveDuration * 1000);
         const remaining = endTime - Date.now();
@@ -109,7 +115,6 @@ export const Activities: React.FC<{ player: Player; onStart: (activityId: string
         return () => clearTimeout(timer);
     }, [activeInstance?.activityId, onComplete, durationReduction]);
 
-    // Timer-Logik für Reset
     useEffect(() => {
         if (!player.nextActivityReset) return;
         const remaining = player.nextActivityReset - Date.now();
@@ -117,6 +122,13 @@ export const Activities: React.FC<{ player: Player; onStart: (activityId: string
         const timer = setTimeout(() => onReset(), remaining);
         return () => clearTimeout(timer);
     }, [player.nextActivityReset, onReset]);
+
+    const handleQuizComplete = (correct: boolean) => {
+        if(activeDef) {
+            onComplete(activeDef.id, correct);
+        }
+        setIsQuizActive(false);
+    };
 
     const groupedActivities = useMemo(() => 
         ACTIVITIES.reduce((acc, activity) => {
@@ -126,6 +138,10 @@ export const Activities: React.FC<{ player: Player; onStart: (activityId: string
             return acc;
         }, {} as Record<Activity['type'], Activity[]>)
     , []);
+
+    if (isQuizActive) {
+        return <Quiz onComplete={handleQuizComplete} />;
+    }
 
     return (
         <div className="space-y-8 pb-24 px-2">
@@ -139,26 +155,22 @@ export const Activities: React.FC<{ player: Player; onStart: (activityId: string
                 </div>
             </header>
 
-            {/* GROSSER AKTIVER TIMER */}
             {activeDef && activeInstance && (
                 <ActiveActivityStatus activeInstance={activeInstance} activityDef={activeDef} durationReduction={durationReduction} />
             )}
 
-            {/* TABS */}
             <div className="flex gap-2 p-1 bg-slate-950/50 rounded-2xl border border-slate-800 w-fit">
-                 {(['career', 'training', 'personal'] as const).map((tab) => (
+                 {(['career', 'training', 'personal', 'quiz'] as const).map((tab) => (
                     <button key={tab} onClick={() => setActiveTab(tab)} className={`px-8 py-2.5 rounded-xl font-black uppercase text-xs transition-all ${activeTab === tab ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-500 hover:text-white'}`}>
-                        {tab === 'career' ? 'Karriere' : tab === 'training' ? 'Trainingscenter' : 'Arbeiten'}
+                        {tab === 'career' ? 'Karriere' : tab === 'training' ? 'Trainingscenter' : tab === 'personal' ? 'Arbeiten' : 'Quiz'}
                     </button>
                 ))}
             </div>
 
-            {/* TRAINING CENTER */}
             {activeTab === 'training' && (
                 <TrainingCenter player={player} onTrain={onTrain} />
             )}
 
-            {/* AKTIVITÄTS-LISTEN */}
             {activeTab !== 'training' && Object.entries(activityCategorization)
                 .filter(([_, config]) => config.tab === activeTab)
                 .map(([type, config]) => {
@@ -171,12 +183,15 @@ export const Activities: React.FC<{ player: Player; onStart: (activityId: string
                             </h3>
                             <div className="flex flex-wrap gap-4 justify-center md:justify-start">
                                 {activities.map((activity) => {
-                                    const isCompleted = player.completedActivityIds?.includes(activity.id);
-                                    const canStart = !activeDef && !isCompleted;
-                                    const finalTp = activity.type === 'training' ? (activity.reward?.tp || 0) * (1 + tpBonusPercentage) : (activity.reward?.tp || 0);
+                                    const isQuiz = activity.type === 'quiz';
+                                    const lastQuizTaken = player.lastQuizTimestamp || 0;
+                                    const isQuizOnCooldown = isQuiz && (Date.now() - lastQuizTaken) < 24 * 60 * 60 * 1000;
+                                    const isCompleted = !isQuiz && player.completedActivityIds?.includes(activity.id);
+                                    const canStart = !activeDef && !isCompleted && !isQuizOnCooldown;
+                                    const finalTp = activity.reward?.tp ? activity.reward.tp * (1 + (activity.type === 'training' ? tpBonusPercentage : 0)) : 0;
 
                                     return (
-                                        <div key={activity.id} className={`relative flex flex-col w-[175px] bg-slate-900 border-2 border-slate-800 rounded-[2.5rem] p-3 transition-all duration-300 ${isCompleted ? 'opacity-40 grayscale' : 'hover:border-slate-600 hover:-translate-y-1'}`}>
+                                        <div key={activity.id} className={`relative flex flex-col w-[175px] bg-slate-900 border-2 border-slate-800 rounded-[2.5rem] p-3 transition-all duration-300 ${(isCompleted || isQuizOnCooldown) ? 'opacity-40 grayscale' : 'hover:border-slate-600 hover:-translate-y-1'}`}>
                                             <div className="absolute -top-3 left-1/2 -translate-x-1/2 flex gap-1 z-10">
                                                 {finalTp > 0 && <div className="bg-slate-800 px-2 py-1 rounded-lg border border-slate-700 flex items-center gap-1 shadow-lg"><Zap className="w-3 h-3 text-yellow-400" /><span className="text-[10px] font-black text-white">+{finalTp.toFixed(1)}</span></div>}
                                                 {activity.reward?.euro && <div className="bg-slate-800 px-2 py-1 rounded-lg border border-slate-700 flex items-center gap-1 shadow-lg"><Euro className="w-3 h-3 text-emerald-400" /><span className="text-[10px] font-black text-white">+{activity.reward.euro}</span></div>}
@@ -188,8 +203,8 @@ export const Activities: React.FC<{ player: Player; onStart: (activityId: string
                                                     <span className="text-[8px] font-bold text-slate-500 uppercase tracking-tighter">{formatDuration(activity.durationSeconds * (1 - durationReduction))}</span>
                                                 </div>
                                             </div>
-                                            <button onClick={() => onStart(activity.id)} disabled={!canStart} className={`w-full py-2.5 rounded-xl font-black uppercase tracking-widest text-[10px] transition-all ${isCompleted ? 'bg-slate-800 text-slate-600' : canStart ? 'bg-blue-600 text-white hover:bg-blue-500 shadow-md' : 'bg-slate-800 text-slate-700'}`}>
-                                                {isCompleted ? <ShieldCheck className="w-4 h-4 mx-auto" /> : 'Starten'}
+                                            <button onClick={() => onStart(activity.id)} disabled={!canStart} className={`w-full py-2.5 rounded-xl font-black uppercase tracking-widest text-[10px] transition-all ${(isCompleted || isQuizOnCooldown) ? 'bg-slate-800 text-slate-600' : canStart ? 'bg-blue-600 text-white hover:bg-blue-500 shadow-md' : 'bg-slate-800 text-slate-700'}`}>
+                                                {(isCompleted || isQuizOnCooldown) ? <ShieldCheck className="w-4 h-4 mx-auto" /> : 'Starten'}
                                             </button>
                                         </div>
                                     );
