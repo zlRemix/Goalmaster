@@ -1,4 +1,4 @@
-import { collection, doc, getDoc, onSnapshot, setDoc, updateDoc, arrayUnion, arrayRemove, runTransaction, serverTimestamp, FieldValue, query, where, getDocs, writeBatch, documentId, orderBy } from 'firebase/firestore';
+import { collection, doc, getDoc, onSnapshot, setDoc, updateDoc, arrayUnion, arrayRemove, runTransaction, serverTimestamp, FieldValue, query, where, getDocs, writeBatch, documentId, orderBy, increment } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import { db, functions } from './firebase';
 import { Player, Club, Fixture, PlayerPosition, UserRole, PendingUpgrade, SkillType, ActiveActivity, Reward, InfrastructureType, ActiveTeamTraining, Activity, EquipmentSlot } from '../types';
@@ -272,8 +272,9 @@ const dataService = {
         if (!activityInstance || activityInstance.activityId !== activityId) return;
 
         let club: Club | null = null;
+        let clubRef = null;
         if (player.clubId) {
-            const clubRef = doc(db, 'clubs', player.clubId);
+            clubRef = doc(db, 'clubs', player.clubId);
             const clubDoc = await transaction.get(clubRef);
             if (clubDoc.exists()) {
                 club = clubDoc.data() as Club;
@@ -285,9 +286,8 @@ const dataService = {
         playerUpdates.completedActivityIds = arrayUnion(activityId);
         transaction.update(playerRef, playerUpdates);
 
-        if (budgetGain > 0 && club) {
-            const clubRef = doc(db, 'clubs', club.id);
-            transaction.update(clubRef, { budget: (club.budget || 0) + budgetGain });
+        if (budgetGain > 0 && clubRef) {
+            transaction.update(clubRef, { budget: increment(budgetGain) });
         }
     });
   },
