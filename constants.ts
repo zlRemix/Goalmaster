@@ -1,5 +1,42 @@
+import { Activity, TeamTrainingSession, UserRole, InfrastructureType, PlayerPosition, Tactic, Playstyle, EquipmentItem, EquipmentSlot, PlayerMentality, StadiumSpecializationID, SpecializationID } from './types.js';
 
-import { Activity, TeamTrainingSession, UserRole, InfrastructureType, PlayerPosition, Tactic, Playstyle, EquipmentItem, EquipmentSlot, PlayerMentality } from './types.js';
+// --- Elite Infrastructure Specializations ---
+
+interface Specialization {
+    id: SpecializationID;
+    name: string;
+    description: string;
+    bonus: { [key: string]: any }; 
+}
+
+interface SpecializationPath {
+    type: InfrastructureType;
+    specializations: Specialization[];
+}
+
+export const INFRASTRUCTURE_SPECIALIZATIONS: SpecializationPath[] = [
+    {
+        type: InfrastructureType.STADIUM,
+        specializations: [
+            {
+                id: 'vip_temple',
+                name: 'VIP-Business-Tempel',
+                description: 'Luxuslogen und Kaviar-Service. Dein Stadion wird zur Goldgrube, aber die Stimmung ist eher ruhig.',
+                bonus: { income_bonus: 1.0 }, // +100% income, replacing the base bonus.
+            },
+            {
+                id: 'ultra_fortress',
+                name: 'Die Gelbe Wand (Ultra-Festung)',
+                description: 'Maximale Fan-Präsenz. Der ohrenbetäubende Lärm lässt gegnerische Stürmer zittern.',
+                bonus: { defense_bonus: 0.15 }, // +15% defense bonus for home games.
+            }
+        ]
+    }
+    // Future specializations for other buildings will be added here
+];
+
+export const INFRA_SPECIALIZATION_COST = 2500000;
+export const INFRA_SPECIALIZATION_TIME = 604800; // 7 days in seconds
 
 export const MAX_CLUB_PLAYERS = 5;
 export const XP_PER_SKILL_UPGRADE = 10;

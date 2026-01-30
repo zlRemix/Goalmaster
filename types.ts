@@ -133,13 +133,18 @@ export enum InfrastructureType {
     MARKETING_DEPARTMENT = 'marketing_department',
 }
 
+export type StadiumSpecializationID = 'vip_temple' | 'ultra_fortress';
+export type SpecializationID = StadiumSpecializationID; // This will be extended later, e.g. | TrainingGroundSpecializationID
+
 export interface InfrastructureItem {
     level: number;
+    specialization?: SpecializationID;
 }
 
 export interface PendingUpgrade {
     type: InfrastructureType;
-    targetLevel: number;
+    targetLevel?: number;
+    specializationId?: SpecializationID;
     startTime: number;
     endTime: number;
 }
