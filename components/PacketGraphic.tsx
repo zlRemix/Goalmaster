@@ -1,4 +1,3 @@
-
 import React from 'react';
 
 interface PacketGraphicProps {
@@ -7,92 +6,123 @@ interface PacketGraphicProps {
 }
 
 export const PacketGraphic: React.FC<PacketGraphicProps> = ({ sizeClass, tp }) => {
-
-  const SVGs = {
-    small: (
-      <svg width="140" height="200" viewBox="0 0 140 200" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <rect width="140" height="200" rx="12" fill="url(#small_gradient)"/>
-        <rect width="140" height="200" rx="12" fill="url(#small_pattern)" opacity="0.1"/>
-        <g filter="url(#lightning_shadow)">
-          <path d="M70 80 L85 120 H55 L70 80Z" fill="#FBBF24"/>
-          <path d="M62 120 L70 140 L78 120 H62Z" fill="#FBBF24"/>
-        </g>
-        <text x="70" y="50" textAnchor="middle" fontFamily="sans-serif" fontSize="36" fontWeight="bold" fill="white" filter="url(#text_shadow)">+{tp}</text>
-        <text x="70" y="70" textAnchor="middle" fontFamily="sans-serif" fontSize="14" fill="white" fillOpacity={0.8}>TP</text>
-        <defs>
-          <filter id="text_shadow" x="0" y="0" width="200%" height="200%">
-             <feDropShadow dx="2" dy="2" stdDeviation="2" floodColor="#000000" floodOpacity={0.5}/>
-          </filter>
-          <filter id="lightning_shadow" x="45" y="75" width="50" height="75" filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB">
-            <feDropShadow dx="0" dy="2" stdDeviation="5" floodColor="#FBBF24" floodOpacity={0.7}/>
-          </filter>
-          <linearGradient id="small_gradient" x1="70" y1="0" x2="70" y2="200" gradientUnits="userSpaceOnUse">
-            <stop stopColor="#2A3A8A"/>
-            <stop offset="1" stopColor="#1E2964"/>
-          </linearGradient>
-          <pattern id="small_pattern" patternContentUnits="objectBoundingBox" width="0.1" height="0.1">
-            <path d="M-1 1 l2 -2 M0 10 l10 -10 M9 11 l2 -2" stroke="white" strokeWidth="0.5"/>
-          </pattern>
-        </defs>
-      </svg>
-    ),
-    medium: (
-        <svg width="140" height="200" viewBox="0 0 140 200" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <rect width="140" height="200" rx="12" fill="url(#medium_gradient)"/>
-        <rect width="140" height="200" rx="12" fill="url(#medium_pattern)" opacity="0.1"/>
-        <g filter="url(#lightning_shadow)">
-          <path d="M70 75L90 115H50L70 75Z" fill="#FBBF24"/>
-          <path d="M60 115L70 140L80 115H60Z" fill="#FBBF24"/>
-          <path d="M70 140L80 165H60L70 140Z" fill="#FDE047" opacity="0.8"/>
-        </g>
-        <text x="70" y="50" textAnchor="middle" fontFamily="sans-serif" fontSize="36" fontWeight="bold" fill="white" filter="url(#text_shadow)">+{tp}</text>
-        <text x="70" y="70" textAnchor="middle" fontFamily="sans-serif" fontSize="14" fill="white" fillOpacity={0.8}>TP</text>
-        <defs>
-            <filter id="text_shadow" x="0" y="0" width="200%" height="200%">
-                <feDropShadow dx="2" dy="2" stdDeviation="2" floodColor="#000000" floodOpacity={0.5}/>
-            </filter>
-            <filter id="lightning_shadow" x="40" y="70" width="60" height="105" filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB">
-                <feDropShadow dx="0" dy="3" stdDeviation="6" floodColor="#FBBF24" floodOpacity={0.7}/>
-            </filter>
-            <linearGradient id="medium_gradient" x1="70" y1="0" x2="70" y2="200" gradientUnits="userSpaceOnUse">
-                <stop stopColor="#4A1D96"/>
-                <stop offset="1" stopColor="#3C167A"/>
-            </linearGradient>
-            <pattern id="medium_pattern" patternContentUnits="objectBoundingBox" width="0.1" height="0.1">
-                <path d="M-1 1 l2 -2 M0 10 l10 -10 M9 11 l2 -2" stroke="white" strokeWidth="0.5"/>
-            </pattern>
-        </defs>
-      </svg>
-    ),
-    large: (
-        <svg width="140" height="200" viewBox="0 0 140 200" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <rect width="140" height="200" rx="12" fill="url(#large_gradient)"/>
-        <rect width="140" height="200" rx="12" fill="url(#large_pattern)" opacity="0.1"/>
-        <g filter="url(#lightning_shadow)">
-          <path d="M80 70L110 125H50L80 70Z" fill="#F59E0B" transform="translate(-10, 0)"/>
-          <path d="M65 125L80 155L95 125H65Z" fill="#FBBF24" transform="translate(-10, 0)"/>
-          <path d="M80 155L95 185H65L80 155Z" fill="#FDE047" transform="translate(-10, 0)"/>
-        </g>
-        <text x="70" y="50" textAnchor="middle" fontFamily="sans-serif" fontSize="36" fontWeight="bold" fill="white" filter="url(#text_shadow)">+{tp}</text>
-        <text x="70" y="70" textAnchor="middle" fontFamily="sans-serif" fontSize="14" fill="white" fillOpacity={0.8}>TP</text>
-        <defs>
-            <filter id="text_shadow" x="0" y="0" width="200%" height="200%">
-                <feDropShadow dx="2" dy="2" stdDeviation="2" floodColor="#000000" floodOpacity={0.5}/>
-            </filter>
-            <filter id="lightning_shadow" x="30" y="65" width="100" height="130" filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB">
-                <feDropShadow dx="0" dy="4" stdDeviation="8" floodColor="#F59E0B" floodOpacity={0.8}/>
-            </filter>
-            <linearGradient id="large_gradient" x1="70" y1="0" x2="70" y2="200" gradientUnits="userSpaceOnUse">
-                <stop stopColor="#9F1239"/>
-                <stop offset="1" stopColor="#7F0F2D"/>
-            </linearGradient>
-            <pattern id="large_pattern" patternContentUnits="objectBoundingBox" width="0.1" height="0.1">
-                <path d="M-1 1 l2 -2 M0 10 l10 -10 M9 11 l2 -2" stroke="white" strokeWidth="0.5"/>
-            </pattern>
-        </defs>
-      </svg>
-    ),
+  const themes = {
+    small: { 
+      base: '#1E293B', 
+      accent: '#38BDF8', 
+      textShadow: 'rgba(56, 189, 248, 0.5)',
+      label: 'POINTS' 
+    },
+    medium: { 
+      base: '#4C1D95', 
+      accent: '#C084FC', 
+      textShadow: 'rgba(192, 132, 252, 0.5)',
+      label: 'PRO PACK' 
+    },
+    large: { 
+      base: '#881337', 
+      accent: '#FB7185', 
+      textShadow: 'rgba(251, 113, 133, 0.5)',
+      label: 'ELITE PACK' 
+    },
   };
 
-  return SVGs[sizeClass] || null;
+  const theme = themes[sizeClass];
+
+  const renderContent = (scale: number, fontSize: number) => (
+    <>
+      <defs>
+        {/* Kristall-Verlauf (Edler als der Blitz-Gelbton) */}
+        <linearGradient id={`crystal_grad_${sizeClass}`} x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.9" />
+          <stop offset="50%" stopColor={theme.accent} />
+          <stop offset="100%" stopColor={theme.base} />
+        </linearGradient>
+        
+        {/* Glow Effekt */}
+        <filter id={`glow_${sizeClass}`} x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur stdDeviation="6" result="blur" />
+          <feComposite in="SourceGraphic" in2="blur" operator="over" />
+        </filter>
+
+        <filter id={`text_glow_${sizeClass}`}>
+          <feDropShadow dx="0" dy="2" stdDeviation="3" floodColor={theme.textShadow} />
+        </filter>
+      </defs>
+
+      {/* Hintergrund & Rahmen */}
+      <rect width="140" height="200" rx="24" fill={theme.base} />
+      <rect width="136" height="196" x="2" y="2" rx="22" stroke="white" strokeOpacity="0.15" strokeWidth="1.5" />
+
+      {/* Textelemente */}
+      <g filter={`url(#text_glow_${sizeClass})`}>
+        <text 
+          x="70" 
+          y="60" 
+          textAnchor="middle" 
+          fontFamily="system-ui, -apple-system, sans-serif" 
+          fontSize={fontSize} 
+          fontWeight="900" 
+          fill="white"
+        >
+          {tp}
+        </text>
+        <text 
+          x="70" 
+          y="82" 
+          textAnchor="middle" 
+          fontFamily="system-ui, -apple-system, sans-serif" 
+          fontSize="10" 
+          fontWeight="800" 
+          fill={theme.accent} 
+          style={{ letterSpacing: '0.2em', textTransform: 'uppercase' }}
+        >
+          {theme.label}
+        </text>
+      </g>
+
+      {/* Kristall Icon (Statt Blitz) */}
+      <g transform={`translate(${70 - 70 * scale}, ${135 - 135 * scale}) scale(${scale})`}>
+        {/* Äußerer Kristallkörper */}
+        <path
+          d="M70 100L100 125L70 175L40 125L70 100Z"
+          fill={`url(#crystal_grad_${sizeClass})`}
+          filter={`url(#glow_${sizeClass})`}
+        />
+        {/* Lichtkante für mehr Tiefe */}
+        <path
+          d="M70 100V175L100 125L70 100Z"
+          fill="white"
+          fillOpacity="0.3"
+        />
+        {/* Innere Facette */}
+        <path
+          d="M70 115L85 125L70 155L55 125L70 115Z"
+          fill="white"
+          fillOpacity="0.5"
+        />
+      </g>
+    </>
+  );
+
+  return (
+    <svg 
+      width="140" 
+      height="200" 
+      viewBox="0 0 140 200" 
+      fill="none" 
+      xmlns="http://www.w3.org/2000/svg"
+      style={{ filter: 'drop-shadow(0 10px 15px rgba(0,0,0,0.3))' }}
+    >
+      {sizeClass === 'small' && renderContent(0.8, 30)}
+      {sizeClass === 'medium' && renderContent(1, 34)}
+      {sizeClass === 'large' && (
+        <>
+          {/* Zusätzlicher Aura-Glow für Elite */}
+          <circle cx="70" cy="135" r="40" fill={theme.accent} fillOpacity="0.25" filter="blur(25px)" />
+          {renderContent(1.2, 40)}
+        </>
+      )}
+    </svg>
+  );
 };
