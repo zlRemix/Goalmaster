@@ -254,7 +254,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ player, club, allClubs, ov
 
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 {[
-                    { id: 'skills', label: 'Training', desc: 'Skills pushen', graphic: TrainingGraphic },
+                    { id: 'activities', label: 'Training', desc: 'Skills pushen', graphic: TrainingGraphic },
                     { id: club ? 'club' : 'club-search', label: club ? 'Verein' : 'Suche', desc: 'Team verwalten', graphic: ClubGraphic },
                     { id: 'shop', label: 'Shop', desc: 'Packs & Gear', graphic: ShopGraphic },
                     { id: 'profile', label: 'Profil', desc: 'Avatar & Bio', graphic: ProfileGraphic },

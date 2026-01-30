@@ -66,7 +66,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeView, setView, roles, on
           <nav>
             <NavGroup title="Spieler">
                 <NavItem label="Dashboard" view="home" Icon={Home} activeView={activeView} setView={setView} onClick={handleNavItemClicked} />
-                <NavItem label="Trainingscenter" view="skills" Icon={Zap} activeView={activeView} setView={setView} onClick={handleNavItemClicked} />
                 <NavItem label="Aktivitäten" view="activities" Icon={Activity} activeView={activeView} setView={setView} onClick={handleNavItemClicked} />
                 <NavItem label="Shop" view="shop" Icon={ShoppingCart} activeView={activeView} setView={setView} onClick={handleNavItemClicked} />
             </NavGroup>

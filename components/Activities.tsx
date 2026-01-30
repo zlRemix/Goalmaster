@@ -1,14 +1,15 @@
 import React, { ElementType, useEffect, useMemo, useState, useId, memo } from 'react';
-import { Player, Activity, ActiveActivity, Club } from '../types';
+import { Player, Activity, ActiveActivity, Club, SkillType } from '../types';
 import { ACTIVITIES } from '../constants';
 import { useCountdown, formatDuration } from '../hooks/useTimers';
 import { dataService } from '../services/dataService';
+import { TrainingCenter } from './TrainingCenter'; // Import TrainingCenter
 import { 
   ClipboardList, Mic, Footprints, Pizza, Timer, 
   Star, Briefcase, Euro, ShieldCheck, Zap 
 } from 'lucide-react';
 
-type ActivityTab = 'career' | 'personal';
+type ActivityTab = 'career' | 'personal' | 'training';
 
 const activityCategorization: Record<Activity['type'], { icon: ElementType; color: string; groupTitle: string; tab: ActivityTab }> = {
     training: { icon: Star, color: '#38BDF8', groupTitle: 'Training', tab: 'career' },
@@ -80,7 +81,7 @@ const ActiveActivityStatus: React.FC<{ activeInstance: ActiveActivity, activityD
 
 // --- HAUPTKOMPONENTE ---
 
-export const Activities: React.FC<{ player: Player; onStart: (activityId: string) => void; onComplete: (activityId: string) => void; onReset: () => void; }> = memo(({ player, onStart, onComplete, onReset }) => {
+export const Activities: React.FC<{ player: Player; onStart: (activityId: string) => void; onComplete: (activityId: string) => void; onReset: () => void; onTrain: (skill: SkillType) => void; }> = memo(({ player, onStart, onComplete, onReset, onTrain }) => {
     const [club, setClub] = useState<Club | null>(null);
     const [activeTab, setActiveTab] = useState<ActivityTab>('career');
 
@@ -145,15 +146,20 @@ export const Activities: React.FC<{ player: Player; onStart: (activityId: string
 
             {/* TABS */}
             <div className="flex gap-2 p-1 bg-slate-950/50 rounded-2xl border border-slate-800 w-fit">
-                {(['career', 'personal'] as const).map((tab) => (
+                 {(['career', 'training', 'personal'] as const).map((tab) => (
                     <button key={tab} onClick={() => setActiveTab(tab)} className={`px-8 py-2.5 rounded-xl font-black uppercase text-xs transition-all ${activeTab === tab ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-500 hover:text-white'}`}>
-                        {tab === 'career' ? 'Karriere' : 'Arbeiten'}
+                        {tab === 'career' ? 'Karriere' : tab === 'training' ? 'Trainingscenter' : 'Arbeiten'}
                     </button>
                 ))}
             </div>
 
+            {/* TRAINING CENTER */}
+            {activeTab === 'training' && (
+                <TrainingCenter player={player} onTrain={onTrain} />
+            )}
+
             {/* AKTIVITÄTS-LISTEN */}
-            {Object.entries(activityCategorization)
+            {activeTab !== 'training' && Object.entries(activityCategorization)
                 .filter(([_, config]) => config.tab === activeTab)
                 .map(([type, config]) => {
                     const activities = groupedActivities[type as Activity['type']];

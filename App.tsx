@@ -6,7 +6,6 @@ import { dataService } from './services/dataService';
 import { auth } from './services/firebase';
 import { Sidebar } from './components/Sidebar';
 import { Dashboard } from './components/Dashboard';
-import { TrainingCenter } from './components/TrainingCenter';
 import { ClubDashboard } from './components/ClubDashboard';
 import { Activities as ActivitiesComponent } from './components/Activities';
 import { Leaderboard } from './components/Leaderboard';
@@ -202,8 +201,7 @@ const App: React.FC = () => {
   const renderContent = () => {
     if (activeView === 'home') return <Dashboard player={player!} club={selectedClub} allClubs={allClubs} overallRating={overallRating} xpProgress={xpProgress} xpNeeded={xpNeeded} setView={setActiveView} />;
     if (activeView === 'profile') return <UserProfile />;
-    if (activeView === 'skills') return <TrainingCenter player={{...player!, skills: playerSkillsWithBonuses}} onTrain={handleTrainSkill} />;
-    if (activeView === 'activities') return <ActivitiesComponent player={player!} onStart={handleStartActivity} onComplete={handleCompleteActivity} onReset={handleResetActivities} />;
+    if (activeView === 'activities') return <ActivitiesComponent player={player!} onStart={handleStartActivity} onComplete={handleCompleteActivity} onReset={handleResetActivities} onTrain={handleTrainSkill} />;
     if (activeView === 'leaderboard') return <Leaderboard />;
     if (activeView === 'club-search') return <ClubSearch player={player!} />;
     if (activeView === 'league') return <LeagueView />;
