@@ -6,7 +6,7 @@ import { INFRA_UPGRADE_COSTS, INFRA_UPGRADE_TIMES, INFRA_LEVEL_BENEFITS, TEAM_TR
 import { ClubManagement } from './ClubManagement';
 import LogoEditor from './LogoEditor';
 import ClubLogo from './ClubLogo';
-import { Building, Dumbbell, HeartPulse, LineChart, Paintbrush } from 'lucide-react';
+import InfrastructureIcon from './InfrastructureIcon';
 
 // --- HOOKS ---
 const useCountdown = (endTime: number) => {
@@ -40,18 +40,17 @@ const formatDuration = (totalSeconds: number) => {
 };
 
 // --- DATA ---
-const infrastructureInfo: Record<InfrastructureType, { name: string; icon: ElementType; description: string; }> = {
-    [InfrastructureType.STADIUM]: { name: 'Stadion', icon: Building, description: 'Erhöht die Ticketeinnahmen bei Heimspielen.' },
-    [InfrastructureType.TRAINING_GROUND]: { name: 'Trainingsgelände', icon: Dumbbell, description: 'Verbessert die Effektivität des Trainings (TP-Gewinn).' },
-    [InfrastructureType.MEDICAL_CENTER]: { name: 'Medizinisches Zentrum', icon: HeartPulse, description: 'Verkürzt die Dauer von Spieler-Aktivitäten.' },
-    [InfrastructureType.MARKETING_DEPARTMENT]: { name: 'Marketingabteilung', icon: LineChart, description: 'Erhöht die Einnahmen aus PR-Aktivitäten.' },
+const infrastructureInfo: Record<InfrastructureType, { name: string; description: string; }> = {
+    [InfrastructureType.STADIUM]: { name: 'Stadion', description: 'Erhöht die Ticketeinnahmen bei Heimspielen.' },
+    [InfrastructureType.TRAINING_GROUND]: { name: 'Trainingsgelände', description: 'Verbessert die Effektivität des Trainings (TP-Gewinn).' },
+    [InfrastructureType.MEDICAL_CENTER]: { name: 'Medizinisches Zentrum', description: 'Verkürzt die Dauer von Spieler-Aktivitäten.' },
+    [InfrastructureType.MARKETING_DEPARTMENT]: { name: 'Marketingabteilung', description: 'Erhöht die Einnahmen aus PR-Aktivitäten.' },
 };
 
 // --- SUB-COMPONENTS ---
 
 const InfrastructureCard: React.FC<{ type: InfrastructureType; club: Club; onUpgrade: (clubId: string, type: InfrastructureType) => void; }> = ({ type, club, onUpgrade }) => {
     const info = infrastructureInfo[type];
-    const Icon = info.icon;
     const currentLevel = club.infrastructure?.[type]?.level || 0;
     const upgradeCost = currentLevel < 10 ? INFRA_UPGRADE_COSTS[currentLevel] : null;
     const upgradeTime = currentLevel < 10 ? INFRA_UPGRADE_TIMES[currentLevel] : null;
@@ -66,7 +65,7 @@ const InfrastructureCard: React.FC<{ type: InfrastructureType; club: Club; onUpg
             <div>
                  <div className="flex items-start justify-between gap-4 mb-4">
                     <div className="text-blue-400 opacity-80 pt-1">
-                        <Icon className="h-10 w-10" />
+                        <InfrastructureIcon seed={type} />
                     </div>
                     <div className="flex-1 text-right">
                         <h3 className="text-lg font-black text-white">{info.name}</h3>
