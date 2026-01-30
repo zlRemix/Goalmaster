@@ -58,6 +58,17 @@ export interface Tactic {
     defenseBonus: number; 
 }
 
+export type PlayerMentalityID = 'aggressive' | 'balanced' | 'cautious' | 'playmaker' | 'workhorse';
+
+export interface PlayerMentality {
+    id: PlayerMentalityID;
+    name: string;
+    description: string;
+    attackBonus: number;
+    defenseBonus: number;
+    workRateBonus: number;
+}
+
 export interface AvatarData {
     style: string;
     seed: string;
@@ -102,6 +113,7 @@ export interface Player {
     equipment?: string[]; // IDs of owned equipment items
     equipped?: Partial<Record<EquipmentSlot, string>>; // ID of equipped item per slot
     overall?: number;
+    activeMentalityId?: PlayerMentalityID;
 }
 
 export enum InfrastructureType {

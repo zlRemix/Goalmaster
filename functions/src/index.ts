@@ -1,7 +1,7 @@
 import {onCall, HttpsError} from "firebase-functions/v2/https";
 import {onSchedule} from "firebase-functions/v2/scheduler";
 import * as admin from "firebase-admin";
-import {Player, Club, Fixture, Tactic, SkillType, MatchResult, League, EquipmentItem, SkillBonus, EquipmentSlot} from "../../types";
+import {Player, Club, Fixture, Tactic, SkillType, MatchResult, League, EquipmentItem, SkillBonus, EquipmentSlot, PlayerMentality} from "../../types";
 import { EQUIPMENT_ITEMS } from "../../constants";
 
 admin.initializeApp();
@@ -15,6 +15,50 @@ const TACTICS: Tactic[] = [
   {id: "counter", name: "Konter", description: "...", attackBonus: -0.05, defenseBonus: 0.10},
   {id: "gegenpressing", name: "Gegenpressing", description: "...", attackBonus: 0.10, defenseBonus: -0.05},
 ];
+
+const PLAYER_MENTALITIES: PlayerMentality[] = [
+    {
+        id: 'aggressive',
+        name: 'Aggressiv',
+        description: 'Fokussiert auf Offensive, riskante Pässe und Torabschlüsse.',
+        attackBonus: 0.1,
+        defenseBonus: -0.05,
+        workRateBonus: 0.05,
+    },
+    {
+        id: 'balanced',
+        name: 'Ausgewogen',
+        description: 'Eine ausbalancierte Mischung aus Offensive und Defensive.',
+        attackBonus: 0,
+        defenseBonus: 0,
+        workRateBonus: 0,
+    },
+    {
+        id: 'cautious',
+        name: 'Vorsichtig',
+        description: 'Fokussiert auf sicheres Passspiel und defensive Stabilität.',
+        attackBonus: -0.05,
+        defenseBonus: 0.1,
+        workRateBonus: -0.05,
+    },
+    {
+        id: 'playmaker',
+        name: 'Spielmacher',
+        description: 'Konzentriert sich darauf, Chancen für Mitspieler zu kreieren.',
+        attackBonus: 0.05,
+        defenseBonus: -0.05,
+        workRateBonus: 0.05,
+    },
+    {
+        id: 'workhorse',
+        name: 'Arbeitstier',
+        description: 'Hohe Laufbereitschaft und Einsatz in alle Richtungen.',
+        attackBonus: 0,
+        defenseBonus: 0.05,
+        workRateBonus: 0.1,
+    }
+];
+
 const ATTACK_SKILLS: SkillType[] = ["pace", "shot_power", "finishing", "dribbling", "passing", "vision", "long_shots", "heading", "positioning"];
 const DEFENSE_SKILLS: SkillType[] = ["tackling", "stamina", "marking", "interceptions", "strength", "aggression", "positioning", "communication"];
 const GOALIE_SKILLS: SkillType[] = ["handling", "reflexes", "diving", "positioning", "communication", "kicking"];
@@ -73,6 +117,15 @@ const calculateTeamRating = (players: Player[]): { attack: number, defense: numb
     let playerDefense = 0;
     ATTACK_SKILLS.forEach((s) => (playerAttack += skills[s] || 0));
     DEFENSE_SKILLS.forEach((s) => (playerDefense += skills[s] || 0));
+
+    // --- Apply Player Mentality Bonus ---
+    const mentalityId = player.activeMentalityId || "balanced";
+    const mentality = PLAYER_MENTALITIES.find((m) => m.id === mentalityId) || PLAYER_MENTALITIES.find((m) => m.id === "balanced");
+    if (mentality) {
+        playerAttack *= (1 + mentality.attackBonus + mentality.workRateBonus);
+        playerDefense *= (1 + mentality.defenseBonus + mentality.workRateBonus);
+    }
+    // -------------------------------------
 
     switch (player.position) {
       case "Stürmer":

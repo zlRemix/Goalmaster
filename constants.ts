@@ -1,4 +1,5 @@
-import { Activity, TeamTrainingSession, UserRole, InfrastructureType, PlayerPosition, Tactic, EquipmentItem, EquipmentSlot } from './types.js';
+
+import { Activity, TeamTrainingSession, UserRole, InfrastructureType, PlayerPosition, Tactic, EquipmentItem, EquipmentSlot, PlayerMentality } from './types.js';
 
 export const MAX_CLUB_PLAYERS = 5;
 export const XP_PER_SKILL_UPGRADE = 10;
@@ -209,6 +210,49 @@ export const TACTICS: Tactic[] = [
         defenseBonus: -0.05
     }
 ];
+
+export const PLAYER_MENTALITIES: PlayerMentality[] = [
+    {
+        id: 'aggressive',
+        name: 'Aggressiv',
+        description: 'Fokussiert auf Offensive, riskante Pässe und Torabschlüsse.',
+        attackBonus: 0.1,
+        defenseBonus: -0.05,
+        workRateBonus: 0.05,
+    },
+    {
+        id: 'balanced',
+        name: 'Ausgewogen',
+        description: 'Eine ausbalancierte Mischung aus Offensive und Defensive.',
+        attackBonus: 0,
+        defenseBonus: 0,
+        workRateBonus: 0,
+    },
+    {
+        id: 'cautious',
+        name: 'Vorsichtig',
+        description: 'Fokussiert auf sicheres Passspiel und defensive Stabilität.',
+        attackBonus: -0.05,
+        defenseBonus: 0.1,
+        workRateBonus: -0.05,
+    },
+    {
+        id: 'playmaker',
+        name: 'Spielmacher',
+        description: 'Konzentriert sich darauf, Chancen für Mitspieler zu kreieren.',
+        attackBonus: 0.05,
+        defenseBonus: -0.05,
+        workRateBonus: 0.05,
+    },
+    {
+        id: 'workhorse',
+        name: 'Arbeitstier',
+        description: 'Hohe Laufbereitschaft und Einsatz in alle Richtungen.',
+        attackBonus: 0,
+        defenseBonus: 0.05,
+        workRateBonus: 0.1,
+    }
+]
 
 export const SHOP_ITEMS = [
     { id: 'tp_pack_1', name: 'Kleines TP-Paket', description: 'Ein guter Start für dein Training.', tp: 10, price: 50 },
