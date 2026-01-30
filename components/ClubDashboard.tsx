@@ -1,4 +1,4 @@
-import React, { useState, useEffect, ElementType } from 'react';
+import React, { useState, useEffect, ElementType, useId } from 'react';
 import { Club, Player, InfrastructureType, UserRole, ActiveTeamTraining, View } from '../types';
 import { dataService } from '../services/dataService';
 import { getSkillsForPosition } from '../utils';
@@ -7,26 +7,24 @@ import { ClubManagement } from './ClubManagement';
 import LogoEditor from './LogoEditor';
 import ClubLogo from './ClubLogo';
 import InfrastructureIcon from './InfrastructureIcon';
+import { Timer, TrendingUp, Users, Zap, ShieldCheck, Euro, Building2 } from 'lucide-react';
 
-// --- HOOKS ---
+// --- HOOKS & HELPERS (Bleiben funktional gleich) ---
 const useCountdown = (endTime: number) => {
-  const calculateRemaining = () => Math.max(0, Math.floor((endTime - Date.now()) / 1000));
-  const [totalSeconds, setTotalSeconds] = useState(calculateRemaining);
-
-  useEffect(() => {
-    if (endTime <= 0) { setTotalSeconds(0); return; }
-    const timer = setInterval(() => {
-      const remaining = calculateRemaining();
-      setTotalSeconds(remaining);
-      if (remaining <= 0) clearInterval(timer);
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [endTime]);
-
-  return totalSeconds;
+    const calculateRemaining = () => Math.max(0, Math.floor((endTime - Date.now()) / 1000));
+    const [totalSeconds, setTotalSeconds] = useState(calculateRemaining);
+    useEffect(() => {
+        if (endTime <= 0) { setTotalSeconds(0); return; }
+        const timer = setInterval(() => {
+            const remaining = calculateRemaining();
+            setTotalSeconds(remaining);
+            if (remaining <= 0) clearInterval(timer);
+        }, 1000);
+        return () => clearInterval(timer);
+    }, [endTime]);
+    return totalSeconds;
 };
 
-// --- HELPERS ---
 const formatDuration = (totalSeconds: number) => {
     if (totalSeconds <= 0) return "00:00:00";
     const d = Math.floor(totalSeconds / 86400);
@@ -39,17 +37,17 @@ const formatDuration = (totalSeconds: number) => {
     return str;
 };
 
-// --- DATA ---
 const infrastructureInfo: Record<InfrastructureType, { name: string; description: string; }> = {
-    [InfrastructureType.STADIUM]: { name: 'Stadion', description: 'Erhöht die Ticketeinnahmen bei Heimspielen.' },
-    [InfrastructureType.TRAINING_GROUND]: { name: 'Trainingsgelände', description: 'Verbessert die Effektivität des Trainings (TP-Gewinn).' },
-    [InfrastructureType.MEDICAL_CENTER]: { name: 'Medizinisches Zentrum', description: 'Verkürzt die Dauer von Spieler-Aktivitäten.' },
-    [InfrastructureType.MARKETING_DEPARTMENT]: { name: 'Marketingabteilung', description: 'Erhöht die Einnahmen aus PR-Aktivitäten.' },
+    [InfrastructureType.STADIUM]: { name: 'Stadion', description: 'Erhöht die Ticketeinnahmen.' },
+    [InfrastructureType.TRAINING_GROUND]: { name: 'Trainingsgelände', description: 'Verbessert TP-Gewinn.' },
+    [InfrastructureType.MEDICAL_CENTER]: { name: 'Medizinisches Zentrum', description: 'Verkürzt Aktivitäts-Dauer.' },
+    [InfrastructureType.MARKETING_DEPARTMENT]: { name: 'Marketingabteilung', description: 'Erhöht PR-Einnahmen.' },
 };
 
 // --- SUB-COMPONENTS ---
 
 const InfrastructureCard: React.FC<{ type: InfrastructureType; club: Club; onUpgrade: (clubId: string, type: InfrastructureType) => void; }> = ({ type, club, onUpgrade }) => {
+    const uniqueId = useId().replace(/:/g, "");
     const info = infrastructureInfo[type];
     const currentLevel = club.infrastructure?.[type]?.level || 0;
     const upgradeCost = currentLevel < 10 ? INFRA_UPGRADE_COSTS[currentLevel] : null;
@@ -57,70 +55,54 @@ const InfrastructureCard: React.FC<{ type: InfrastructureType; club: Club; onUpg
     const pendingUpgrade = club.pendingUpgrades?.find(upg => upg.type === type);
     const remainingTime = useCountdown(pendingUpgrade?.endTime || 0);
     const benefits = INFRA_LEVEL_BENEFITS[type] || [];
-    const currentBenefit = currentLevel > 0 ? benefits[currentLevel - 1] : "Keine Boni";
-    const nextBenefit = currentLevel < benefits.length ? benefits[currentLevel] : "Voll ausgebaut";
+    const currentBenefit = currentLevel > 0 ? benefits[currentLevel - 1] : "Kein Bonus";
+    const nextBenefit = currentLevel < benefits.length ? benefits[currentLevel] : "Maximalstufe";
 
     return (
-        <div className="bg-slate-800/80 rounded-2xl p-4 md:p-5 border border-slate-700 shadow-lg flex flex-col justify-between transition-all hover:border-slate-600/80">
-            <div>
-                 <div className="flex items-start justify-between gap-4 mb-4">
-                    <div className="text-blue-400 opacity-80 pt-1">
-                        <InfrastructureIcon seed={type} />
-                    </div>
-                    <div className="flex-1 text-right">
-                        <h3 className="text-lg font-black text-white">{info.name}</h3>
-                        <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">{info.description}</p>
-                    </div>
+        <div className="bg-slate-900 border-2 border-slate-800 rounded-[2.5rem] p-5 flex flex-col gap-4 transition-all hover:border-slate-700 shadow-2xl relative overflow-hidden group">
+            <div className="flex items-center justify-between">
+                <div className="w-14 h-14 bg-blue-500/10 rounded-2xl flex items-center justify-center border border-blue-500/20 text-blue-400">
+                    <InfrastructureIcon seed={type} />
                 </div>
-                <div className="mb-5">
-                    <div className="flex justify-between items-end mb-1">
-                        <span className="text-xs font-bold text-blue-400 uppercase">Level {currentLevel} / 10</span>
-                        {pendingUpgrade && <span className="text-xs font-bold text-cyan-400 animate-pulse">Upgrade läuft...</span>}
-                    </div>
-                    <div className="h-2.5 w-full bg-slate-900 rounded-full border border-slate-800 p-0.5">
-                        <div className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full" style={{ width: `${currentLevel * 10}%` }}></div>
-                    </div>
-                </div>
-                <div className="space-y-3 text-xs">
-                   <div className="p-3 bg-slate-900/70 rounded-lg border border-slate-700/50">
-                        <p className="font-semibold text-slate-400 mb-1">Aktueller Bonus:</p>
-                        <p className="font-bold text-green-300">{currentBenefit}</p>
-                    </div>
-                     <div className="p-3 bg-slate-900/70 rounded-lg border border-slate-700/50">
-                        <p className="font-semibold text-slate-400 mb-1">Bonus auf Level {currentLevel + 1}:</p>
-                        <p className="font-bold text-cyan-300">{nextBenefit}</p>
-                    </div>
+                <div className="text-right">
+                    <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest">Level {currentLevel} / 10</span>
+                    <h3 className="text-xl font-black text-white italic uppercase tracking-tighter">{info.name}</h3>
                 </div>
             </div>
-            <div className="mt-5 pt-4 border-t border-slate-700/80">
-                {pendingUpgrade ? (
-                     <div className="text-center bg-slate-700/80 p-3 rounded-lg border border-slate-600">
-                        <p className="text-sm font-bold text-slate-300">Verbleibende Zeit:</p>
-                        <p className="text-xl font-black text-blue-400 tracking-wider">{formatDuration(remainingTime)}</p>
-                     </div>
-                ) : upgradeCost !== null && upgradeTime !== null ? (
-                    <div className="flex flex-col gap-2">
-                         <div className="grid grid-cols-2 gap-2 text-center">
-                             <div className="bg-slate-900/70 p-2 rounded-md border border-slate-700/50">
-                                <p className="text-[10px] font-bold text-slate-400 uppercase">Kosten</p>
-                                <p className="text-sm font-semibold text-white">{upgradeCost.toLocaleString()} €</p>
-                             </div>
-                             <div className="bg-slate-900/70 p-2 rounded-md border border-slate-700/50">
-                                <p className="text-[10px] font-bold text-slate-400 uppercase">Dauer</p>
-                                <p className="text-sm font-semibold text-white">{formatDuration(upgradeTime)}</p>
-                             </div>
-                         </div>
-                        <button
-                            disabled={(club.budget || 0) < upgradeCost}
-                            onClick={() => onUpgrade(club.id, type)}
-                            className="w-full bg-blue-600 text-white font-bold py-3 rounded-lg text-sm md:text-base disabled:bg-slate-600 disabled:text-slate-500 disabled:cursor-not-allowed hover:bg-blue-500 transition-colors shadow-md active:scale-95">
-                            Upgrade starten
-                        </button>
+
+            <div className="space-y-3 flex-1">
+                <div className="bg-slate-950/50 p-3 rounded-2xl border border-white/5">
+                    <p className="text-[10px] font-bold text-slate-500 uppercase mb-1">Status</p>
+                    <p className="text-sm font-bold text-emerald-400">{currentBenefit}</p>
+                </div>
+                {!pendingUpgrade && currentLevel < 10 && (
+                    <div className="bg-slate-950/30 p-3 rounded-2xl border border-dashed border-white/5 opacity-60">
+                        <p className="text-[10px] font-bold text-slate-500 uppercase mb-1">Nächstes Level</p>
+                        <p className="text-sm font-bold text-blue-300">{nextBenefit}</p>
                     </div>
+                )}
+            </div>
+
+            <div className="pt-2">
+                {pendingUpgrade ? (
+                    <div className="bg-blue-600/10 border border-blue-600/20 p-4 rounded-2xl text-center">
+                        <p className="text-[10px] font-black text-blue-400 uppercase animate-pulse mb-1">Ausbau läuft</p>
+                        <p className="text-xl font-black text-white tabular-nums">{formatDuration(remainingTime)}</p>
+                    </div>
+                ) : upgradeCost !== null ? (
+                    <button
+                        disabled={(club.budget || 0) < upgradeCost}
+                        onClick={() => onUpgrade(club.id, type)}
+                        className="w-full bg-white text-slate-950 hover:bg-blue-400 hover:text-white disabled:bg-slate-800 disabled:text-slate-600 font-black uppercase tracking-widest py-3 rounded-2xl transition-all active:scale-95 text-xs flex items-center justify-center gap-2"
+                    >
+                        <TrendingUp className="w-4 h-4" />
+                        Upgrade ({upgradeCost.toLocaleString()} €)
+                    </button>
                 ) : (
-                     <div className="text-center bg-green-900/50 p-3 rounded-lg border border-green-700">
-                         <p className="text-sm font-bold text-green-300">Maximales Level erreicht</p>
-                     </div>
+                    <div className="bg-emerald-500/10 border border-emerald-500/20 p-3 rounded-2xl text-center flex items-center justify-center gap-2">
+                        <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                        <span className="text-xs font-black text-emerald-400 uppercase">Maximum</span>
+                    </div>
                 )}
             </div>
         </div>
@@ -135,39 +117,24 @@ const SquadList: React.FC<{ players: Player[] }> = ({ players }) => {
     };
 
     return (
-        <div className="bg-slate-800/80 rounded-2xl p-4 md:p-6 border border-slate-700">
-            <h3 className="text-xl md:text-2xl font-black mb-4">Kader ({players.length} / {MAX_CLUB_PLAYERS})</h3>
-            <div className="space-y-2">
-                {players.sort((a,b) => getOverall(b) - getOverall(a)).map(p => (
-                    <div key={p.id} className="flex justify-between items-center bg-slate-900/50 p-2 md:p-3 rounded-lg border border-slate-700/50">
-                        <div className="flex items-center gap-2 md:gap-4">
-                            <div className="font-bold text-slate-300 text-xs md:text-sm w-7 h-7 md:w-8 md:h-8 flex items-center justify-center bg-slate-700 rounded-full flex-shrink-0">{p.position}</div>
-                            <div>
-                                <p className="font-bold text-white text-sm md:text-base">{p.name}</p>
-                                <p className="text-xs text-slate-400">Lvl {p.level}</p>
-                            </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {players.sort((a,b) => getOverall(b) - getOverall(a)).map(p => (
+                <div key={p.id} className="bg-slate-900 border border-slate-800 p-4 rounded-2xl flex justify-between items-center transition-all hover:bg-slate-800/50">
+                    <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 bg-slate-800 rounded-full flex items-center justify-center font-black text-[10px] text-blue-400 border border-white/5">
+                            {p.position}
                         </div>
-                        <div className="text-right pl-2">
-                            <p className="font-black text-lg md:text-xl text-blue-400">{getOverall(p)}</p>
-                            <p className="text-[10px] md:text-xs text-slate-500 font-bold uppercase tracking-tight">GES</p>
+                        <div>
+                            <p className="font-black text-white uppercase italic text-sm">{p.name}</p>
+                            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-tighter">Level {p.level}</p>
                         </div>
                     </div>
-                ))}
-            </div>
-        </div>
-    );
-};
-
-const ActiveTeamTrainingDisplay: React.FC<{ training: ActiveTeamTraining, trainingDef: any }> = ({ training, trainingDef }) => {
-    const endTime = training.startTime + (trainingDef.durationSeconds || 0) * 1000;
-    const remainingSeconds = useCountdown(endTime);
-
-    return (
-        <div className="bg-slate-800/80 rounded-2xl p-6 md:p-8 border-2 border-dashed border-indigo-500/30 text-center">
-            <p className="text-xs md:text-sm font-bold text-slate-400 uppercase tracking-widest">Aktives Team-Training</p>
-            <h3 className="text-xl md:text-3xl font-black text-white my-2">{trainingDef.name}</h3>
-            <p className="text-4xl md:text-6xl font-black text-indigo-400 tracking-widest my-4">{formatDuration(remainingSeconds)}</p>
-            <p className="text-xs md:text-sm text-slate-400">Alle Spieler erhalten nach Abschluss Belohnungen.</p>
+                    <div className="text-right">
+                        <p className="text-2xl font-black text-blue-400 italic leading-none">{getOverall(p)}</p>
+                        <p className="text-[8px] font-black text-slate-600 uppercase">GES</p>
+                    </div>
+                </div>
+            ))}
         </div>
     );
 };
@@ -176,56 +143,50 @@ const TeamTraining: React.FC<{club: Club, player: Player, onStart: (trainingId: 
     const isManager = player.roles.includes(UserRole.MANAGER);
     const activeTraining = club.activeTeamTraining;
     const activeTrainingDef = activeTraining ? TEAM_TRAININGS.find(t => t.id === activeTraining.trainingId) : null;
-    
-    if (activeTraining && activeTrainingDef) {
-        return <ActiveTeamTrainingDisplay training={activeTraining} trainingDef={activeTrainingDef} />;
-    }
-
-    const trainingInProgress = !!activeTraining;
+    const remainingSeconds = useCountdown(activeTraining ? (activeTraining.startTime + (activeTrainingDef?.durationSeconds || 0) * 1000) : 0);
 
     return (
-        <div>
-            {trainingInProgress && !activeTrainingDef && (
-                 <div className="mb-4 bg-yellow-900/50 border border-yellow-700 text-yellow-300 p-3 rounded-lg text-sm font-bold text-center">
-                    Ein veraltetes Training ist noch aktiv. Neue Trainings können erst nach Abschluss gestartet werden.
+        <div className="space-y-6">
+            {activeTraining && activeTrainingDef && (
+                <div className="bg-slate-900 border-2 border-indigo-500/50 rounded-[2.5rem] p-8 text-center shadow-2xl relative overflow-hidden">
+                    <div className="absolute top-0 left-0 w-full h-1.5 bg-slate-800">
+                        <div className="h-full bg-indigo-500 animate-pulse shadow-[0_0_15px_rgba(99,102,241,0.5)]" style={{ width: '100%' }} />
+                    </div>
+                    <Zap className="w-12 h-12 text-indigo-400 mx-auto mb-4 animate-bounce" />
+                    <h3 className="text-2xl font-black text-white italic uppercase mb-2">{activeTrainingDef.name}</h3>
+                    <p className="text-5xl font-black text-white tabular-nums tracking-widest mb-4">{formatDuration(remainingSeconds)}</p>
+                    <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Team erhält Belohnungen nach Abschluss</p>
                 </div>
             )}
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
-                {TEAM_TRAININGS.map(t => (
-                    <div key={t.id} className="bg-slate-800/80 rounded-2xl p-4 md:p-6 border border-slate-700 shadow-lg flex flex-col">
-                        <h3 className="text-lg md:text-xl font-black text-white">{t.name}</h3>
-                        <p className="text-xs md:text-sm text-slate-400 mt-1 mb-4 h-10">{t.description}</p>
-                        
-                        <div className="bg-slate-900/70 p-3 rounded-lg border border-slate-700/50 mb-6 space-y-1 text-sm">
-                            { (t.reward.xp ?? 0) > 0 && <p className="font-bold text-green-400">+{t.reward.xp} XP für jeden Spieler</p> }
-                            { (t.reward.tp ?? 0) > 0 && <p className="font-bold text-cyan-400">+{t.reward.tp} TP für jeden Spieler</p> }
-                        </div>
-
-                        <div className="mt-auto">
-                             <button 
+            {!activeTraining && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {TEAM_TRAININGS.map(t => (
+                        <div key={t.id} className="bg-slate-900 border border-slate-800 rounded-[2.5rem] p-6 flex flex-col justify-between hover:border-indigo-500/30 transition-all shadow-xl">
+                            <div>
+                                <h3 className="text-xl font-black text-white italic uppercase mb-2">{t.name}</h3>
+                                <p className="text-xs text-slate-400 mb-6">{t.description}</p>
+                                <div className="flex gap-2 mb-6">
+                                    { (t.reward.xp ?? 0) > 0 && <span className="bg-emerald-500/10 text-emerald-400 text-[10px] font-black px-3 py-1 rounded-full border border-emerald-500/20">+{t.reward.xp} XP</span> }
+                                    { (t.reward.tp ?? 0) > 0 && <span className="bg-blue-500/10 text-blue-400 text-[10px] font-black px-3 py-1 rounded-full border border-blue-500/20">+{t.reward.tp} TP</span> }
+                                </div>
+                            </div>
+                            <button 
                                 onClick={() => onStart(t.id)}
-                                disabled={!isManager || trainingInProgress}
-                                className="w-full bg-indigo-600 text-white font-bold py-3 rounded-lg disabled:bg-slate-600 disabled:text-slate-400 disabled:cursor-not-allowed hover:bg-indigo-500 transition-colors shadow-md active:scale-95 text-sm md:text-base">
-                                {isManager ? `Starten (${formatDuration(t.durationSeconds)})` : 'Nur für Manager'}
+                                disabled={!isManager}
+                                className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-800 text-white font-black uppercase text-xs py-3 rounded-2xl transition-all active:scale-95"
+                            >
+                                {isManager ? `Starten (${formatDuration(t.durationSeconds)})` : 'Nur Manager'}
                             </button>
                         </div>
-                    </div>
-                ))}
-            </div>
+                    ))}
+                </div>
+            )}
         </div>
     );
 };
 
-
-type ClubNavView = 'infrastructure' | 'squad' | 'training' | 'management' | 'logo';
-
-interface ClubDashboardProps {
-    club: Club | null;
-    player: Player;
-    onUpgrade: (clubId: string, type: InfrastructureType) => void;
-    setView: (view: View) => void;
-}
+// --- MAIN DASHBOARD ---
 
 export const ClubDashboard: React.FC<ClubDashboardProps> = ({ club, player, onUpgrade, setView }) => {
     const [clubNav, setClubNav] = useState<ClubNavView>('infrastructure');
@@ -235,65 +196,42 @@ export const ClubDashboard: React.FC<ClubDashboardProps> = ({ club, player, onUp
     useEffect(() => {
         if (club) {
             const playerIds = new Set(club.players || []);
-            if (club.managerId) {
-                playerIds.add(club.managerId);
-            }
-
+            if (club.managerId) playerIds.add(club.managerId);
             if (playerIds.size > 0) {
                 const unsubscribe = dataService.listenToPlayers(Array.from(playerIds), setSquadPlayers);
                 return () => unsubscribe();
-            } else {
-                setSquadPlayers([]);
             }
-        } else {
-            setSquadPlayers([]);
         }
     }, [club]);
-    
-    useEffect(() => {
-      if (!isManager && (clubNav === 'management' || clubNav === 'logo')) setClubNav('infrastructure');
-    }, [isManager, clubNav]);
 
+    // Automatischer Check für Upgrades und Training
     useEffect(() => {
         const checkState = () => {
             if (!club) return;
-
             if (club.pendingUpgrades?.length) {
-                const now = Date.now();
-                const completed = club.pendingUpgrades.filter(upg => now >= (upg.endTime || 0));
-                if (completed.length > 0) {
-                    dataService.completeInfrastructureUpgrades(club.id, completed);
-                }
+                const completed = club.pendingUpgrades.filter(upg => Date.now() >= (upg.endTime || 0));
+                if (completed.length > 0) dataService.completeInfrastructureUpgrades(club.id, completed);
             }
-
             if (club.activeTeamTraining) {
                 const trainingDef = TEAM_TRAININGS.find(t => t.id === club.activeTeamTraining!.trainingId);
-                const duration = (trainingDef?.durationSeconds || 0) * 1000;
-                const endTime = (club.activeTeamTraining!.startTime || 0) + duration;
-                
-                if (Date.now() >= endTime) {
-                    dataService.completeTeamTraining(club.id, player.id);
-                }
+                const endTime = (club.activeTeamTraining!.startTime || 0) + (trainingDef?.durationSeconds || 0) * 1000;
+                if (Date.now() >= endTime) dataService.completeTeamTraining(club.id, player.id);
             }
         };
-
         const interval = setInterval(checkState, 2000);
-
         return () => clearInterval(interval);
     }, [club, player.id]);
 
-    const handleStartTeamTraining = (trainingId: string) => {
-        if (club) dataService.startTeamTraining(club.id, trainingId);
-    };
-
     if (!club) {
         return (
-            <div className="text-center p-10 bg-slate-800/80 rounded-2xl border border-slate-700">
-                <h2 className="text-2xl font-bold mb-2">Du bist vereinslos</h2>
-                <p className="text-slate-400 mb-6">Suche nach einem Verein, um deine Karriere voranzutreiben.</p>
+            <div className="text-center py-20 bg-slate-900 border-2 border-dashed border-slate-800 rounded-[3rem] px-6">
+                <Building2 className="w-16 h-16 text-slate-700 mx-auto mb-6" />
+                <h2 className="text-2xl font-black text-white uppercase italic mb-2">Du bist vereinslos</h2>
+                <p className="text-slate-500 mb-8 max-w-xs mx-auto">Schließe dich einem Verein an, um an Team-Trainings teilzunehmen und die Infrastruktur zu nutzen.</p>
                 <button 
                     onClick={() => setView('club-search')} 
-                    className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-8 rounded-lg transition-colors shadow-lg">
+                    className="bg-blue-600 hover:bg-blue-500 text-white font-black uppercase tracking-widest py-4 px-10 rounded-2xl transition-all shadow-xl active:scale-95"
+                >
                     Verein suchen
                 </button>
             </div>
@@ -301,40 +239,83 @@ export const ClubDashboard: React.FC<ClubDashboardProps> = ({ club, player, onUp
     }
 
     return (
-        <div className="space-y-6 md:space-y-8 animate-in fade-in duration-300">
-            <header className="bg-slate-800/80 p-4 md:p-6 rounded-2xl shadow-lg border-slate-700 border flex flex-col md:flex-row items-center gap-4 md:gap-6">
-                <ClubLogo logo={club.logo} size={80} />
-                <div className="flex-1 text-center md:text-left">
-                    <h1 className="text-2xl md:text-4xl font-black text-white">{club.name}</h1>
+        <div className="space-y-6 md:space-y-8 animate-in fade-in duration-500">
+            {/* Club Header */}
+            <header className="bg-slate-900 border-2 border-slate-800 p-6 rounded-[3rem] shadow-2xl flex flex-col md:flex-row items-center justify-between gap-6">
+                <div className="flex items-center gap-6">
+                    <div className="relative">
+                        <ClubLogo logo={club.logo} size={100} />
+                        <div className="absolute -bottom-2 -right-2 bg-slate-900 border border-slate-700 p-2 rounded-full">
+                            <ShieldCheck className="w-5 h-5 text-blue-400" />
+                        </div>
+                    </div>
+                    <div className="text-center md:text-left">
+                        <h1 className="text-3xl md:text-5xl font-black text-white italic uppercase tracking-tighter leading-none mb-2">{club.name}</h1>
+                        <span className="bg-blue-500/10 text-blue-400 text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest border border-blue-500/20">
+                            Profi-Club
+                        </span>
+                    </div>
                 </div>
-                <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4 text-center">
-                    <p className="text-xs font-bold text-blue-300 uppercase tracking-wider">Budget</p>
-                    <p className="text-3xl md:text-4xl font-black text-white">{(club.budget || 0).toLocaleString('de-DE')} €</p>
+                
+                <div className="bg-slate-950 px-8 py-4 rounded-[2rem] border border-white/5 text-center shadow-inner">
+                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] mb-1 flex items-center justify-center gap-2">
+                        <Euro className="w-3 h-3" /> Vereinsbudget
+                    </p>
+                    <p className="text-3xl font-black text-white italic tabular-nums leading-none">
+                        {(club.budget || 0).toLocaleString('de-DE')} €
+                    </p>
                 </div>
             </header>
 
-            <div className="flex flex-wrap gap-1 md:gap-2 p-1 md:p-2 bg-slate-800 border border-slate-700 rounded-full text-sm">
-                <button onClick={() => setClubNav('infrastructure')} className={`flex-1 text-center font-bold p-2 md:p-3 rounded-full transition-colors ${clubNav === 'infrastructure' ? 'bg-blue-600 text-white' : 'text-slate-300 hover:bg-slate-700'}`}>Infrastruktur</button>
-                <button onClick={() => setClubNav('squad')} className={`flex-1 text-center font-bold p-2 md:p-3 rounded-full transition-colors ${clubNav === 'squad' ? 'bg-blue-600 text-white' : 'text-slate-300 hover:bg-slate-700'}`}>Kader</button>
-                <button onClick={() => setClubNav('training')} className={`flex-1 text-center font-bold p-2 md:p-3 rounded-full transition-colors ${clubNav === 'training' ? 'bg-blue-600 text-white' : 'text-slate-300 hover:bg-slate-700'}`}>Training</button>
-                {isManager && (
-                    <>
-                        <button onClick={() => setClubNav('management')} className={`flex-1 text-center font-bold p-2 md:p-3 rounded-full transition-colors ${clubNav === 'management' ? 'bg-blue-600 text-white' : 'text-slate-300 hover:bg-slate-700'}`}>Management</button>
-                        <button onClick={() => setClubNav('logo')} className={`flex-1 text-center font-bold p-2 md:p-3 rounded-full transition-colors ${clubNav === 'logo' ? 'bg-blue-600 text-white' : 'text-slate-300 hover:bg-slate-700'}`}>Logo</button>
-                    </>
-                )}
+            {/* Navigation */}
+            <div className="flex flex-wrap gap-2 p-1.5 bg-slate-950 rounded-3xl border border-slate-800">
+                {(['infrastructure', 'squad', 'training', 'management', 'logo'] as ClubNavView[]).map((nav) => {
+                    if ((nav === 'management' || nav === 'logo') && !isManager) return null;
+                    const labels: Record<string, string> = { 
+                        infrastructure: 'Infrastruktur', squad: 'Kader', training: 'Training', 
+                        management: 'Verwaltung', logo: 'Logo' 
+                    };
+                    const icons: Record<string, any> = {
+                        infrastructure: Building2, squad: Users, training: Zap, management: TrendingUp, logo: ShieldCheck
+                    };
+                    const Icon = icons[nav];
+
+                    return (
+                        <button 
+                            key={nav}
+                            onClick={() => setClubNav(nav)} 
+                            className={`flex-1 min-w-[120px] flex items-center justify-center gap-2 font-black uppercase text-[10px] tracking-widest py-3 rounded-2xl transition-all ${
+                                clubNav === nav ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'
+                            }`}
+                        >
+                            <Icon className="w-3.5 h-3.5" />
+                            {labels[nav]}
+                        </button>
+                    );
+                })}
             </div>
 
-            <div className="animate-in fade-in duration-500">
+            {/* Content Area */}
+            <div className="animate-in slide-in-from-bottom-4 duration-500">
                 {clubNav === 'infrastructure' && (
-                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         {(Object.keys(infrastructureInfo) as InfrastructureType[]).map(type => (
                             <InfrastructureCard key={type} type={type} club={club} onUpgrade={onUpgrade} />
                         ))}
                     </div>
                 )}
-                {clubNav === 'squad' && <SquadList players={squadPlayers} />}
-                {clubNav === 'training' && <TeamTraining club={club} player={player} onStart={handleStartTeamTraining} />}
+                {clubNav === 'squad' && (
+                    <div className="space-y-4">
+                        <div className="flex justify-between items-center px-2">
+                            <h3 className="text-sm font-black text-white uppercase italic flex items-center gap-2">
+                                <Users className="w-4 h-4 text-blue-400" /> Aktueller Kader
+                            </h3>
+                            <span className="text-[10px] font-black text-slate-500 uppercase">{squadPlayers.length} / {MAX_CLUB_PLAYERS} Spieler</span>
+                        </div>
+                        <SquadList players={squadPlayers} />
+                    </div>
+                )}
+                {clubNav === 'training' && <TeamTraining club={club} player={player} onStart={(tid) => dataService.startTeamTraining(club.id, tid)} />}
                 {clubNav === 'management' && isManager && <ClubManagement club={club} />}
                 {clubNav === 'logo' && isManager && <LogoEditor club={club} />}
             </div>

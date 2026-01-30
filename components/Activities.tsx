@@ -1,79 +1,86 @@
-import React, { ElementType, useEffect, useMemo, useState } from 'react';
+import React, { ElementType, useEffect, useMemo, useState, useId, memo } from 'react';
 import { Player, Activity, ActiveActivity, Club } from '../types';
 import { ACTIVITIES } from '../constants';
 import { useCountdown, formatDuration } from '../hooks/useTimers';
 import { dataService } from '../services/dataService';
-import { ClipboardList, Mic, Footprints, Pizza, File, Timer, DollarSign, PlusCircle, Star, Briefcase } from 'lucide-react';
+import { 
+  ClipboardList, Mic, Footprints, Pizza, Timer, 
+  Star, Briefcase, Euro, ShieldCheck, Zap 
+} from 'lucide-react';
 
 type ActivityTab = 'career' | 'personal';
 
-const activityCategorization: Record<Activity['type'], { icon: ElementType; color: string; category: string; groupTitle: string; groupIcon: ElementType; tab: ActivityTab }> = {
-    training: { icon: Star, color: 'text-blue-400', category: 'Training', groupTitle: 'Training', groupIcon: Star, tab: 'career' },
-    tactic: { icon: ClipboardList, color: 'text-indigo-400', category: 'Taktik', groupTitle: 'Taktik & Analyse', groupIcon: ClipboardList, tab: 'career' },
-    fitness: { icon: Footprints, color: 'text-teal-400', category: 'Fitness', groupTitle: 'Fitness & Kondition', groupIcon: Footprints, tab: 'career' },
-    pr: { icon: Mic, color: 'text-pink-400', category: 'PR', groupTitle: 'Medien & PR', groupIcon: Mic, tab: 'career' },
-    social: { icon: Pizza, color: 'text-yellow-400', category: 'Soziales', groupTitle: 'Team & Soziales', groupIcon: Pizza, tab: 'career' },
-    work: { icon: Briefcase, color: 'text-green-400', category: 'Arbeit', groupTitle: 'Arbeit & Finanzen', groupIcon: Briefcase, tab: 'personal' },
+const activityCategorization: Record<Activity['type'], { icon: ElementType; color: string; groupTitle: string; tab: ActivityTab }> = {
+    training: { icon: Star, color: '#38BDF8', groupTitle: 'Training', tab: 'career' },
+    tactic: { icon: ClipboardList, color: '#818CF8', groupTitle: 'Taktik & Analyse', tab: 'career' },
+    fitness: { icon: Footprints, color: '#2DD4BF', groupTitle: 'Fitness & Kondition', tab: 'career' },
+    pr: { icon: Mic, color: '#F472B6', groupTitle: 'Medien & PR', tab: 'career' },
+    social: { icon: Pizza, color: '#FB7185', groupTitle: 'Team & Soziales', tab: 'career' },
+    work: { icon: Briefcase, color: '#34D399', groupTitle: 'Arbeit & Finanzen', tab: 'personal' },
 };
 
-const getAppearance = (activityType: Activity['type']) => {
-    return activityCategorization[activityType] || { icon: File, color: 'text-slate-500', category: 'Allgemein' };
-}
+// --- UNTERKOMPONENTEN (Verhindern Hook-Fehler) ---
+
+const ActivityGraphic: React.FC<{ type: Activity['type']; color: string }> = ({ type, color }) => {
+    const rarityId = useId().replace(/:/g, ""); 
+    const getPaths = () => {
+        switch (type) {
+            case 'training': return <g><rect x="40" y="75" width="70" height="10" rx="2" /><rect x="30" y="60" width="15" height="40" rx="4" /><rect x="105" y="60" width="15" height="40" rx="4" /></g>;
+            case 'tactic': return <g><rect x="40" y="50" width="70" height="60" rx="4" strokeWidth="2" stroke="currentColor" fill="none" /><path d="M50 65L60 75M60 65L50 75" stroke="white" strokeWidth="3" /></g>;
+            case 'fitness': return <g><path d="M35 100C35 90 50 85 70 85H105L115 105H35V100Z" /><path d="M40 70L50 60L60 75L80 50L95 70" stroke="white" strokeWidth="3" fill="none" /></g>;
+            case 'pr': return <g><rect x="65" y="50" width="20" height="40" rx="10" /><rect x="70" y="90" width="10" height="30" /><path d="M55 75C55 85 65 95 75 95C85 95 95 85 95 75" stroke="currentColor" strokeWidth="4" fill="none" /></g>;
+            case 'social': return <g><path d="M75 45L110 110H40L75 45Z" /><circle cx="75" cy="70" r="4" fill="white" fillOpacity="0.4" /></g>;
+            case 'work': return <g><rect x="45" y="65" width="60" height="45" rx="4" /><path d="M60 65V55C60 50 65 45 75 45C85 45 90 50 90 55V65" stroke="currentColor" strokeWidth="4" fill="none" /></g>;
+            default: return <circle cx="75" cy="80" r="30" />;
+        }
+    };
+    return (
+        <svg viewBox="0 0 150 160" className="w-full h-full">
+            <defs>
+                <linearGradient id={`grad_${rarityId}`} x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stopColor="white" stopOpacity="0.9" /><stop offset="100%" stopColor={color} /></linearGradient>
+                <filter id={`glow_${rarityId}`}><feGaussianBlur stdDeviation="5" result="blur" /><feComposite in="SourceGraphic" in2="blur" operator="over" /></filter>
+            </defs>
+            <circle cx="75" cy="80" r="35" fill={color} fillOpacity="0.1" filter="blur(15px)" />
+            <g fill={`url(#grad_${rarityId})`} filter={`url(#glow_${rarityId})`}>{getPaths()}</g>
+        </svg>
+    );
+};
 
 const ActiveActivityStatus: React.FC<{ activeInstance: ActiveActivity, activityDef: Activity, durationReduction: number }> = ({ activeInstance, activityDef, durationReduction }) => {
     const effectiveDurationSeconds = activityDef.durationSeconds * (1 - durationReduction);
     const totalDurationMs = effectiveDurationSeconds * 1000;
     const endTime = activeInstance.startTime + totalDurationMs;
     const remainingMs = useCountdown(endTime);
-    
     const progress = Math.min(100, Math.max(0, ((totalDurationMs - remainingMs) / totalDurationMs) * 100));
-    const remainingSecondsForDisplay = Math.ceil(remainingMs / 1000);
-
-    const { icon: Icon, color } = getAppearance(activityDef.type);
+    const remainingSeconds = Math.ceil(remainingMs / 1000);
 
     return (
-        <div className="bg-slate-800/80 rounded-2xl p-4 md:p-6 border-2 border-dashed border-blue-500/30">
-            <div className="flex flex-col sm:flex-row items-center gap-4">
-                <div className={`p-3 bg-slate-900 rounded-xl border border-slate-700`}>
-                    <Icon className={`h-8 w-8 md:h-10 md:w-10 ${color}`} />
-                </div>
-                <div className="flex-1 text-center sm:text-left">
-                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Aktive Einheit</p>
-                    <h3 className="text-lg md:text-2xl font-black text-white">{activityDef.name}</h3>
-                </div>
-                <div className="text-center bg-slate-900/50 p-3 rounded-lg w-full sm:w-auto">
-                     <p className="text-2xl md:text-4xl font-black text-blue-400 tracking-widest tabular-nums">{formatDuration(remainingSecondsForDisplay)}</p>
-                     <p className="text-[10px] text-slate-600 font-bold uppercase tracking-widest">Verbleibend</p>
-                </div>
+        <div className="bg-slate-900 border-2 border-blue-500/50 rounded-[2.5rem] p-6 mb-8 shadow-2xl relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-full h-1.5 bg-slate-800">
+                <div className="h-full bg-blue-500 shadow-[0_0_15px_#3b82f6]" style={{ width: `${progress}%`, transition: 'width 1s linear' }} />
             </div>
-            <div className="h-3 w-full bg-slate-900 rounded-full overflow-hidden border border-slate-800 p-0.5 mt-4">
-                <div className={`h-full bg-gradient-to-r from-blue-500 to-cyan-400 rounded-full`} style={{ width: `${progress}%`, transition: 'width 0.05s linear' }} />
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-5">
+                    <div className="w-16 h-16 bg-blue-500/10 rounded-2xl flex items-center justify-center border border-blue-500/20">
+                        <Zap className="w-8 h-8 text-blue-400 animate-pulse" />
+                    </div>
+                    <div>
+                        <p className="text-[10px] font-black text-blue-400 uppercase tracking-widest">Einheit läuft...</p>
+                        <h3 className="text-2xl font-black text-white italic uppercase tracking-tighter">{activityDef.name}</h3>
+                    </div>
+                </div>
+                <div className="text-right">
+                    <p className="text-3xl font-black text-white tabular-nums">{formatDuration(remainingSeconds)}</p>
+                    <p className="text-[10px] text-slate-500 font-bold uppercase">Verbleibend</p>
+                </div>
             </div>
         </div>
     );
 };
 
-const ResetCountdown: React.FC<{ nextResetTime: number }> = ({ nextResetTime }) => {
-    const remainingMs = useCountdown(nextResetTime || 0);
-    const remainingSecondsForDisplay = Math.ceil(remainingMs / 1000);
+// --- HAUPTKOMPONENTE ---
 
-    return (
-        <div className="bg-slate-900/50 p-4 rounded-2xl border border-slate-800 flex items-center gap-4">
-            <div className="h-12 w-12 bg-blue-500/10 rounded-lg flex items-center justify-center border border-blue-500/20">
-                <Timer className="h-6 w-6 text-blue-400" />
-            </div>
-            <div>
-                <h4 className="font-bold text-white uppercase text-sm md:text-base">Nächster Reset</h4>
-                <p className="text-xs text-slate-500 font-medium uppercase tracking-tight">Stündliches Zurücksetzen der Aktivitäten</p>
-            </div>
-            <div className="ml-auto text-right">
-                <p className="text-lg md:text-2xl font-black text-blue-400 tracking-widest tabular-nums">{formatDuration(remainingSecondsForDisplay)}</p>
-            </div>
-        </div>
-    );
-};
-
-export const Activities: React.FC<{ player: Player; onStart: (activityId: string) => void; onComplete: (activityId: string) => void; onReset: () => void; }> = ({ player, onStart, onComplete, onReset }) => {
+export const Activities: React.FC<{ player: Player; onStart: (activityId: string) => void; onComplete: (activityId: string) => void; onReset: () => void; }> = memo(({ player, onStart, onComplete, onReset }) => {
     const [club, setClub] = useState<Club | null>(null);
     const [activeTab, setActiveTab] = useState<ActivityTab>('career');
 
@@ -85,29 +92,28 @@ export const Activities: React.FC<{ player: Player; onStart: (activityId: string
 
     const activeInstance = player.activeActivities?.[0];
     const activeDef = activeInstance ? ACTIVITIES.find(a => a.id === activeInstance.activityId) : undefined;
-
+    
     const medicalCenterLevel = club?.infrastructure?.medical_center?.level || 0;
     const durationReduction = medicalCenterLevel > 0 ? (medicalCenterLevel * 3) / 100 : 0;
-    const trainingGroundLevel = club?.infrastructure?.training_ground?.level || 0;
-    const tpBonusPercentage = trainingGroundLevel > 0 ? (trainingGroundLevel * 2) / 100 : 0;
-    const marketingDeptLevel = club?.infrastructure?.marketing_department?.level || 0;
-    const prBonusPercentage = marketingDeptLevel > 0 ? (marketingDeptLevel * 5) / 100 : 0;
+    const tpBonusPercentage = (club?.infrastructure?.training_ground?.level || 0) * 0.02;
 
+    // Timer-Logik für Abschluss
     useEffect(() => {
         if (!activeInstance || !activeDef) return;
-        const effectiveDurationSeconds = activeDef.durationSeconds * (1 - durationReduction);
-        const endTime = activeInstance.startTime + (effectiveDurationSeconds * 1000);
-        const remainingTime = endTime - Date.now();
-        if (remainingTime <= 0) { onComplete(activeDef.id); return; }
-        const timer = setTimeout(() => onComplete(activeDef.id), remainingTime);
+        const effectiveDuration = activeDef.durationSeconds * (1 - durationReduction);
+        const endTime = activeInstance.startTime + (effectiveDuration * 1000);
+        const remaining = endTime - Date.now();
+        if (remaining <= 0) { onComplete(activeDef.id); return; }
+        const timer = setTimeout(() => onComplete(activeDef.id), remaining);
         return () => clearTimeout(timer);
     }, [activeInstance?.activityId, onComplete, durationReduction]);
 
+    // Timer-Logik für Reset
     useEffect(() => {
         if (!player.nextActivityReset) return;
-        const remainingTime = player.nextActivityReset - Date.now();
-        if (remainingTime <= 0) { onReset(); return; }
-        const timer = setTimeout(() => onReset(), remainingTime);
+        const remaining = player.nextActivityReset - Date.now();
+        if (remaining <= 0) { onReset(); return; }
+        const timer = setTimeout(() => onReset(), remaining);
         return () => clearTimeout(timer);
     }, [player.nextActivityReset, onReset]);
 
@@ -120,116 +126,72 @@ export const Activities: React.FC<{ player: Player; onStart: (activityId: string
         }, {} as Record<Activity['type'], Activity[]>)
     , []);
 
-    const isActivityRunning = !!activeDef;
-
     return (
-        <div className="space-y-8 animate-in fade-in duration-500 pb-20">
-            <header>
-                <h2 className="text-2xl md:text-3xl font-black text-white">Profi-Alltag</h2>
-                <p className="text-slate-400 mt-1">Nutze jede Minute deines Tages für Karriere & Erfahrung.</p>
+        <div className="space-y-8 pb-24 px-2">
+            <header className="flex justify-between items-center">
+                <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter">Profi-Alltag</h2>
+                <div className="flex items-center gap-2 bg-slate-900/50 px-4 py-2 rounded-xl border border-slate-800">
+                    <Timer className="w-4 h-4 text-slate-500" />
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                        Reset: {formatDuration(Math.ceil((player.nextActivityReset! - Date.now()) / 1000))}
+                    </span>
+                </div>
             </header>
 
-            {isActivityRunning && activeDef && activeInstance && (
+            {/* GROSSER AKTIVER TIMER */}
+            {activeDef && activeInstance && (
                 <ActiveActivityStatus activeInstance={activeInstance} activityDef={activeDef} durationReduction={durationReduction} />
             )}
-            
-            {!isActivityRunning && <ResetCountdown nextResetTime={player.nextActivityReset || 0} /> }
 
-            <div className="border-b-2 border-slate-800">
-                <div className="flex space-x-2">
-                    <button
-                        onClick={() => setActiveTab('career')}
-                        className={`px-6 py-3 font-bold text-sm uppercase tracking-wider transition-colors ${activeTab === 'career' ? 'border-b-2 border-blue-500 text-white' : 'text-slate-400 hover:text-white border-b-2 border-transparent'}`}
-                    >
-                        Karriere
+            {/* TABS */}
+            <div className="flex gap-2 p-1 bg-slate-950/50 rounded-2xl border border-slate-800 w-fit">
+                {(['career', 'personal'] as const).map((tab) => (
+                    <button key={tab} onClick={() => setActiveTab(tab)} className={`px-8 py-2.5 rounded-xl font-black uppercase text-xs transition-all ${activeTab === tab ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-500 hover:text-white'}`}>
+                        {tab === 'career' ? 'Karriere' : 'Arbeiten'}
                     </button>
-                    <button
-                        onClick={() => setActiveTab('personal')}
-                        className={`px-6 py-3 font-bold text-sm uppercase tracking-wider transition-colors ${activeTab === 'personal' ? 'border-b-2 border-blue-500 text-white' : 'text-slate-400 hover:text-white border-b-2 border-transparent'}`}
-                    >
-                        Arbeiten
-                    </button>
-                </div>
+                ))}
             </div>
 
+            {/* AKTIVITÄTS-LISTEN */}
             {Object.entries(activityCategorization)
                 .filter(([_, config]) => config.tab === activeTab)
-                .map(([type, {groupTitle, groupIcon: GroupIcon}]) => {
-                    const activitiesForType = groupedActivities[type as Activity['type']];
-                    if (!activitiesForType || activitiesForType.length === 0) return null;
-
+                .map(([type, config]) => {
+                    const activities = groupedActivities[type as Activity['type']];
+                    if (!activities) return null;
                     return (
                         <div key={type} className="space-y-4">
-                            <h3 className="text-xl font-bold text-white flex items-center gap-3">
-                                <GroupIcon className="w-6 h-6 text-slate-400" />
-                                <span>{groupTitle}</span>
+                            <h3 className="text-[10px] font-black text-slate-600 uppercase tracking-[0.4em] flex items-center gap-4">
+                                {config.groupTitle} <span className="h-[1px] flex-1 bg-slate-800/50" />
                             </h3>
-                            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6">
-                                {activitiesForType.map((activity) => {
-                                    const { icon: Icon, color, category } = getAppearance(activity.type);
-                                    const { tp = 0, xp = 0, budgetGain = 0, euro = 0 } = activity.reward || {};
-                                    
+                            <div className="flex flex-wrap gap-4 justify-center md:justify-start">
+                                {activities.map((activity) => {
                                     const isCompleted = player.completedActivityIds?.includes(activity.id);
-                                    const canPerformRole = !activity.requiredRole || player.roles?.includes(activity.requiredRole);
-                                    const canStart = !isActivityRunning && !isCompleted && canPerformRole;
-                                    const effectiveDurationSeconds = Math.round(activity.durationSeconds * (1 - durationReduction));
-
-                                    let finalTp = tp;
-                                    let bonusTp = 0;
-                                    if (activity.type === 'training' && tpBonusPercentage > 0) {
-                                        bonusTp = tp * tpBonusPercentage;
-                                        finalTp = tp + bonusTp;
-                                    }
-
-                                    let finalBudget = budgetGain;
-                                    if ((activity.type === 'pr' || activity.type === 'social') && prBonusPercentage > 0) {
-                                        finalBudget = Math.round(budgetGain * (1 + prBonusPercentage));
-                                    }
+                                    const canStart = !activeDef && !isCompleted;
+                                    const finalTp = activity.type === 'training' ? (activity.reward?.tp || 0) * (1 + tpBonusPercentage) : (activity.reward?.tp || 0);
 
                                     return (
-                                        <div key={activity.id} className={`bg-slate-800/80 rounded-2xl p-4 border border-slate-700 flex flex-col justify-between shadow-md transition-all relative overflow-hidden group ${!canStart ? 'opacity-40 grayscale' : 'hover:border-blue-500/50'}`}>
-                                            <div>
-                                                <div className="flex justify-between items-start mb-2">
-                                                    <div className={`p-2 bg-slate-900 rounded-xl border border-slate-700`}><Icon className={`w-6 h-6 ${color}`} /></div>
-                                                    <div className="text-right">
-                                                        {euro > 0 && <p className="text-green-400 font-bold text-xs">+{euro} €</p>}
-                                                        {finalTp > 0 && (
-                                                            <div className="flex items-center justify-end gap-1 text-yellow-400 font-bold text-base">
-                                                                +{finalTp.toFixed(1)} TP
-                                                                {bonusTp > 0 && <PlusCircle className="w-3 h-3 text-yellow-500/50" title={`Bonus: +${bonusTp.toFixed(2)} TP`} />}
-                                                            </div>
-                                                        )}
-                                                        {xp > 0 && <p className="text-blue-400 font-bold text-xs">+{xp} XP</p>}
-                                                        {finalBudget > 0 && <p className="text-green-500 font-bold text-xs">+{finalBudget} Club-€</p>}
-                                                    </div>
+                                        <div key={activity.id} className={`relative flex flex-col w-[175px] bg-slate-900 border-2 border-slate-800 rounded-[2.5rem] p-3 transition-all duration-300 ${isCompleted ? 'opacity-40 grayscale' : 'hover:border-slate-600 hover:-translate-y-1'}`}>
+                                            <div className="absolute -top-3 left-1/2 -translate-x-1/2 flex gap-1 z-10">
+                                                {finalTp > 0 && <div className="bg-slate-800 px-2 py-1 rounded-lg border border-slate-700 flex items-center gap-1 shadow-lg"><Zap className="w-3 h-3 text-yellow-400" /><span className="text-[10px] font-black text-white">+{finalTp.toFixed(1)}</span></div>}
+                                                {activity.reward?.euro && <div className="bg-slate-800 px-2 py-1 rounded-lg border border-slate-700 flex items-center gap-1 shadow-lg"><Euro className="w-3 h-3 text-emerald-400" /><span className="text-[10px] font-black text-white">+{activity.reward.euro}</span></div>}
+                                            </div>
+                                            <div className="mt-4 mb-2 text-center h-10 flex items-center justify-center px-1"><h4 className="text-[11px] font-black text-white leading-tight uppercase italic tracking-tighter">{activity.name}</h4></div>
+                                            <div className="relative h-24 w-full bg-slate-950/50 rounded-2xl flex items-center justify-center border border-white/5 mb-3 overflow-hidden shadow-inner">
+                                                <ActivityGraphic type={activity.type} color={config.color} />
+                                                <div className="absolute bottom-1.5 inset-x-0 text-center">
+                                                    <span className="text-[8px] font-bold text-slate-500 uppercase tracking-tighter">{formatDuration(activity.durationSeconds * (1 - durationReduction))}</span>
                                                 </div>
-                                                <h3 className="text-base font-black mb-1 text-white">{activity.name}</h3>
-                                                <span className="text-[10px] bg-slate-900 px-2 py-1 rounded-full border border-slate-700 text-slate-400 font-bold uppercase">{category}</span>
-                                                <p className="text-xs text-slate-400 mt-2 mb-4 leading-normal font-medium">{activity.description}</p>
                                             </div>
-                                            <div className="mt-auto">
-                                                {isCompleted ? (
-                                                    <div className="w-full py-2 bg-slate-900/50 rounded-xl text-center border border-slate-800">
-                                                        <p className="text-xs font-black text-slate-500 uppercase tracking-widest">Erledigt</p>
-                                                    </div>
-                                                ) : (
-                                                    <button
-                                                        disabled={!canStart}
-                                                        onClick={() => onStart(activity.id)}
-                                                        className={`w-full py-2 rounded-xl font-bold transition-all transform active:scale-95 flex items-center justify-center gap-3 shadow-lg ${!canStart ? 'bg-slate-700 text-slate-500 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-500 text-white'}`}>
-                                                        <span className="text-xs uppercase tracking-tight">Starten</span>
-                                                        <span className="text-[10px] opacity-70 font-mono">({formatDuration(effectiveDurationSeconds)})</span>
-                                                    </button>
-                                                )}
-                                            </div>
+                                            <button onClick={() => onStart(activity.id)} disabled={!canStart} className={`w-full py-2.5 rounded-xl font-black uppercase tracking-widest text-[10px] transition-all ${isCompleted ? 'bg-slate-800 text-slate-600' : canStart ? 'bg-blue-600 text-white hover:bg-blue-500 shadow-md' : 'bg-slate-800 text-slate-700'}`}>
+                                                {isCompleted ? <ShieldCheck className="w-4 h-4 mx-auto" /> : 'Starten'}
+                                            </button>
                                         </div>
                                     );
                                 })}
                             </div>
                         </div>
-                    )
-            })
-        }
+                    );
+                })}
         </div>
     );
-};
+});
