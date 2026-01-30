@@ -3,9 +3,11 @@ import { Club, Player, PlayerPosition } from '../types';
 import { dataService } from '../services/dataService';
 import { getSkillsForPosition } from '../utils';
 import { MAX_CLUB_PLAYERS } from '../constants';
-import { Check, X, Plus, Minus, Ban, Info, Rocket, Users, Shield, Hand } from 'lucide-react';
+import { Check, X, Plus, Minus, Ban, Info, Rocket, Users, Shield, Hand, Mail } from 'lucide-react';
 import { TacticSelection } from './TacticSelection';
 import { MentalitySelection } from './MentalitySelection';
+
+// --- HILFSKOMPONENTEN ---
 
 const PositionIcon: React.FC<{ position: PlayerPosition, className?: string }> = ({ position, className = 'w-5 h-5' }) => {
     const icons: Record<PlayerPosition, React.ElementType> = {
@@ -25,34 +27,60 @@ const getOverall = (p: Player) => {
     return Math.round(totalSkill / relevantSkills.length);
 };
 
-const PlayerCard: React.FC<{ player: Player; children: React.ReactNode, isClubPlayer?: boolean, club?: Club }> = ({ player, children, isClubPlayer, club }) => (
-    <div className="bg-slate-900/50 rounded-lg border border-slate-700/50">
-        <div className="grid grid-cols-[auto,1fr,auto] items-center p-2 md:p-3 gap-3">
-            <div className="w-7 h-7 md:w-8 md:h-8 flex items-center justify-center bg-slate-700 rounded-full flex-shrink-0">
-                <PositionIcon position={player.position} className="w-4 h-4 md:w-5 md:h-5 text-slate-300" />
-            </div>
-            <div>
-                <p className="font-bold text-white text-sm md:text-base">{player.name}</p>
-                <p className="text-xs text-slate-400">Level {player.level}</p>
-            </div>
-            <div className="flex items-center gap-2 md:gap-4">
-                <div className="text-right w-12">
-                    <p className="font-black text-base md:text-xl text-yellow-400">{getOverall(player)}</p>
-                    <p className="text-[10px] text-slate-500 font-bold uppercase">GES</p>
+const PlayerCard: React.FC<{ 
+    player: Player; 
+    children: React.ReactNode; 
+    isClubPlayer?: boolean; 
+    club?: Club 
+}> = ({ player, children, isClubPlayer, club }) => (
+    <div className="bg-slate-900 border border-slate-800 rounded-[2rem] overflow-hidden transition-all hover:border-slate-700 shadow-xl group">
+        {/* Obere Sektion: Basis-Infos */}
+        <div className="flex items-center justify-between p-4 gap-4 bg-gradient-to-b from-white/[0.02] to-transparent">
+            <div className="flex items-center gap-4 min-w-0">
+                <div className="w-12 h-12 bg-slate-800 rounded-2xl flex items-center justify-center border border-white/5 shrink-0 group-hover:scale-105 transition-transform">
+                    <PositionIcon position={player.position} className="w-6 h-6 text-blue-400" />
                 </div>
-                <div className="w-48 text-right">
+                <div className="min-w-0">
+                    <h4 className="font-black text-white italic uppercase tracking-tighter truncate text-lg leading-tight">
+                        {player.name}
+                    </h4>
+                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                        Level {player.level}
+                    </p>
+                </div>
+            </div>
+
+            <div className="flex items-center gap-6 shrink-0">
+                <div className="text-right">
+                    <p className="text-3xl font-black text-blue-400 italic leading-none tabular-nums">
+                        {getOverall(player)}
+                    </p>
+                    <p className="text-[8px] font-black text-slate-600 uppercase text-center">GES</p>
+                </div>
+                <div className="min-w-[120px] flex justify-end">
                     {children}
                 </div>
             </div>
         </div>
+
+        {/* Untere Sektion: Mentalität (Segmented Control Design) */}
         {isClubPlayer && club && (
-            <div className="p-3 border-t border-slate-700/50">
-                 <MentalitySelection player={player} />
+            <div className="px-4 pb-4 pt-2 bg-slate-950/40 border-t border-white/5">
+                <div className="flex flex-col gap-2">
+                    <div className="flex items-center gap-2 mb-1">
+                        <div className="w-1 h-3 bg-blue-500 rounded-full" />
+                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em]">Individuelle Mentalität</span>
+                    </div>
+                    <div className="bg-slate-900/50 rounded-2xl p-1 border border-white/[0.02]">
+                         <MentalitySelection player={player} />
+                    </div>
+                </div>
             </div>
         )}
     </div>
 );
 
+// --- HAUPTKOMPONENTE ---
 
 interface ClubManagementProps {
   club: Club;
@@ -99,80 +127,120 @@ export const ClubManagement: React.FC<ClubManagementProps> = ({ club }) => {
   const isClubFull = (club.players?.length || 0) >= MAX_CLUB_PLAYERS;
 
   if (loading) {
-    return <div className="text-center p-10"><p className="text-lg font-bold text-slate-400 animate-pulse">Lade Spielerdaten...</p></div>;
+    return (
+        <div className="flex flex-col items-center justify-center p-20 space-y-4">
+            <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+            <p className="text-sm font-black text-slate-500 uppercase tracking-widest italic">Lade Management-Daten...</p>
+        </div>
+    );
   }
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
+    <div className="space-y-12 animate-in fade-in duration-500 pb-20">
       <TacticSelection club={club} />
 
-    <section>
-        <h3 className="text-xl md:text-2xl font-black mb-4">Mein Kader ({clubPlayers.length}/{MAX_CLUB_PLAYERS})</h3>
+      {/* SEKTION: MEIN KADER */}
+      <section className="space-y-4">
+        <div className="flex items-center gap-4 px-2">
+            <h3 className="text-xl md:text-2xl font-black text-white italic uppercase tracking-tighter shrink-0">Mein Kader</h3>
+            <div className="h-[1px] w-full bg-gradient-to-r from-slate-800 to-transparent" />
+            <span className="text-[10px] font-black text-slate-500 uppercase shrink-0">{clubPlayers.length} / {MAX_CLUB_PLAYERS}</span>
+        </div>
+        
         {clubPlayers.length > 0 ? (
-            <div className="space-y-3">
+            <div className="grid grid-cols-1 gap-3">
                 {clubPlayers.map(player => (
                     <PlayerCard key={player.id} player={player} isClubPlayer={true} club={club}>
-                        <></>
+                        <div className="flex items-center gap-2 text-emerald-400 bg-emerald-500/10 px-3 py-1.5 rounded-xl border border-emerald-500/20">
+                            <Check className="w-3 h-3" />
+                            <span className="text-[10px] font-black uppercase tracking-widest">Kader</span>
+                        </div>
                     </PlayerCard>
                 ))}
             </div>
         ) : (
-            <div className="text-center py-6 bg-slate-800/50 rounded-lg border border-dashed border-slate-700">
-                 <p className="text-slate-400 font-semibold">Dein Kader ist leer.</p>
+            <div className="text-center py-10 bg-slate-900/50 rounded-[2rem] border-2 border-dashed border-slate-800">
+                 <p className="text-slate-600 font-black uppercase italic tracking-widest">Kader leer</p>
             </div>
         )}
-    </section>
+      </section>
 
-      <section>
-        <h3 className="text-xl md:text-2xl font-black mb-4">Eingegangene Bewerbungen ({applicants.length})</h3>
+      {/* SEKTION: BEWERBUNGEN */}
+      <section className="space-y-4">
+        <div className="flex items-center gap-4 px-2">
+            <h3 className="text-xl md:text-2xl font-black text-white italic uppercase tracking-tighter shrink-0">Bewerbungen</h3>
+            <div className="h-[1px] w-full bg-gradient-to-r from-slate-800 to-transparent" />
+            <span className={`text-[10px] font-black uppercase shrink-0 ${applicants.length > 0 ? 'text-blue-400' : 'text-slate-500'}`}>{applicants.length} Neu</span>
+        </div>
+
         {applicants.length > 0 ? (
-          <div className="space-y-3">
+          <div className="grid grid-cols-1 gap-3">
             {applicants.map(player => (
               <PlayerCard key={player.id} player={player}>
                 {!isClubFull ? (
-                    <div className="flex gap-2 justify-end">
-                        <button onClick={() => handleAccept(player.id)} className="flex items-center justify-center gap-1.5 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-3 rounded-lg text-xs transition-colors"> <Check className="h-4 w-4" /> Annehmen</button>
-                        <button onClick={() => handleReject(player.id)} className="flex items-center justify-center gap-1.5 bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-3 rounded-lg text-xs transition-colors"><X className="h-4 w-4" /> Ablehnen</button>
+                    <div className="flex gap-2">
+                        <button onClick={() => handleAccept(player.id)} className="bg-emerald-500 hover:bg-emerald-400 text-white font-black uppercase text-[10px] py-2 px-4 rounded-xl transition-all active:scale-95 flex items-center gap-2 shadow-lg shadow-emerald-900/20">
+                            <Check className="h-3 w-3" /> Annehmen
+                        </button>
+                        <button onClick={() => handleReject(player.id)} className="bg-slate-800 hover:bg-rose-500 text-white font-black uppercase text-[10px] py-2 px-4 rounded-xl transition-all active:scale-95 flex items-center gap-2">
+                            <X className="h-3 w-3" /> Ablehnen
+                        </button>
                     </div>
                 ) : (
-                    <div className="flex items-center justify-end gap-2 text-red-500 font-bold text-sm px-4"><Ban className="h-4 w-4"/> Kader voll</div>
+                    <div className="flex items-center gap-2 text-rose-500 font-black uppercase text-[10px] bg-rose-500/10 px-4 py-2 rounded-xl border border-rose-500/20 italic">
+                        <Ban className="h-3 w-3"/> Voll
+                    </div>
                 )}
               </PlayerCard>
             ))}
           </div>
         ) : (
-          <div className="text-center py-6 bg-slate-800/50 rounded-lg border border-dashed border-slate-700">
-            <p className="text-slate-400 font-semibold">Aktuell liegen keine Bewerbungen vor.</p>
+          <div className="text-center py-10 bg-slate-900/50 rounded-[2rem] border-2 border-dashed border-slate-800">
+            <p className="text-slate-600 font-black uppercase italic tracking-widest">Keine Bewerbungen</p>
           </div>
         )}
       </section>
 
-      <section>
-        <h3 className="text-xl md:text-2xl font-black mb-4">Vereinslose Spieler ({freeAgents.length})</h3>
+      {/* SEKTION: TRANSFERMARKT */}
+      <section className="space-y-4">
+        <div className="flex items-center gap-4 px-2">
+            <h3 className="text-xl md:text-2xl font-black text-white italic uppercase tracking-tighter shrink-0">Transfermarkt</h3>
+            <div className="h-[1px] w-full bg-gradient-to-r from-slate-800 to-transparent" />
+            <span className="text-[10px] font-black text-slate-500 uppercase shrink-0">{freeAgents.length} Verfügbar</span>
+        </div>
+
          {freeAgents.length > 0 ? (
-            <div className="space-y-3">
+            <div className="grid grid-cols-1 gap-3">
                 {freeAgents.map(player => {
-                    const hasBeenInvitedByThisClub = player.pendingClubInvitation === club.id;
-                    const hasOtherInvite = !!player.pendingClubInvitation && player.pendingClubInvitation !== club.id;
+                    const isInvited = player.pendingClubInvitation === club.id;
+                    const isOccupied = !!player.pendingClubInvitation && !isInvited;
 
                     return (
                     <PlayerCard key={player.id} player={player}>
-                        {hasBeenInvitedByThisClub ? (
-                        <button onClick={() => handleCancelInvite(player.id)} className="w-full flex items-center justify-center gap-1.5 bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-2 px-3 rounded-lg text-xs transition-colors"><Minus className="h-4 w-4" /> Zurückziehen</button>
-                        ) : hasOtherInvite ? (
-                        <div className="flex items-center justify-end gap-2 text-slate-500 font-bold text-xs px-4"><Info className="h-4 w-4"/> Hat andere Einladung</div>
+                        {isInvited ? (
+                        <button onClick={() => handleCancelInvite(player.id)} className="bg-amber-500/10 hover:bg-amber-500 text-amber-500 hover:text-white border border-amber-500/20 font-black uppercase text-[10px] py-2 px-4 rounded-xl transition-all w-full flex items-center justify-center gap-2">
+                            <Minus className="h-3 w-3" /> Zurückziehen
+                        </button>
+                        ) : isOccupied ? (
+                        <div className="flex items-center gap-2 text-slate-500 font-black uppercase text-[10px] italic bg-slate-950 px-4 py-2 rounded-xl border border-white/5">
+                            <Mail className="h-3 w-3"/> Eingeladen
+                        </div>
                         ) : isClubFull ? (
-                        <div className="flex items-center justify-end gap-2 text-red-500 font-bold text-sm px-4"><Ban className="h-4 w-4"/> Kader voll</div>
+                        <div className="flex items-center gap-2 text-rose-500 font-black uppercase text-[10px] italic bg-rose-500/10 px-4 py-2 rounded-xl border border-rose-500/20">
+                            <Ban className="h-3 w-3"/> Voll
+                        </div>
                         ) : (
-                        <button onClick={() => handleInvite(player.id)} className="w-full flex items-center justify-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-3 rounded-lg text-xs transition-colors"><Plus className="h-4 w-4" /> Einladen</button>
+                        <button onClick={() => handleInvite(player.id)} className="bg-blue-600 hover:bg-blue-500 text-white font-black uppercase text-[10px] py-2 px-6 rounded-xl transition-all active:scale-95 flex items-center justify-center gap-2 shadow-lg shadow-blue-900/20 w-full">
+                            <Plus className="h-3 w-3" /> Einladen
+                        </button>
                         )}
                     </PlayerCard>
                     );
                 })}
             </div>
          ) : (
-            <div className="text-center py-6 bg-slate-800/50 rounded-lg border border-dashed border-slate-700">
-                <p className="text-slate-400 font-semibold">Keine vereinslosen Spieler gefunden.</p>
+            <div className="text-center py-10 bg-slate-900/50 rounded-[2rem] border-2 border-dashed border-slate-800">
+                <p className="text-slate-600 font-black uppercase italic tracking-widest">Keine freien Spieler</p>
             </div>
          )}
       </section>
