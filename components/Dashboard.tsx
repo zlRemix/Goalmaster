@@ -120,7 +120,7 @@ const InvitationBanner: React.FC<{ player: Player; allClubs: Club[]; }> = ({ pla
 const EquipmentMiniCard: React.FC<{ item: EquipmentItem; isEquipped: boolean; onToggle: () => void }> = ({ item, isEquipped, onToggle }) => {
     const rarityColor = item.price >= 5000 ? '#FDE047' : item.price >= 1500 ? '#C084FC' : '#38BDF8';
     return (
-        <div className={`relative flex flex-col w-[160px] bg-slate-900 border-2 rounded-[2rem] p-3 transition-all ${isEquipped ? 'border-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.2)]' : 'border-slate-800 opacity-80 hover:opacity-100'}`}>
+        <div className={`relative flex flex-col w-full bg-slate-900 border-2 rounded-[2rem] p-3 transition-all ${isEquipped ? 'border-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.2)]' : 'border-slate-800 opacity-80 hover:opacity-100'}`}>
             <div className="text-center mb-2 h-8 flex items-center justify-center">
                 <h4 className="text-[10px] font-black text-white uppercase italic leading-tight truncate px-1">{item.name}</h4>
             </div>
@@ -151,7 +151,7 @@ const EquipmentManager: React.FC<{ player: Player }> = ({ player }) => {
         return (
             <div className="space-y-3">
                 <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] pl-2">{title}</h3>
-                <div className="flex flex-wrap gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
                     {items.map(item => (
                         <EquipmentMiniCard key={item.id} item={item} isEquipped={player.equipped?.[slot] === item.id} onToggle={() => dataService.toggleEquipment(player.id, item.id, slot)} />
                     ))}
@@ -175,6 +175,7 @@ const EquipmentManager: React.FC<{ player: Player }> = ({ player }) => {
         </div>
     );
 };
+
 
 // --- Dashboard ---
 
@@ -250,7 +251,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ player, club, allClubs, ov
             </div>
 
             <NextMatchday club={club} allClubs={allClubs} />
-            <EquipmentManager player={player} />
 
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 {[
@@ -266,6 +266,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ player, club, allClubs, ov
                     </button>
                 ))}
             </div>
+            <EquipmentManager player={player} />
         </div>
     );
 };

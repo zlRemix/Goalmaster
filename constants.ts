@@ -491,9 +491,99 @@ export const GK_RARE_SETS: EquipmentItem[] = [
   }
 ];
 
+export const GK_EPIC_SETS: EquipmentItem[] = [
+  // --- SET 1: REFLEX-X (Die unbezwingbare Katze) ---
+  {
+    id: 'gk_epi_reflex_gloves',
+    name: 'Reflex-X HyperGrip',
+    slot: EquipmentSlot.GLOVES,
+    rarity: 'EPIC',
+    price: 3500,
+    allowedPositions: ['Torwart'],
+    bonus: { reflexes: 45, diving: 10 }
+  },
+  {
+    id: 'gk_epi_reflex_jersey',
+    name: 'Reflex-X Carbon Armor',
+    slot: EquipmentSlot.JERSEY,
+    rarity: 'EPIC',
+    price: 3000,
+    allowedPositions: ['Torwart'],
+    bonus: { diving: 40, reflexes: 15 }
+  },
+  {
+    id: 'gk_epi_reflex_shorts',
+    name: 'Reflex-X Compression',
+    slot: EquipmentSlot.SHORTS,
+    rarity: 'EPIC',
+    price: 2500,
+    allowedPositions: ['Torwart'],
+    bonus: { reflexes: 25, positioning: 10 }
+  },
+
+  // --- SET 2: GUARDIAN-WALL (Die Mauer von [Dein Club]) ---
+  {
+    id: 'gk_epi_wall_gloves',
+    name: 'Guardian-Wall Latex+',
+    slot: EquipmentSlot.GLOVES,
+    rarity: 'EPIC',
+    price: 3500,
+    allowedPositions: ['Torwart'],
+    bonus: { handling: 45, positioning: 10 }
+  },
+  {
+    id: 'gk_epi_wall_jersey',
+    name: 'Guardian-Wall Padded',
+    slot: EquipmentSlot.JERSEY,
+    rarity: 'EPIC',
+    price: 3000,
+    allowedPositions: ['Torwart'],
+    bonus: { positioning: 40, handling: 15 }
+  },
+  {
+    id: 'gk_epi_wall_shorts',
+    name: 'Guardian-Wall Kevlar',
+    slot: EquipmentSlot.SHORTS,
+    rarity: 'EPIC',
+    price: 2500,
+    allowedPositions: ['Torwart'],
+    bonus: { handling: 25, communication: 10 }
+  },
+
+  // --- SET 3: COMMANDER-PRO (Der Taktik-Architekt) ---
+  {
+    id: 'gk_epi_comm_gloves',
+    name: 'Commander-Pro Hybrid',
+    slot: EquipmentSlot.GLOVES,
+    rarity: 'EPIC',
+    price: 3500,
+    allowedPositions: ['Torwart'],
+    bonus: { kicking: 45, communication: 10 }
+  },
+  {
+    id: 'gk_epi_comm_jersey',
+    name: 'Commander-Pro Signal',
+    slot: EquipmentSlot.JERSEY,
+    rarity: 'EPIC',
+    price: 3000,
+    allowedPositions: ['Torwart'],
+    bonus: { communication: 40, kicking: 15 }
+  },
+  {
+    id: 'gk_epi_comm_shorts',
+    name: 'Commander-Pro Tactical',
+    slot: EquipmentSlot.SHORTS,
+    rarity: 'EPIC',
+    price: 2500,
+    allowedPositions: ['Torwart'],
+    bonus: { kicking: 25, vision: 10 }
+  }
+];
+
 export const EQUIPMENT_ITEMS: EquipmentItem[] = [
     ...GK_TIER1_SETS,
     ...GK_RARE_SETS,
+    ...GK_EPIC_SETS,
     // --- Schuhe (Stürmer) ---
     {
         id: 'shoe_st_01',
