@@ -4,27 +4,20 @@ import { db, functions } from './firebase';
 import { Player, Club, Fixture, PlayerPosition, UserRole, PendingUpgrade, SkillType, ActiveActivity, Reward, InfrastructureType, ActiveTeamTraining, Activity, EquipmentSlot } from '../types';
 import { ACTIVITIES, INFRA_UPGRADE_COSTS, INFRA_UPGRADE_TIMES, TEAM_TRAININGS, MAX_CLUB_PLAYERS, XP_PER_SKILL_UPGRADE, SHOP_ITEMS, EQUIPMENT_ITEMS } from '../constants';
 
-const getNextHourlyTimestamp = () => {
-    const now = new Date();
-    now.setHours(now.getHours() + 1);
-    now.setMinutes(0);
-    now.setSeconds(0);
-    now.setMilliseconds(0);
-    return now.getTime();
-};
-
 const getXpForSkillUpgrade = (currentSkillLevel: number): number => {
     const rank = Math.floor(currentSkillLevel / 100);
     return (1 + rank) * XP_PER_SKILL_UPGRADE;
 };
 
-const calculateActivityRewards = (player: Player, activity: Activity, club: Club | null) => {
+const calculateActivityRewards = (player: Player, activity: Activity, club: Club | null, chargesUsed: number = 1) => {
     const playerUpdates: { [key: string]: any } = {};
-    let totalXpGain = activity.reward.xp || 0;
+    const totalMultiplier = chargesUsed;
+
+    let totalXpGain = (activity.reward.xp || 0) * totalMultiplier;
 
     // --- EURO GAIN ---
     if (activity.reward.euro) {
-        playerUpdates.euro = (player.euro || 0) + activity.reward.euro;
+        playerUpdates.euro = (player.euro || 0) + activity.reward.euro * totalMultiplier;
     }
 
     // --- TP BONUS CALCULATION ---
@@ -34,11 +27,11 @@ const calculateActivityRewards = (player: Player, activity: Activity, club: Club
         const tpBonus = (trainingGroundLevel * 2) / 100; // 2% per level
         tpGain = tpGain * (1 + tpBonus);
     }
-    const newTps = (player.trainingPoints || 0) + tpGain;
+    const newTps = (player.trainingPoints || 0) + (tpGain * totalMultiplier);
     playerUpdates.trainingPoints = Math.round(newTps * 100) / 100;
 
     // --- BUDGET BONUS CALCULATION ---
-    let budgetGain = activity.reward.budgetGain || 0;
+    let budgetGain = (activity.reward.budgetGain || 0) * totalMultiplier;
     if ((activity.type === 'pr' || activity.type === 'social') && club?.infrastructure?.marketing_department?.level) {
         const marketingDeptLevel = club.infrastructure.marketing_department.level;
         const prBonus = (marketingDeptLevel * 5) / 100; // 5% per level
@@ -49,9 +42,10 @@ const calculateActivityRewards = (player: Player, activity: Activity, club: Club
         for (const [skill, value] of Object.entries(activity.reward.skills)) {
             if (typeof value === 'number' && value > 0) {
                 const currentSkillLevel = player.skills?.[skill as SkillType] || 0;
-                playerUpdates[`skills.${skill as SkillType}`] = currentSkillLevel + value;
+                const totalSkillGain = value * totalMultiplier;
+                playerUpdates[`skills.${skill as SkillType}`] = currentSkillLevel + totalSkillGain;
                 
-                for (let i = 0; i < value; i++) {
+                for (let i = 0; i < totalSkillGain; i++) {
                     totalXpGain += getXpForSkillUpgrade(currentSkillLevel + i);
                 }
             }
@@ -127,7 +121,8 @@ const dataService = {
             skills: {},
             activeActivities: [],
             completedActivityIds: [],
-            nextActivityReset: getNextHourlyTimestamp(),
+            nextActivityReset: 0, // Obsolete
+            activityCharges: {},
             equipment: [],
             equipped: {},
         };
@@ -251,14 +246,50 @@ const dataService = {
     });
   },
 
-   async startActivity(playerId: string, activityId: string): Promise<void> {
-    const activity = ACTIVITIES.find(a => a.id === activityId);
-    if (!activity) throw new Error("Activity not found");
-    const newActivity: ActiveActivity = { activityId, startTime: Date.now() };
-    await updateDoc(doc(db, 'players', playerId), { activeActivities: [newActivity] });
+   async startActivity(playerId: string, activityId: string, chargesToUse: number = 1): Promise<void> {
+    await runTransaction(db, async (transaction) => {
+      const playerRef = doc(db, 'players', playerId);
+      const playerDoc = await transaction.get(playerRef);
+      if (!playerDoc.exists()) throw new Error("Spieler nicht gefunden");
+
+      const player = playerDoc.data() as Player;
+      const activity = ACTIVITIES.find(a => a.id === activityId);
+      if (!activity) throw new Error("Aktivität nicht gefunden");
+      if (player.activeActivities?.length > 0) throw new Error("Eine andere Aktivität läuft bereits");
+
+      const updates: { [key: string]: any } = {};
+      const now = Date.now();
+
+      if (activity.maxCharges && activity.chargeRegenerationSeconds) {
+        const chargeInfo = player.activityCharges?.[activityId];
+        const maxCharges = activity.maxCharges;
+        const regenerationSeconds = activity.chargeRegenerationSeconds;
+        
+        let currentCharges = chargeInfo?.charges ?? maxCharges;
+        
+        if (chargeInfo && currentCharges < maxCharges) {
+          const elapsedSeconds = (now - chargeInfo.lastUsedTimestamp) / 1000;
+          const regeneratedCharges = Math.floor(elapsedSeconds / regenerationSeconds);
+          if (regeneratedCharges > 0) {
+            currentCharges = Math.min(maxCharges, currentCharges + regeneratedCharges);
+          }
+        }
+
+        if (currentCharges < chargesToUse) throw new Error("Nicht genügend Ladungen verfügbar");
+
+        updates[`activityCharges.${activityId}.charges`] = currentCharges - chargesToUse;
+        updates[`activityCharges.${activityId}.lastUsedTimestamp`] = now;
+      } else {
+        if (player.completedActivityIds?.includes(activityId)) throw new Error("Aktivität bereits abgeschlossen");
+      }
+      
+      const newActivity: ActiveActivity = { activityId, startTime: now, chargesUsed: chargesToUse };
+      updates.activeActivities = [newActivity];
+      transaction.update(playerRef, updates);
+    });
   },
 
-  async completeActivity(playerId: string, activityId: string): Promise<void> {
+  async completeActivity(playerId: string, activityId: string, isCorrect?: boolean): Promise<void> {
     await runTransaction(db, async (transaction) => {
         const playerRef = doc(db, 'players', playerId);
         const playerDoc = await transaction.get(playerRef);
@@ -281,22 +312,31 @@ const dataService = {
             }
         }
         
-        const { playerUpdates, budgetGain } = calculateActivityRewards(player, activityDef as Activity, club);
+        const chargesUsed = activityInstance.chargesUsed || 1;
+        const { playerUpdates, budgetGain } = calculateActivityRewards(player, activityDef as Activity, club, chargesUsed);
         playerUpdates.activeActivities = []; 
-        playerUpdates.completedActivityIds = arrayUnion(activityId);
+
+        if (activityDef.type === 'quiz') {
+            playerUpdates.lastQuizTimestamp = Date.now();
+            // Quiz rewards are handled inside calculateActivityRewards now for consistency if needed, but let's override for the special case
+            if (isCorrect) {
+                 const reward = activityDef.reward;
+                 playerUpdates.trainingPoints = (player.trainingPoints || 0) + (reward.tp || 0);
+                 playerUpdates.experience = (player.experience || 0) + (reward.xp || 0);
+            } else { // No reward if incorrect
+                 playerUpdates.trainingPoints = player.trainingPoints;
+                 playerUpdates.experience = player.experience;
+            }
+        } else if (!activityDef.maxCharges) { // Only add to completed if it's not a charge-based activity
+            playerUpdates.completedActivityIds = arrayUnion(activityId);
+        }
+        
         transaction.update(playerRef, playerUpdates);
 
         if (budgetGain > 0 && clubRef) {
             transaction.update(clubRef, { budget: increment(budgetGain) });
         }
     });
-  },
-  
-  async resetCompletedActivities(playerId: string): Promise<void> {
-      await updateDoc(doc(db, 'players', playerId), {
-          completedActivityIds: [],
-          nextActivityReset: getNextHourlyTimestamp(),
-      });
   },
 
   listenToClub(clubId: string, callback: (club: Club | null) => void): () => void {

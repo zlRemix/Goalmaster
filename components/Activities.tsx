@@ -4,10 +4,10 @@ import { ACTIVITIES } from '../constants';
 import { useCountdown, formatDuration } from '../hooks/useTimers';
 import { dataService } from '../services/dataService';
 import { TrainingCenter } from './TrainingCenter';
-import Quiz from './Quiz'; // Import the Quiz component
+import Quiz from './Quiz';
 import { 
   ClipboardList, Mic, Footprints, Pizza, Timer, 
-  Star, Briefcase, Euro, ShieldCheck, Zap, BrainCircuit
+  Star, Briefcase, Euro, ShieldCheck, Zap, BrainCircuit, RefreshCw, X
 } from 'lucide-react';
 
 type ActivityTab = 'career' | 'personal' | 'training' | 'quiz';
@@ -21,7 +21,6 @@ const activityCategorization: Record<Activity['type'], { icon: ElementType; colo
     work: { icon: Briefcase, color: '#34D399', groupTitle: 'Arbeit & Finanzen', tab: 'personal' },
     quiz: { icon: BrainCircuit, color: '#A78BFA', groupTitle: 'Wissen & Quiz', tab: 'quiz' },
 };
-
 
 const ActivityGraphic: React.FC<{ type: Activity['type']; color: string }> = ({ type, color }) => {
     const rarityId = useId().replace(/:/g, ""); 
@@ -56,6 +55,7 @@ const ActiveActivityStatus: React.FC<{ activeInstance: ActiveActivity, activityD
     const remainingMs = useCountdown(endTime);
     const progress = Math.min(100, Math.max(0, ((totalDurationMs - remainingMs) / totalDurationMs) * 100));
     const remainingSeconds = Math.ceil(remainingMs / 1000);
+    const chargesUsed = activeInstance.chargesUsed || 1;
 
     return (
         <div className="bg-slate-900 border-2 border-blue-500/50 rounded-[2.5rem] p-6 mb-8 shadow-2xl relative overflow-hidden">
@@ -69,7 +69,7 @@ const ActiveActivityStatus: React.FC<{ activeInstance: ActiveActivity, activityD
                     </div>
                     <div>
                         <p className="text-[10px] font-black text-blue-400 uppercase tracking-widest">Einheit läuft...</p>
-                        <h3 className="text-2xl font-black text-white italic uppercase tracking-tighter">{activityDef.name}</h3>
+                        <h3 className="text-2xl font-black text-white italic uppercase tracking-tighter">{activityDef.name} {chargesUsed > 1 ? `(x${chargesUsed})` : ''}</h3>
                     </div>
                 </div>
                 <div className="text-right">
@@ -81,10 +81,55 @@ const ActiveActivityStatus: React.FC<{ activeInstance: ActiveActivity, activityD
     );
 };
 
-export const Activities: React.FC<{ player: Player; onStart: (activityId: string) => void; onComplete: (activityId: string, correct?: boolean) => void; onReset: () => void; onTrain: (skill: SkillType) => void; }> = memo(({ player, onStart, onComplete, onReset, onTrain }) => {
+const ChargeSelectionPopup: React.FC<{ activity: Activity, currentCharges: number, onStart: (charges: number) => void, onCancel: () => void, tpBonusPercentage: number, durationReduction: number }> = ({ activity, currentCharges, onStart, onCancel, tpBonusPercentage, durationReduction }) => {
+    const finalTp = (activity.reward?.tp || 0) * (1 + (activity.type === 'training' ? tpBonusPercentage : 0));
+
+    return (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+            <div className="bg-slate-900 border-2 border-slate-800 rounded-3xl p-6 max-w-sm w-full space-y-4 relative">
+                <button onClick={onCancel} className="absolute top-3 right-3 text-slate-500 hover:text-white"><X /></button>
+                <h3 className="text-lg font-bold text-white text-center">{activity.name}</h3>
+                <p className="text-sm text-slate-400 text-center">Du hast {currentCharges} von {activity.maxCharges} Ladungen. Wie viele möchtest du nutzen?</p>
+                
+                <div className="space-y-3 pt-2">
+                    <button onClick={() => onStart(1)} className="w-full flex justify-between items-center bg-slate-800 hover:bg-slate-700 p-4 rounded-lg transition-colors">
+                        <div>
+                            <span className="font-bold text-white">1 Ladung</span>
+                            <span className="text-xs text-slate-400 block">Dauer: {formatDuration(activity.durationSeconds * (1 - durationReduction))}</span>
+                        </div>
+                        <div className="text-right">
+                            {finalTp > 0 && <span className="text-sm font-bold text-yellow-400">+{finalTp.toFixed(1)} TP</span>}
+                        </div>
+                    </button>
+
+                    {currentCharges > 1 && (
+                        <button onClick={() => onStart(currentCharges)} className="w-full flex justify-between items-center bg-fuchsia-600/20 hover:bg-fuchsia-600/30 p-4 rounded-lg transition-colors border-2 border-fuchsia-500">
+                           <div>
+                                <span className="font-bold text-white">Alle {currentCharges} Ladungen</span>
+                                <span className="text-xs text-slate-400 block">Dauer: {formatDuration(activity.durationSeconds * (1 - durationReduction))}</span>
+                            </div>
+                             <div className="text-right">
+                                {finalTp > 0 && <span className="text-sm font-bold text-yellow-400">+{(finalTp * currentCharges).toFixed(1)} TP</span>}
+                            </div>
+                        </button>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+export const Activities: React.FC<{ player: Player; onStart: (activityId: string, charges?: number) => void; onComplete: (activityId: string, correct?: boolean) => void; onReset: () => void; onTrain: (skill: SkillType) => void; }> = memo(({ player, onStart, onComplete, onReset, onTrain }) => {
     const [club, setClub] = useState<Club | null>(null);
     const [activeTab, setActiveTab] = useState<ActivityTab>('career');
     const [isQuizActive, setIsQuizActive] = useState(false);
+    const [selectingChargesFor, setSelectingChargesFor] = useState<Activity | null>(null);
+    const [, setTick] = useState(0);
+
+    useEffect(() => {
+        const interval = setInterval(() => setTick(t => t + 1), 1000);
+        return () => clearInterval(interval);
+    }, []);
 
     useEffect(() => {
         if (!player.clubId) { setClub(null); return; }
@@ -115,19 +160,26 @@ export const Activities: React.FC<{ player: Player; onStart: (activityId: string
         return () => clearTimeout(timer);
     }, [activeInstance?.activityId, onComplete, durationReduction]);
 
-    useEffect(() => {
-        if (!player.nextActivityReset) return;
-        const remaining = player.nextActivityReset - Date.now();
-        if (remaining <= 0) { onReset(); return; }
-        const timer = setTimeout(() => onReset(), remaining);
-        return () => clearTimeout(timer);
-    }, [player.nextActivityReset, onReset]);
-
     const handleQuizComplete = (correct: boolean) => {
         if(activeDef) {
             onComplete(activeDef.id, correct);
         }
         setIsQuizActive(false);
+    };
+
+    const handleStartClick = (activity: Activity, currentCharges: number) => {
+        if (activity.maxCharges && currentCharges > 0) {
+            setSelectingChargesFor(activity);
+        } else {
+            onStart(activity.id, 1);
+        }
+    };
+
+    const handleChargeSelection = (charges: number) => {
+        if (selectingChargesFor) {
+            onStart(selectingChargesFor.id, charges);
+        }
+        setSelectingChargesFor(null);
     };
 
     const groupedActivities = useMemo(() => 
@@ -145,14 +197,18 @@ export const Activities: React.FC<{ player: Player; onStart: (activityId: string
 
     return (
         <div className="space-y-8 pb-24 px-2">
+             {selectingChargesFor && (
+                 <ChargeSelectionPopup 
+                    activity={selectingChargesFor}
+                    currentCharges={player.activityCharges?.[selectingChargesFor.id]?.charges ?? selectingChargesFor.maxCharges ?? 1}
+                    onStart={handleChargeSelection}
+                    onCancel={() => setSelectingChargesFor(null)}
+                    tpBonusPercentage={tpBonusPercentage}
+                    durationReduction={durationReduction}
+                 />
+            )}
             <header className="flex justify-between items-center">
                 <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter">Profi-Alltag</h2>
-                <div className="flex items-center gap-2 bg-slate-900/50 px-4 py-2 rounded-xl border border-slate-800">
-                    <Timer className="w-4 h-4 text-slate-500" />
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                        Reset: {formatDuration(Math.ceil((player.nextActivityReset! - Date.now()) / 1000))}
-                    </span>
-                </div>
             </header>
 
             {activeDef && activeInstance && (
@@ -186,25 +242,63 @@ export const Activities: React.FC<{ player: Player; onStart: (activityId: string
                                     const isQuiz = activity.type === 'quiz';
                                     const lastQuizTaken = player.lastQuizTimestamp || 0;
                                     const isQuizOnCooldown = isQuiz && (Date.now() - lastQuizTaken) < 24 * 60 * 60 * 1000;
-                                    const isCompleted = !isQuiz && player.completedActivityIds?.includes(activity.id);
-                                    const canStart = !activeDef && !isCompleted && !isQuizOnCooldown;
+
+                                    const chargeInfo = player.activityCharges?.[activity.id];
+                                    const maxCharges = activity.maxCharges || 0;
+                                    const regenerationSeconds = activity.chargeRegenerationSeconds || 0;
+                                    
+                                    let currentCharges = chargeInfo?.charges ?? maxCharges;
+                                    let nextChargeInSeconds = 0;
+
+                                    if (chargeInfo && currentCharges < maxCharges) {
+                                        const elapsedSeconds = (Date.now() - chargeInfo.lastUsedTimestamp) / 1000;
+                                        const regeneratedCharges = Math.floor(elapsedSeconds / regenerationSeconds);
+                                        
+                                        if (regeneratedCharges > 0) {
+                                            currentCharges = Math.min(maxCharges, currentCharges + regeneratedCharges);
+                                        }
+
+                                        if (currentCharges < maxCharges) {
+                                            const timeSinceLastRegen = elapsedSeconds % regenerationSeconds;
+                                            nextChargeInSeconds = regenerationSeconds - timeSinceLastRegen;
+                                        }
+                                    } else if (!chargeInfo && maxCharges > 0) {
+                                        currentCharges = maxCharges;
+                                    }
+
+                                    const hasCharges = currentCharges > 0;
+                                    const isCompleted = !isQuiz && !maxCharges && player.completedActivityIds?.includes(activity.id);
+                                    const canStart = !activeDef && !isCompleted && !isQuizOnCooldown && (maxCharges > 0 ? hasCharges : true);
                                     const finalTp = activity.reward?.tp ? activity.reward.tp * (1 + (activity.type === 'training' ? tpBonusPercentage : 0)) : 0;
 
                                     return (
-                                        <div key={activity.id} className={`relative flex flex-col w-[175px] bg-slate-900 border-2 border-slate-800 rounded-[2.5rem] p-3 transition-all duration-300 ${(isCompleted || isQuizOnCooldown) ? 'opacity-40 grayscale' : 'hover:border-slate-600 hover:-translate-y-1'}`}>
+                                        <div key={activity.id} className={`relative flex flex-col w-[175px] bg-slate-900 border-2 border-slate-800 rounded-[2.5rem] p-3 transition-all duration-300 ${(!canStart || isCompleted || isQuizOnCooldown) ? 'opacity-40 grayscale' : 'hover:border-slate-600 hover:-translate-y-1'}`}>
                                             <div className="absolute -top-3 left-1/2 -translate-x-1/2 flex gap-1 z-10">
-                                                {finalTp > 0 && <div className="bg-slate-800 px-2 py-1 rounded-lg border border-slate-700 flex items-center gap-1 shadow-lg"><Zap className="w-3 h-3 text-yellow-400" /><span className="text-[10px] font-black text-white">+{finalTp.toFixed(1)}</span></div>}
+                                                {maxCharges > 0 && (
+                                                    <div className="bg-slate-800 px-2 py-1 rounded-lg border border-slate-700 flex items-center gap-1 shadow-lg">
+                                                        <Zap className="w-3 h-3 text-fuchsia-400" />
+                                                        <span className="text-[10px] font-black text-white">{currentCharges}/{maxCharges}</span>
+                                                    </div>
+                                                )}
+                                                {finalTp > 0 && !maxCharges && <div className="bg-slate-800 px-2 py-1 rounded-lg border border-slate-700 flex items-center gap-1 shadow-lg"><Zap className="w-3 h-3 text-yellow-400" /><span className="text-[10px] font-black text-white">+{finalTp.toFixed(1)}</span></div>}
                                                 {activity.reward?.euro && <div className="bg-slate-800 px-2 py-1 rounded-lg border border-slate-700 flex items-center gap-1 shadow-lg"><Euro className="w-3 h-3 text-emerald-400" /><span className="text-[10px] font-black text-white">+{activity.reward.euro}</span></div>}
                                             </div>
                                             <div className="mt-4 mb-2 text-center h-10 flex items-center justify-center px-1"><h4 className="text-[11px] font-black text-white leading-tight uppercase italic tracking-tighter">{activity.name}</h4></div>
                                             <div className="relative h-24 w-full bg-slate-950/50 rounded-2xl flex items-center justify-center border border-white/5 mb-3 overflow-hidden shadow-inner">
                                                 <ActivityGraphic type={activity.type} color={config.color} />
                                                 <div className="absolute bottom-1.5 inset-x-0 text-center">
+                                                {maxCharges > 0 && currentCharges < maxCharges && nextChargeInSeconds > 0 ? (
+                                                    <div className='flex items-center justify-center gap-1.5'>
+                                                        <RefreshCw className="w-2 h-2 text-fuchsia-400" />
+                                                        <span className="text-[8px] font-bold text-fuchsia-400 uppercase tracking-tighter">{formatDuration(nextChargeInSeconds)}</span>
+                                                    </div>
+                                                    ) : (
                                                     <span className="text-[8px] font-bold text-slate-500 uppercase tracking-tighter">{formatDuration(activity.durationSeconds * (1 - durationReduction))}</span>
+                                                )}
                                                 </div>
                                             </div>
-                                            <button onClick={() => onStart(activity.id)} disabled={!canStart} className={`w-full py-2.5 rounded-xl font-black uppercase tracking-widest text-[10px] transition-all ${(isCompleted || isQuizOnCooldown) ? 'bg-slate-800 text-slate-600' : canStart ? 'bg-blue-600 text-white hover:bg-blue-500 shadow-md' : 'bg-slate-800 text-slate-700'}`}>
-                                                {(isCompleted || isQuizOnCooldown) ? <ShieldCheck className="w-4 h-4 mx-auto" /> : 'Starten'}
+                                            <button onClick={() => handleStartClick(activity, currentCharges)} disabled={!canStart} className={`w-full py-2.5 rounded-xl font-black uppercase tracking-widest text-[10px] transition-all ${(isCompleted || isQuizOnCooldown) ? 'bg-slate-800 text-slate-600' : canStart ? 'bg-blue-600 text-white hover:bg-blue-500 shadow-md' : 'bg-slate-800 text-slate-700'}`}>
+                                                {isCompleted || isQuizOnCooldown ? <ShieldCheck className="w-4 h-4 mx-auto" /> : (maxCharges > 0 ? (hasCharges ? 'Starten' : 'Lädt auf') : 'Starten')}
                                             </button>
                                         </div>
                                     );

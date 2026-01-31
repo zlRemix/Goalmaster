@@ -172,16 +172,12 @@ const App: React.FC = () => {
   const handleUpgrade = (clubId: string, type: InfrastructureType) => dataService.startInfrastructureUpgrade(clubId, type);
   const handleTrainSkill = (skill: SkillType) => { if (player) dataService.upgradeSkill(player.id, skill); };
   
-  const handleStartActivity = useCallback((activityId: string) => {
-    if (user) dataService.startActivity(user.uid, activityId);
+  const handleStartActivity = useCallback((activityId: string, charges?: number) => {
+    if (user) dataService.startActivity(user.uid, activityId, charges);
   }, [user]);
 
   const handleCompleteActivity = useCallback((activityId: string, correct?: boolean) => {
     if (user) dataService.completeActivity(user.uid, activityId, correct);
-  }, [user]);
-
-  const handleResetActivities = useCallback(() => {
-    if (user) dataService.resetCompletedActivities(user.uid);
   }, [user]);
 
   const { overallRating, xpNeeded, xpProgress } = useMemo(() => {
@@ -201,7 +197,7 @@ const App: React.FC = () => {
   const renderContent = () => {
     if (activeView === 'home') return <Dashboard player={player!} club={selectedClub} allClubs={allClubs} overallRating={overallRating} xpProgress={xpProgress} xpNeeded={xpNeeded} setView={setActiveView} />;
     if (activeView === 'profile') return <UserProfile />;
-    if (activeView === 'activities') return <ActivitiesComponent player={player!} onStart={handleStartActivity} onComplete={handleCompleteActivity} onReset={handleResetActivities} onTrain={handleTrainSkill} />;
+    if (activeView === 'activities') return <ActivitiesComponent player={player!} onStart={handleStartActivity} onComplete={handleCompleteActivity} onTrain={handleTrainSkill} />;
     if (activeView === 'leaderboard') return <Leaderboard />;
     if (activeView === 'club-search') return <ClubSearch player={player!} />;
     if (activeView === 'league') return <LeagueView />;

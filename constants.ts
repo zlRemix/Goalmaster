@@ -67,136 +67,113 @@ export const ACTIVITIES: Activity[] = [
         name: 'Passspiel-Drills',
         description: 'Eine intensive Einheit, um deine Passgenauigkeit und dein Stellungsspiel zu verbessern.',
         durationSeconds: 480, // 8 minutes
-        reward: { xp: 50, tp: 8 },
+        reward: { xp: 50, tp: 15 },
         type: 'training',
+        maxCharges: 3,
+        chargeRegenerationSeconds: 14400, // 4 hours
     },
     {
         id: 'training_2',
         name: 'Torschusstraining',
         description: 'Perfektioniere deinen Abschluss vor dem Tor. Eine halbe Stunde konzentriertes Schusstraining.',
         durationSeconds: 480, // 8 minutes
-        reward: { xp: 60, tp: 8 },
+        reward: { xp: 60, tp: 15 },
         type: 'training',
+        maxCharges: 3,
+        chargeRegenerationSeconds: 14400, // 4 hours
     },
     {
         id: 'fitness_1',
         name: 'Ausdauerlauf',
         description: 'Ein langer Lauf durch den Wald, um deine grundlegende Ausdauer zu stärken.',
         durationSeconds: 360, // 6 minutes
-        reward: { xp: 40, tp: 3 },
+        reward: { xp: 50, tp: 10 },
         type: 'fitness',
+        maxCharges: 4,
+        chargeRegenerationSeconds: 10800, // 3 hours
     },
     {
         id: 'fitness_2',
         name: 'Krafttraining',
         description: 'Baue im Fitnessstudio gezielt Muskeln und Stärke auf, um in Zweikämpfen robuster zu sein.',
         durationSeconds: 360, // 6 minutes
-        reward: { xp: 45, tp: 3 },
+        reward: { xp: 50, tp: 10 },
         type: 'fitness',
+        maxCharges: 4,
+        chargeRegenerationSeconds: 10800, // 3 hours
     },
     {
         id: 'tactic_1',
         name: 'Videoanalyse',
         description: 'Studiere die Taktiken deines nächsten Gegners, um besser auf ihre Spielweise vorbereitet zu sein.',
         durationSeconds: 300, // 5 minutes
-        reward: { xp: 30, tp: 4,  },
+        reward: { xp: 40, tp: 8 },
         type: 'tactic',
+        maxCharges: 5,
+        chargeRegenerationSeconds: 7200, // 2 hours
     },
     {
         id: 'tactic_2',
         name: 'Freistoßvarianten',
         description: 'Übe mit deinen Teamkollegen einstudierte Freistoßtricks, um den Gegner zu überraschen.',
         durationSeconds: 300, // 5 minutes
-        reward: { xp: 30, tp: 5 },
+        reward: { xp: 40, tp: 8 },
         type: 'tactic',
+        maxCharges: 5,
+        chargeRegenerationSeconds: 7200, // 2 hours
     },
     {
         id: 'pr_1',
         name: 'Pressekonferenz',
         description: 'Stelle dich den Fragen der Journalisten und stärke dein Markenimage.',
         durationSeconds: 180, // 3 minutes
-        reward: { xp: 25, tp: 1 },
+        reward: { xp: 20, tp: 3 },
         type: 'pr',
+        maxCharges: 6,
+        chargeRegenerationSeconds: 3600, // 1 hour
     },
     {
         id: 'social_1',
         name: 'Team-Abendessen',
         description: 'Ein entspanntes Abendessen mit deinen Teamkollegen, um den Teamgeist zu fördern.',
         durationSeconds: 120, // 2 minutes
-        reward: { xp: 20, tp: 1 },
+        reward: { xp: 20, tp: 3 },
         type: 'social',
+        maxCharges: 6,
+        chargeRegenerationSeconds: 3600, // 1 hour
     },
     {
         id: 'social_2',
         name: 'Fantreffen & Autogramme',
         description: 'Nimm dir Zeit für die Fans. Ein positives Image ist auch für die Sponsoren wichtig.',
         durationSeconds: 120, // 2 minutes
-        reward: { xp: 25, tp: 1},
+        reward: { xp: 20, tp: 3 },
         type: 'social',
+        maxCharges: 6,
+        chargeRegenerationSeconds: 3600, // 1 hour
     },
-    // Work Activities
     {
         id: 'work_1',
-        name: 'Teilzeitjob (1h)',
+        name: 'Jobben (1h)',
         description: 'Verdiene etwas Geld nebenbei. Jede Stunde zählt.',
-        durationSeconds: 3600, // 1 hour
-        reward: { xp: 10, euro: 20 },
+        durationSeconds: 3600,
+        reward: { euro: 20 },
         type: 'work',
     },
     {
         id: 'work_2',
-        name: 'Teilzeitjob (2h)',
+        name: 'Jobben (4h)',
         description: 'Verdiene etwas Geld nebenbei. Jede Stunde zählt.',
-        durationSeconds: 7200, // 2 hours
-        reward: { xp: 20, euro: 40 },
+        durationSeconds: 14400,
+        reward: { euro: 80 },
         type: 'work',
     },
     {
         id: 'work_3',
-        name: 'Teilzeitjob (3h)',
+        name: 'Jobben (8h)',
         description: 'Verdiene etwas Geld nebenbei. Jede Stunde zählt.',
-        durationSeconds: 10800, // 3 hours
-        reward: { xp: 30, euro: 60 },
-        type: 'work',
-    },
-    {
-        id: 'work_4',
-        name: 'Teilzeitjob (4h)',
-        description: 'Verdiene etwas Geld nebenbei. Jede Stunde zählt.',
-        durationSeconds: 14400, // 4 hours
-        reward: { xp: 40, euro: 80 },
-        type: 'work',
-    },
-    {
-        id: 'work_5',
-        name: 'Teilzeitjob (5h)',
-        description: 'Verdiene etwas Geld nebenbei. Jede Stunde zählt.',
-        durationSeconds: 18000, // 5 hours
-        reward: { xp: 50, euro: 100 },
-        type: 'work',
-    },
-    {
-        id: 'work_6',
-        name: 'Teilzeitjob (6h)',
-        description: 'Verdiene etwas Geld nebenbei. Jede Stunde zählt.',
-        durationSeconds: 21600, // 6 hours
-        reward: { xp: 60, euro: 120 },
-        type: 'work',
-    },
-    {
-        id: 'work_7',
-        name: 'Teilzeitjob (7h)',
-        description: 'Verdiene etwas Geld nebenbei. Jede Stunde zählt.',
-        durationSeconds: 25200, // 7 hours
-        reward: { xp: 70, euro: 140 },
-        type: 'work',
-    },
-    {
-        id: 'work_8',
-        name: 'Teilzeitjob (8h)',
-        description: 'Verdiene etwas Geld nebenbei. Jede Stunde zählt.',
-        durationSeconds: 28800, // 8 hours
-        reward: { xp: 80, euro: 160 },
+        durationSeconds: 28800,
+        reward: { euro: 160 },
         type: 'work',
     },
 ];

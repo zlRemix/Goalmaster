@@ -28,11 +28,14 @@ export interface Activity {
     reward: Reward;
     requiredRole?: UserRole;
     type: 'training' | 'fitness' | 'tactic' | 'pr' | 'social' | 'work' | 'quiz';
+    maxCharges?: number;
+    chargeRegenerationSeconds?: number;
 }
 
 export interface ActiveActivity {
     activityId: string;
     startTime: number;
+    chargesUsed?: number; 
 }
 
 export interface TeamTrainingSession {
@@ -125,6 +128,12 @@ export interface Player {
     overall?: number;
     activeMentalityId?: PlayerMentalityID;
     lastQuizTimestamp?: number;
+    activityCharges?: {
+        [activityId: string]: {
+            charges: number;
+            lastUsedTimestamp: number;
+        }
+    };
 }
 
 export enum InfrastructureType {
