@@ -11,13 +11,14 @@ const getXpForSkillUpgrade = (currentSkillLevel: number): number => {
 
 const calculateActivityRewards = (player: Player, activity: Activity, club: Club | null, chargesUsed: number = 1) => {
     const playerUpdates: { [key: string]: any } = {};
-    const totalMultiplier = chargesUsed;
+    const isBulk = chargesUsed < 0;
+    const actualCharges = Math.abs(chargesUsed);
 
-    let totalXpGain = (activity.reward.xp || 0) * totalMultiplier;
+    let totalXpGain = (activity.reward.xp || 0) * actualCharges;
 
     // --- EURO GAIN ---
     if (activity.reward.euro) {
-        playerUpdates.euro = (player.euro || 0) + activity.reward.euro * totalMultiplier;
+        playerUpdates.euro = (player.euro || 0) + activity.reward.euro * actualCharges;
     }
 
     // --- TP BONUS CALCULATION ---
@@ -27,11 +28,17 @@ const calculateActivityRewards = (player: Player, activity: Activity, club: Club
         const tpBonus = (trainingGroundLevel * 2) / 100; // 2% per level
         tpGain = tpGain * (1 + tpBonus);
     }
-    const newTps = (player.trainingPoints || 0) + (tpGain * totalMultiplier);
+
+    let totalTpGained = tpGain * actualCharges;
+    if (isBulk) {
+        totalTpGained *= 0.9; // 10% penalty for using all charges
+    }
+
+    const newTps = (player.trainingPoints || 0) + totalTpGained;
     playerUpdates.trainingPoints = Math.round(newTps * 100) / 100;
 
     // --- BUDGET BONUS CALCULATION ---
-    let budgetGain = (activity.reward.budgetGain || 0) * totalMultiplier;
+    let budgetGain = (activity.reward.budgetGain || 0) * actualCharges;
     if ((activity.type === 'pr' || activity.type === 'social') && club?.infrastructure?.marketing_department?.level) {
         const marketingDeptLevel = club.infrastructure.marketing_department.level;
         const prBonus = (marketingDeptLevel * 5) / 100; // 5% per level
@@ -42,7 +49,7 @@ const calculateActivityRewards = (player: Player, activity: Activity, club: Club
         for (const [skill, value] of Object.entries(activity.reward.skills)) {
             if (typeof value === 'number' && value > 0) {
                 const currentSkillLevel = player.skills?.[skill as SkillType] || 0;
-                const totalSkillGain = value * totalMultiplier;
+                const totalSkillGain = value * actualCharges;
                 playerUpdates[`skills.${skill as SkillType}`] = currentSkillLevel + totalSkillGain;
                 
                 for (let i = 0; i < totalSkillGain; i++) {
@@ -259,6 +266,7 @@ const dataService = {
 
       const updates: { [key: string]: any } = {};
       const now = Date.now();
+      const actualCharges = Math.abs(chargesToUse);
 
       if (activity.maxCharges && activity.chargeRegenerationSeconds) {
         const chargeInfo = player.activityCharges?.[activityId];
@@ -275,9 +283,9 @@ const dataService = {
           }
         }
 
-        if (currentCharges < chargesToUse) throw new Error("Nicht genügend Ladungen verfügbar");
+        if (currentCharges < actualCharges) throw new Error("Nicht genügend Ladungen verfügbar");
 
-        updates[`activityCharges.${activityId}.charges`] = currentCharges - chargesToUse;
+        updates[`activityCharges.${activityId}.charges`] = currentCharges - actualCharges;
         updates[`activityCharges.${activityId}.lastUsedTimestamp`] = now;
       } else {
         if (player.completedActivityIds?.includes(activityId)) throw new Error("Aktivität bereits abgeschlossen");

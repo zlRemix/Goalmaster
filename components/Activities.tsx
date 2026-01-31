@@ -6,7 +6,7 @@ import { dataService } from '../services/dataService';
 import { TrainingCenter } from './TrainingCenter';
 import Quiz from './Quiz';
 import { 
-  ClipboardList, Mic, Footprints, Pizza, Timer, 
+  ClipboardList, Mic, Footprints, Pizza, 
   Star, Briefcase, Euro, ShieldCheck, Zap, BrainCircuit, RefreshCw, X
 } from 'lucide-react';
 
@@ -55,7 +55,7 @@ const ActiveActivityStatus: React.FC<{ activeInstance: ActiveActivity, activityD
     const remainingMs = useCountdown(endTime);
     const progress = Math.min(100, Math.max(0, ((totalDurationMs - remainingMs) / totalDurationMs) * 100));
     const remainingSeconds = Math.ceil(remainingMs / 1000);
-    const chargesUsed = activeInstance.chargesUsed || 1;
+    const chargesUsed = Math.abs(activeInstance.chargesUsed || 1);
 
     return (
         <div className="bg-slate-900 border-2 border-blue-500/50 rounded-[2.5rem] p-6 mb-8 shadow-2xl relative overflow-hidden">
@@ -83,6 +83,7 @@ const ActiveActivityStatus: React.FC<{ activeInstance: ActiveActivity, activityD
 
 const ChargeSelectionPopup: React.FC<{ activity: Activity, currentCharges: number, onStart: (charges: number) => void, onCancel: () => void, tpBonusPercentage: number, durationReduction: number }> = ({ activity, currentCharges, onStart, onCancel, tpBonusPercentage, durationReduction }) => {
     const finalTp = (activity.reward?.tp || 0) * (1 + (activity.type === 'training' ? tpBonusPercentage : 0));
+    const allChargesTp = finalTp * currentCharges * 0.9;
 
     return (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
@@ -103,13 +104,19 @@ const ChargeSelectionPopup: React.FC<{ activity: Activity, currentCharges: numbe
                     </button>
 
                     {currentCharges > 1 && (
-                        <button onClick={() => onStart(currentCharges)} className="w-full flex justify-between items-center bg-fuchsia-600/20 hover:bg-fuchsia-600/30 p-4 rounded-lg transition-colors border-2 border-fuchsia-500">
+                        <button onClick={() => onStart(-currentCharges)} className="w-full flex justify-between items-center bg-fuchsia-600/20 hover:bg-fuchsia-600/30 p-4 rounded-lg transition-colors border-2 border-fuchsia-500">
                            <div>
                                 <span className="font-bold text-white">Alle {currentCharges} Ladungen</span>
                                 <span className="text-xs text-slate-400 block">Dauer: {formatDuration(activity.durationSeconds * (1 - durationReduction))}</span>
                             </div>
                              <div className="text-right">
-                                {finalTp > 0 && <span className="text-sm font-bold text-yellow-400">+{(finalTp * currentCharges).toFixed(1)} TP</span>}
+                                {finalTp > 0 && (
+                                    <div>
+                                        <span className="text-xs font-bold text-yellow-400/70 line-through">{(finalTp * currentCharges).toFixed(1)} TP</span>
+                                        <span className="block text-sm font-bold text-yellow-400">+{allChargesTp.toFixed(1)} TP</span>
+                                        <span className="block text-[10px] text-red-400 font-bold">-10% Abzug</span>
+                                    </div>
+                                )}
                             </div>
                         </button>
                     )}
@@ -217,7 +224,11 @@ export const Activities: React.FC<{ player: Player; onStart: (activityId: string
 
             <div className="flex gap-2 p-1 bg-slate-950/50 rounded-2xl border border-slate-800 w-fit">
                  {(['career', 'training', 'personal', 'quiz'] as const).map((tab) => (
-                    <button key={tab} onClick={() => setActiveTab(tab)} className={`px-8 py-2.5 rounded-xl font-black uppercase text-xs transition-all ${activeTab === tab ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-500 hover:text-white'}`}>
+                    <button 
+                        key={tab} 
+                        onClick={() => setActiveTab(tab)} 
+                        className={`px-8 py-2.5 rounded-xl font-black uppercase text-xs transition-all ${activeTab === tab ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-500 hover:text-white'}`}
+                    >
                         {tab === 'career' ? 'Karriere' : tab === 'training' ? 'Trainingscenter' : tab === 'personal' ? 'Arbeiten' : 'Quiz'}
                     </button>
                 ))}
@@ -227,86 +238,106 @@ export const Activities: React.FC<{ player: Player; onStart: (activityId: string
                 <TrainingCenter player={player} onTrain={onTrain} />
             )}
 
-            {activeTab !== 'training' && Object.entries(activityCategorization)
-                .filter(([_, config]) => config.tab === activeTab)
-                .map(([type, config]) => {
-                    const activities = groupedActivities[type as Activity['type']];
-                    if (!activities) return null;
-                    return (
-                        <div key={type} className="space-y-4">
-                            <h3 className="text-[10px] font-black text-slate-600 uppercase tracking-[0.4em] flex items-center gap-4">
-                                {config.groupTitle} <span className="h-[1px] flex-1 bg-slate-800/50" />
-                            </h3>
-                            <div className="flex flex-wrap gap-4 justify-center md:justify-start">
-                                {activities.map((activity) => {
-                                    const isQuiz = activity.type === 'quiz';
-                                    const lastQuizTaken = player.lastQuizTimestamp || 0;
-                                    const isQuizOnCooldown = isQuiz && (Date.now() - lastQuizTaken) < 24 * 60 * 60 * 1000;
+            {activeTab !== 'training' && (
+                <div className="flex flex-wrap gap-4 justify-center md:justify-start items-start">
+                    {Object.entries(activityCategorization)
+                        .filter(([_, config]) => config.tab === activeTab)
+                        .flatMap(([type, config]) => {
+                            const activities = groupedActivities[type as Activity['type']] || [];
+                            
+                            return activities.map((activity) => {
+                                const isQuiz = activity.type === 'quiz';
+                                const lastQuizTaken = player.lastQuizTimestamp || 0;
+                                const isQuizOnCooldown = isQuiz && (Date.now() - lastQuizTaken) < 24 * 60 * 60 * 1000;
 
-                                    const chargeInfo = player.activityCharges?.[activity.id];
-                                    const maxCharges = activity.maxCharges || 0;
-                                    const regenerationSeconds = activity.chargeRegenerationSeconds || 0;
+                                const chargeInfo = player.activityCharges?.[activity.id];
+                                const maxCharges = activity.maxCharges || 0;
+                                const regenerationSeconds = activity.chargeRegenerationSeconds || 0;
+                                
+                                // SICHERE LADUNGSBERECHNUNG (Verhindert 4/3)
+                                let currentCharges = chargeInfo?.charges ?? maxCharges;
+                                let nextChargeInSeconds = 0;
+
+                                if (chargeInfo && maxCharges > 0) {
+                                    const elapsedSeconds = (Date.now() - chargeInfo.lastUsedTimestamp) / 1000;
                                     
-                                    let currentCharges = chargeInfo?.charges ?? maxCharges;
-                                    let nextChargeInSeconds = 0;
-
-                                    if (chargeInfo && currentCharges < maxCharges) {
-                                        const elapsedSeconds = (Date.now() - chargeInfo.lastUsedTimestamp) / 1000;
+                                    if (currentCharges < maxCharges && regenerationSeconds > 0) {
                                         const regeneratedCharges = Math.floor(elapsedSeconds / regenerationSeconds);
-                                        
-                                        if (regeneratedCharges > 0) {
-                                            currentCharges = Math.min(maxCharges, currentCharges + regeneratedCharges);
-                                        }
+                                        currentCharges = Math.min(maxCharges, currentCharges + regeneratedCharges);
 
                                         if (currentCharges < maxCharges) {
                                             const timeSinceLastRegen = elapsedSeconds % regenerationSeconds;
                                             nextChargeInSeconds = regenerationSeconds - timeSinceLastRegen;
                                         }
-                                    } else if (!chargeInfo && maxCharges > 0) {
-                                        currentCharges = maxCharges;
                                     }
+                                } else if (maxCharges > 0) {
+                                    currentCharges = maxCharges;
+                                }
 
-                                    const hasCharges = currentCharges > 0;
-                                    const isCompleted = !isQuiz && !maxCharges && player.completedActivityIds?.includes(activity.id);
-                                    const canStart = !activeDef && !isCompleted && !isQuizOnCooldown && (maxCharges > 0 ? hasCharges : true);
-                                    const finalTp = activity.reward?.tp ? activity.reward.tp * (1 + (activity.type === 'training' ? tpBonusPercentage : 0)) : 0;
+                                const hasCharges = currentCharges > 0;
+                                const isCompleted = !isQuiz && !maxCharges && player.completedActivityIds?.includes(activity.id);
+                                const canStart = !activeDef && !isCompleted && !isQuizOnCooldown && (maxCharges > 0 ? hasCharges : true);
+                                const finalTp = activity.reward?.tp ? activity.reward.tp * (1 + (activity.type === 'training' ? tpBonusPercentage : 0)) : 0;
 
-                                    return (
-                                        <div key={activity.id} className={`relative flex flex-col w-[175px] bg-slate-900 border-2 border-slate-800 rounded-[2.5rem] p-3 transition-all duration-300 ${(!canStart || isCompleted || isQuizOnCooldown) ? 'opacity-40 grayscale' : 'hover:border-slate-600 hover:-translate-y-1'}`}>
-                                            <div className="absolute -top-3 left-1/2 -translate-x-1/2 flex gap-1 z-10">
-                                                {maxCharges > 0 && (
-                                                    <div className="bg-slate-800 px-2 py-1 rounded-lg border border-slate-700 flex items-center gap-1 shadow-lg">
-                                                        <Zap className="w-3 h-3 text-fuchsia-400" />
-                                                        <span className="text-[10px] font-black text-white">{currentCharges}/{maxCharges}</span>
-                                                    </div>
-                                                )}
-                                                {finalTp > 0 && !maxCharges && <div className="bg-slate-800 px-2 py-1 rounded-lg border border-slate-700 flex items-center gap-1 shadow-lg"><Zap className="w-3 h-3 text-yellow-400" /><span className="text-[10px] font-black text-white">+{finalTp.toFixed(1)}</span></div>}
-                                                {activity.reward?.euro && <div className="bg-slate-800 px-2 py-1 rounded-lg border border-slate-700 flex items-center gap-1 shadow-lg"><Euro className="w-3 h-3 text-emerald-400" /><span className="text-[10px] font-black text-white">+{activity.reward.euro}</span></div>}
-                                            </div>
-                                            <div className="mt-4 mb-2 text-center h-10 flex items-center justify-center px-1"><h4 className="text-[11px] font-black text-white leading-tight uppercase italic tracking-tighter">{activity.name}</h4></div>
-                                            <div className="relative h-24 w-full bg-slate-950/50 rounded-2xl flex items-center justify-center border border-white/5 mb-3 overflow-hidden shadow-inner">
-                                                <ActivityGraphic type={activity.type} color={config.color} />
-                                                <div className="absolute bottom-1.5 inset-x-0 text-center">
+                                return (
+                                    <div 
+                                        key={activity.id} 
+                                        className={`relative flex flex-col w-[170px] bg-slate-900 border-2 border-slate-800 rounded-[2.5rem] p-3 transition-all duration-300 ${(!canStart || isCompleted || isQuizOnCooldown) ? 'opacity-40 grayscale' : 'hover:border-slate-600 hover:-translate-y-1'}`}
+                                    >
+                                        <div className="absolute -top-3 left-1/2 -translate-x-1/2 flex gap-1 z-10">
+                                            {maxCharges > 0 && (
+                                                <div className="bg-slate-800 px-2 py-1 rounded-lg border border-slate-700 flex items-center gap-1 shadow-lg">
+                                                    <Zap className="w-3 h-3 text-fuchsia-400" />
+                                                    <span className="text-[10px] font-black text-white">{currentCharges}/{maxCharges}</span>
+                                                </div>
+                                            )}
+                                            {finalTp > 0 && !maxCharges && (
+                                                <div className="bg-slate-800 px-2 py-1 rounded-lg border border-slate-700 flex items-center gap-1 shadow-lg">
+                                                    <Zap className="w-3 h-3 text-yellow-400" />
+                                                    <span className="text-[10px] font-black text-white">+{finalTp.toFixed(1)}</span>
+                                                </div>
+                                            )}
+                                            {activity.reward?.euro && (
+                                                <div className="bg-slate-800 px-2 py-1 rounded-lg border border-slate-700 flex items-center gap-1 shadow-lg">
+                                                    <Euro className="w-3 h-3 text-emerald-400" />
+                                                    <span className="text-[10px] font-black text-white">+{activity.reward.euro}</span>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <div className="mt-4 mb-2 text-center h-10 flex items-center justify-center px-1">
+                                            <h4 className="text-[11px] font-black text-white leading-tight uppercase italic tracking-tighter">
+                                                {activity.name}
+                                            </h4>
+                                        </div>
+
+                                        <div className="relative h-24 w-full bg-slate-950/50 rounded-2xl flex items-center justify-center border border-white/5 mb-3 overflow-hidden shadow-inner">
+                                            <ActivityGraphic type={activity.type} color={config.color} />
+                                            <div className="absolute bottom-1.5 inset-x-0 text-center">
                                                 {maxCharges > 0 && currentCharges < maxCharges && nextChargeInSeconds > 0 ? (
                                                     <div className='flex items-center justify-center gap-1.5'>
-                                                        <RefreshCw className="w-2 h-2 text-fuchsia-400" />
+                                                        <RefreshCw className="w-2 h-2 text-fuchsia-400 animate-spin-slow" />
                                                         <span className="text-[8px] font-bold text-fuchsia-400 uppercase tracking-tighter">{formatDuration(nextChargeInSeconds)}</span>
                                                     </div>
-                                                    ) : (
+                                                ) : (
                                                     <span className="text-[8px] font-bold text-slate-500 uppercase tracking-tighter">{formatDuration(activity.durationSeconds * (1 - durationReduction))}</span>
                                                 )}
-                                                </div>
                                             </div>
-                                            <button onClick={() => handleStartClick(activity, currentCharges)} disabled={!canStart} className={`w-full py-2.5 rounded-xl font-black uppercase tracking-widest text-[10px] transition-all ${(isCompleted || isQuizOnCooldown) ? 'bg-slate-800 text-slate-600' : canStart ? 'bg-blue-600 text-white hover:bg-blue-500 shadow-md' : 'bg-slate-800 text-slate-700'}`}>
-                                                {isCompleted || isQuizOnCooldown ? <ShieldCheck className="w-4 h-4 mx-auto" /> : (maxCharges > 0 ? (hasCharges ? 'Starten' : 'Lädt auf') : 'Starten')}
-                                            </button>
                                         </div>
-                                    );
-                                })}
-                            </div>
-                        </div>
-                    );
-                })}
+
+                                        <button 
+                                            onClick={() => handleStartClick(activity, currentCharges)} 
+                                            disabled={!canStart} 
+                                            className={`w-full py-2.5 rounded-xl font-black uppercase tracking-widest text-[10px] transition-all ${(isCompleted || isQuizOnCooldown) ? 'bg-slate-800 text-slate-600' : canStart ? 'bg-blue-600 text-white hover:bg-blue-500 shadow-md' : 'bg-slate-800 text-slate-700'}`}
+                                        >
+                                            {isCompleted || isQuizOnCooldown ? <ShieldCheck className="w-4 h-4 mx-auto" /> : (maxCharges > 0 ? (hasCharges ? 'Starten' : 'Lädt auf') : 'Starten')}
+                                        </button>
+                                    </div>
+                                );
+                            });
+                        })}
+                </div>
+            )}
         </div>
     );
 });
