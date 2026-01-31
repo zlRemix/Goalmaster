@@ -94,16 +94,20 @@ export enum EquipmentSlot {
     SHORTS = 'shorts',
     SHIN_GUARDS = 'shin_guards',
     TAPE = 'tape',
+    GLOVES = 'gloves',
 }
+
+export type Rarity = 'STANDARD' | 'RARE' | 'EPIC' | 'LEGENDARY';
 
 export interface EquipmentItem {
     id: string;
     name: string;
-    description: string;
+    description?: string;
     price: number;
     slot: EquipmentSlot;
     bonus: Partial<Record<SkillType, number>>;
     allowedPositions: PlayerPosition[];
+    rarity: Rarity;
 }
 // ----------------- //
 

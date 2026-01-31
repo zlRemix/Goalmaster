@@ -130,7 +130,7 @@ export const Activities: React.FC<{ player: Player; onStart: (activityId: string
     const [club, setClub] = useState<Club | null>(null);
     const [activeTab, setActiveTab] = useState<ActivityTab>('career');
     const [isQuizActive, setIsQuizActive] = useState(false);
-    const [selectingChargesFor, setSelectingChargesFor] = useState<Activity | null>(null);
+    const [selectingChargesFor, setSelectingChargesFor] = useState<{ activity: Activity; charges: number } | null>(null);
     const [, setTick] = useState(0);
 
     useEffect(() => {
@@ -176,7 +176,7 @@ export const Activities: React.FC<{ player: Player; onStart: (activityId: string
 
     const handleStartClick = (activity: Activity, currentCharges: number) => {
         if (activity.maxCharges && currentCharges > 0) {
-            setSelectingChargesFor(activity);
+            setSelectingChargesFor({ activity, charges: currentCharges });
         } else {
             onStart(activity.id, 1);
         }
@@ -184,7 +184,7 @@ export const Activities: React.FC<{ player: Player; onStart: (activityId: string
 
     const handleChargeSelection = (charges: number) => {
         if (selectingChargesFor) {
-            onStart(selectingChargesFor.id, charges);
+            onStart(selectingChargesFor.activity.id, charges);
         }
         setSelectingChargesFor(null);
     };
@@ -206,8 +206,8 @@ export const Activities: React.FC<{ player: Player; onStart: (activityId: string
         <div className="space-y-8 pb-24 px-2">
              {selectingChargesFor && (
                  <ChargeSelectionPopup 
-                    activity={selectingChargesFor}
-                    currentCharges={player.activityCharges?.[selectingChargesFor.id]?.charges ?? selectingChargesFor.maxCharges ?? 1}
+                    activity={selectingChargesFor.activity}
+                    currentCharges={selectingChargesFor.charges}
                     onStart={handleChargeSelection}
                     onCancel={() => setSelectingChargesFor(null)}
                     tpBonusPercentage={tpBonusPercentage}

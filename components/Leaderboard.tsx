@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Player, Club, AvatarData, PlayerPosition } from '../types';
 import { dataService } from '../services/dataService';
-import { getSkillsForPosition, getRatingColor } from '../utils';
+import { getSkillsForPosition, getSkillRatingColor } from '../utils';
 import { MAX_CLUB_PLAYERS } from '../constants';
 import { Medal, Rocket, Users, Shield, Hand, Trophy, Star, Crown } from 'lucide-react';
 import ClubLogo from './ClubLogo';
@@ -103,7 +103,7 @@ const PlayerLeaderboard: React.FC<{ players: Player[], clubs: Club[] }> = ({ pla
                             </div>
                             <div className="text-right min-w-[50px]">
                                 <p className="text-[9px] font-black text-slate-600 uppercase">GES</p>
-                                <p className={`text-3xl font-black italic leading-none tabular-nums ${getRatingColor(player.overall)}`}>
+                                <p className={`text-3xl font-black italic leading-none tabular-nums ${getSkillRatingColor(player.overall)}`}>
                                     {player.overall}
                                 </p>
                             </div>
@@ -166,7 +166,7 @@ const ClubLeaderboard: React.FC<{ players: Player[], clubs: Club[] }> = ({ playe
                             </div>
                             <div className="text-right min-w-[60px]">
                                 <p className="text-[9px] font-black text-slate-600 uppercase italic">Club GES</p>
-                                <p className={`text-4xl font-black italic leading-none tabular-nums ${getRatingColor(club.averageOverall)}`}>
+                                <p className={`text-4xl font-black italic leading-none tabular-nums ${getSkillRatingColor(club.averageOverall)}`}>
                                     {club.averageOverall}
                                 </p>
                             </div>

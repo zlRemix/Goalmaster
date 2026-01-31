@@ -1,7 +1,7 @@
 import React, { useMemo, useId } from 'react';
 import { Player, Club, View, AvatarData, EquipmentSlot, PlayerPosition, EquipmentItem } from '../types';
 import { dataService } from '../services/dataService';
-import { getRatingColor } from '../utils';
+import { getSkillRatingColor } from '../utils';
 import { UserCog, Shield, Package, AlertTriangle, Star, Rocket, Users, Hand, Euro, Zap, Check } from 'lucide-react';
 import ClubLogo from './ClubLogo';
 import { createAvatar } from '@dicebear/core';
@@ -216,7 +216,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ player, club, allClubs, ov
                 <div className="flex gap-4">
                     <div className="bg-slate-800/80 p-6 rounded-[2.5rem] border border-slate-700 flex flex-col items-center justify-center min-w-[120px]">
                         <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-1">GES</span>
-                        <span className={`text-6xl font-black italic leading-none ${getRatingColor(overallRating)}`}>{overallRating}</span>
+                        <span className={`text-6xl font-black italic leading-none ${getSkillRatingColor(overallRating)}`}>{overallRating}</span>
                     </div>
                     <div className="grid grid-cols-2 gap-2">
                         <div className="bg-slate-900/50 px-4 py-2 rounded-2xl border border-white/5 flex flex-col items-center">

@@ -313,7 +313,187 @@ export const SHOP_ITEMS = [
     { id: 'tp_pack_3', name: 'Großes TP-Paket', description: 'Für ambitionierte Spieler, die es wissen wollen.', tp: 50, price: 200 },
 ];
 
+export const GK_TIER1_SETS: EquipmentItem[] = [
+  // --- SET 1: SAFE-GRIP (Der Ruhepol) ---
+  {
+    id: 'gk_std_safe_gloves',
+    name: 'Safe-Grip Gloves',
+    slot: EquipmentSlot.GLOVES,
+    rarity: 'STANDARD',
+    price: 55,
+    allowedPositions: ['Torwart'],
+    bonus: { handling: 5, positioning: 2 }
+  },
+  {
+    id: 'gk_std_safe_jersey',
+    name: 'Safe-Grip Jersey',
+    slot: EquipmentSlot.JERSEY,
+    rarity: 'STANDARD',
+    price: 45,
+    allowedPositions: ['Torwart'],
+    bonus: { positioning: 4, handling: 1 }
+  },
+  {
+    id: 'gk_std_safe_shorts',
+    name: 'Safe-Grip Pants',
+    slot: EquipmentSlot.SHORTS,
+    rarity: 'STANDARD',
+    price: 40,
+    allowedPositions: ['Torwart'],
+    bonus: { handling: 3, communication: 1 }
+  },
+
+  // --- SET 2: QUICK-REFLEX (Die Katze) ---
+  {
+    id: 'gk_std_reflex_gloves',
+    name: 'Quick-Reflex Gloves',
+    slot: EquipmentSlot.GLOVES,
+    rarity: 'STANDARD',
+    price: 55,
+    allowedPositions: ['Torwart'],
+    bonus: { reflexes: 5, diving: 2 }
+  },
+  {
+    id: 'gk_std_reflex_jersey',
+    name: 'Quick-Reflex Jersey',
+    slot: EquipmentSlot.JERSEY,
+    rarity: 'STANDARD',
+    price: 45,
+    allowedPositions: ['Torwart'],
+    bonus: { diving: 4, reflexes: 1 }
+  },
+  {
+    id: 'gk_std_reflex_shorts',
+    name: 'Quick-Reflex Pants',
+    slot: EquipmentSlot.SHORTS,
+    rarity: 'STANDARD',
+    price: 40,
+    allowedPositions: ['Torwart'],
+    bonus: { reflexes: 3, positioning: 1 }
+  },
+
+  // --- SET 3: MODERN-GOALIE (Der Spielmacher) ---
+  {
+    id: 'gk_std_modern_gloves',
+    name: 'Modern-Goalie Gloves',
+    slot: EquipmentSlot.GLOVES,
+    rarity: 'STANDARD',
+    price: 55,
+    allowedPositions: ['Torwart'],
+    bonus: { kicking: 5, communication: 2 }
+  },
+  {
+    id: 'gk_std_modern_jersey',
+    name: 'Modern-Goalie Jersey',
+    slot: EquipmentSlot.JERSEY,
+    rarity: 'STANDARD',
+    price: 45,
+    allowedPositions: ['Torwart'],
+    bonus: { communication: 4, kicking: 1 }
+  },
+  {
+    id: 'gk_std_modern_shorts',
+    name: 'Modern-Goalie Pants',
+    slot: EquipmentSlot.SHORTS,
+    rarity: 'STANDARD',
+    price: 40,
+    allowedPositions: ['Torwart'],
+    bonus: { kicking: 3, handling: 1 }
+  }
+];
+
+export const GK_RARE_SETS: EquipmentItem[] = [
+  // --- SET 1: TITAN-GRIP (Der unerschütterliche Fels) ---
+  {
+    id: 'gk_rare_titan_gloves',
+    name: 'Titan-Grip Pro-Latex',
+    slot: EquipmentSlot.GLOVES,
+    rarity: 'RARE',
+    price: 650,
+    allowedPositions: ['Torwart'],
+    bonus: { handling: 12, positioning: 4 }
+  },
+  {
+    id: 'gk_rare_titan_jersey',
+    name: 'Titan-Grip Bio-Armor',
+    slot: EquipmentSlot.JERSEY,
+    rarity: 'RARE',
+    price: 550,
+    allowedPositions: ['Torwart'],
+    bonus: { positioning: 10, handling: 4 }
+  },
+  {
+    id: 'gk_rare_titan_shorts',
+    name: 'Titan-Grip Padded',
+    slot: EquipmentSlot.SHORTS,
+    rarity: 'RARE',
+    price: 450,
+    allowedPositions: ['Torwart'],
+    bonus: { handling: 6, strength: 5 }
+  },
+
+  // --- SET 2: FALCON-REFLEX (Der Linien-Blitz) ---
+  {
+    id: 'gk_rare_falcon_gloves',
+    name: 'Falcon-Reflex Aero',
+    slot: EquipmentSlot.GLOVES,
+    rarity: 'RARE',
+    price: 650,
+    allowedPositions: ['Torwart'],
+    bonus: { reflexes: 12, diving: 4 }
+  },
+  {
+    id: 'gk_rare_falcon_jersey',
+    name: 'Falcon-Reflex Kinetic',
+    slot: EquipmentSlot.JERSEY,
+    rarity: 'RARE',
+    price: 550,
+    allowedPositions: ['Torwart'],
+    bonus: { diving: 10, reflexes: 4 }
+  },
+  {
+    id: 'gk_rare_falcon_shorts',
+    name: 'Falcon-Reflex Glide',
+    slot: EquipmentSlot.SHORTS,
+    rarity: 'RARE',
+    price: 450,
+    allowedPositions: ['Torwart'],
+    bonus: { reflexes: 6, pace: 5 }
+  },
+
+  // --- SET 3: DIRECT-PLAY (Der moderne Libero-Goalie) ---
+  {
+    id: 'gk_rare_direct_gloves',
+    name: 'Direct-Play Hybrid',
+    slot: EquipmentSlot.GLOVES,
+    rarity: 'RARE',
+    price: 650,
+    allowedPositions: ['Torwart'],
+    bonus: { kicking: 12, communication: 4 }
+  },
+  {
+    id: 'gk_rare_direct_jersey',
+    name: 'Direct-Play Signal',
+    slot: EquipmentSlot.JERSEY,
+    rarity: 'RARE',
+    price: 550,
+    allowedPositions: ['Torwart'],
+    bonus: { communication: 10, kicking: 4 }
+  },
+  {
+    id: 'gk_rare_direct_shorts',
+    name: 'Direct-Play Speed',
+    slot: EquipmentSlot.SHORTS,
+    rarity: 'RARE',
+    price: 450,
+    allowedPositions: ['Torwart'],
+    bonus: { kicking: 6, vision: 5 }
+  }
+];
+
 export const EQUIPMENT_ITEMS: EquipmentItem[] = [
+    ...GK_TIER1_SETS,
+    ...GK_RARE_SETS,
     // --- Schuhe (Stürmer) ---
     {
         id: 'shoe_st_01',
@@ -325,7 +505,8 @@ export const EQUIPMENT_ITEMS: EquipmentItem[] = [
         bonus: { 
             'shot_power': 2,
             'finishing': 3,
-        }
+        },
+        rarity: 'STANDARD',
     },
     // --- Schuhe (Mittelfeld) ---
     {
@@ -338,7 +519,8 @@ export const EQUIPMENT_ITEMS: EquipmentItem[] = [
         bonus: {
             'passing': 3,
             'dribbling': 2,
-        }
+        },
+        rarity: 'STANDARD',
     },
     // --- Schuhe (Abwehr) ---
     {
@@ -351,7 +533,8 @@ export const EQUIPMENT_ITEMS: EquipmentItem[] = [
         bonus: {
             'tackling': 3,
             'strength': 2,
-        }
+        },
+        rarity: 'STANDARD',
     },
     // --- Torwart-Schuhe ---
     {
@@ -364,7 +547,8 @@ export const EQUIPMENT_ITEMS: EquipmentItem[] = [
         bonus: {
             'kicking': 3,
             'reflexes': 2,
-        }
+        },
+        rarity: 'STANDARD',
     },
     // --- Trikots ---
     {
@@ -377,7 +561,8 @@ export const EQUIPMENT_ITEMS: EquipmentItem[] = [
         bonus: {
             'finishing': 3,
             'shot_power': 2,
-        }
+        },
+        rarity: 'STANDARD',
     },
     {
         id: 'jersey_mf_01',
@@ -389,7 +574,8 @@ export const EQUIPMENT_ITEMS: EquipmentItem[] = [
         bonus: {
             'vision': 3,
             'passing': 2,
-        }
+        },
+        rarity: 'STANDARD',
     },
     {
         id: 'jersey_aw_01',
@@ -401,7 +587,8 @@ export const EQUIPMENT_ITEMS: EquipmentItem[] = [
         bonus: {
             'marking': 3,
             'interceptions': 2,
-        }
+        },
+        rarity: 'STANDARD',
     },
     {
         id: 'jersey_tw_01',
@@ -413,7 +600,8 @@ export const EQUIPMENT_ITEMS: EquipmentItem[] = [
         bonus: {
             'communication': 2,
             'positioning': 3,
-        }
+        },
+        rarity: 'STANDARD',
     },
     // --- Hosen ---
     {
@@ -426,7 +614,8 @@ export const EQUIPMENT_ITEMS: EquipmentItem[] = [
         bonus: {
             'pace': 3,
             'dribbling': 2,
-        }
+        },
+        rarity: 'STANDARD',
     },
     {
         id: 'shorts_mf_01',
@@ -438,7 +627,8 @@ export const EQUIPMENT_ITEMS: EquipmentItem[] = [
         bonus: {
             'stamina': 3,
             'dribbling': 2,
-        }
+        },
+        rarity: 'STANDARD',
     },
     {
         id: 'shorts_aw_01',
@@ -450,7 +640,8 @@ export const EQUIPMENT_ITEMS: EquipmentItem[] = [
         bonus: {
             'tackling': 3,
             'strength': 2,
-        }
+        },
+        rarity: 'STANDARD',
     },
     {
         id: 'shorts_tw_01',
@@ -462,6 +653,7 @@ export const EQUIPMENT_ITEMS: EquipmentItem[] = [
         bonus: {
             'diving': 3,
             'strength': 2,
-        }
+        },
+        rarity: 'STANDARD',
     }
 ];

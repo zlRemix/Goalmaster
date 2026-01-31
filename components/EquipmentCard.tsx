@@ -1,6 +1,7 @@
 import React, { useId, memo } from 'react';
-import { EquipmentItem, EquipmentSlot } from '../types';
+import { EquipmentItem, EquipmentSlot, Rarity } from '../types';
 import { Euro, ShieldCheck } from 'lucide-react';
+import { getRarityColorClass, getRarityHexColor } from '../utils';
 
 interface EquipmentCardProps {
   item: EquipmentItem;
@@ -42,19 +43,16 @@ export const EquipmentCard: React.FC<EquipmentCardProps> = memo(({
   const rarityId = useId().replace(/:/g, "");
   const canAfford = playerEuro >= item.price;
   
-  const theme = item.price >= 5000 
-    ? { color: '#FDE047', label: 'LEGENDARY', glow: 'shadow-yellow-500/20' }
-    : item.price >= 1500 
-    ? { color: '#C084FC', label: 'EPIC', glow: 'shadow-purple-500/20' }
-    : { color: '#38BDF8', label: 'STANDARD', glow: 'shadow-blue-500/20' };
+  const rarityClass = getRarityColorClass(item.rarity);
+  const rarityHex = getRarityHexColor(item.rarity);
 
   return (
-    <div className={`relative flex flex-col w-[170px] bg-slate-900 border-2 border-slate-800 rounded-[2rem] p-3 transition-all duration-300 group hover:-translate-y-1 hover:border-slate-600 shadow-2xl ${theme.glow}`}>
+    <div className={`relative flex flex-col w-[170px] bg-slate-900 border-2 border-slate-800 rounded-[2rem] p-3 transition-all duration-300 group hover:-translate-y-1 hover:border-slate-600 shadow-2xl`}>
       
       {/* Rarity Label (Top Center) */}
       <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-slate-800 px-3 py-1 rounded-full border border-slate-700 shadow-xl">
-        <span className="text-[9px] font-black tracking-[0.2em]" style={{ color: theme.color }}>
-          {theme.label}
+        <span className={`text-[9px] font-black tracking-[0.2em] ${rarityClass}`}>
+          {item.rarity}
         </span>
       </div>
 
@@ -68,7 +66,7 @@ export const EquipmentCard: React.FC<EquipmentCardProps> = memo(({
       {/* Grafik-Bereich (Kompakter) */}
       <div className="relative h-24 w-full bg-slate-950/50 rounded-2xl flex items-center justify-center border border-white/5 mb-3">
         <div className="w-20 h-20 transform group-hover:scale-110 transition-transform duration-500">
-          <ItemVisual slot={item.slot} color={theme.color} rarityId={rarityId} />
+          <ItemVisual slot={item.slot} color={rarityHex} rarityId={rarityId} />
         </div>
       </div>
 
@@ -77,7 +75,7 @@ export const EquipmentCard: React.FC<EquipmentCardProps> = memo(({
         {Object.entries(item.bonus).map(([skill, value]) => (
           <div key={skill} className="flex justify-between items-center bg-black/20 px-2 py-1 rounded-lg">
             <span className="text-[8px] text-slate-500 font-bold uppercase">{skill.replace(/_/g, ' ')}</span>
-            <span className="text-[10px] font-black" style={{ color: theme.color }}>+{value}</span>
+            <span className={`text-[10px] font-black ${rarityClass}`}>+{value}</span>
           </div>
         ))}
       </div>
