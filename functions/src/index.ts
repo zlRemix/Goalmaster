@@ -188,7 +188,7 @@ const performMatchSimulation = async (fixture: Fixture, fixtureId: string): Prom
         if (ticketIncome > 0) events.push(`${homeClub.name} erhält ${ticketIncome}€ Ticketeinnahmen.`);
     }
     events.push("90' Abpfiff!");
-    const result: MatchResult = {fixtureId, homeTeamId: homeClub.id, awayTeamId: awayClub.id, homeScore, awayScore, events};
+    const result: MatchResult = {fixtureId, homeTeamId: homeClub.id, awayTeamId: awayClub.id, homeScore, awayScore, events, leagueId: homeClub.leagueId};
     const batch = db.batch();
     batch.update(db.collection("fixtures").doc(fixtureId), {status: "played", result: `${homeScore}-${awayScore}`});
     batch.set(db.collection("match_results").doc(fixtureId), result);
@@ -339,5 +339,147 @@ export const scheduledMatchSimulator = onSchedule("every 5 minutes", async () =>
 });
 
 export const scheduledSeasonGenerator = onSchedule("0 0 1 * *", async () => {
-  // ... (existing implementation)
+    console.log("Starting new season generation...");
+    const leaguesSnapshot = await db.collection("leagues").get();
+    if (leaguesSnapshot.empty) {
+        console.log("No leagues found. Exiting season generator.");
+        return;
+    }
+
+    const allLeagues = leaguesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as League));
+
+    for (const league of allLeagues) {
+        console.log(`Processing league: ${league.name} (${league.id})`);
+        
+        const batch = db.batch();
+        const season = league.season || 1; 
+
+        // 1. Calculate final table
+        const leagueTable: { [clubId: string]: { points: number, goalsFor: number, goalsAgainst: number, wins: number, draws: number, losses: number } } = {};
+
+        const resultsSnapshot = await db.collection("match_results").where("leagueId", "==", league.id).get();
+        resultsSnapshot.forEach(doc => {
+            const result = doc.data() as MatchResult;
+            
+            // Initialize club entries if not present
+            if (!leagueTable[result.homeTeamId]) leagueTable[result.homeTeamId] = { points: 0, goalsFor: 0, goalsAgainst: 0, wins: 0, draws: 0, losses: 0 };
+            if (!leagueTable[result.awayTeamId]) leagueTable[result.awayTeamId] = { points: 0, goalsFor: 0, goalsAgainst: 0, wins: 0, draws: 0, losses: 0 };
+
+            leagueTable[result.homeTeamId].goalsFor += result.homeScore;
+            leagueTable[result.homeTeamId].goalsAgainst += result.awayScore;
+            leagueTable[result.awayTeamId].goalsFor += result.awayScore;
+            leagueTable[result.awayTeamId].goalsAgainst += result.homeScore;
+
+            if (result.homeScore > result.awayScore) {
+                leagueTable[result.homeTeamId].points += 3;
+                leagueTable[result.homeTeamId].wins += 1;
+                leagueTable[result.awayTeamId].losses += 1;
+            } else if (result.homeScore < result.awayScore) {
+                leagueTable[result.awayTeamId].points += 3;
+                leagueTable[result.awayTeamId].wins += 1;
+                leagueTable[result.homeTeamId].losses += 1;
+            } else {
+                leagueTable[result.homeTeamId].points += 1;
+                leagueTable[result.awayTeamId].points += 1;
+                leagueTable[result.homeTeamId].draws += 1;
+                leagueTable[result.awayTeamId].draws += 1;
+            }
+        });
+
+        const sortedTable = Object.entries(leagueTable).sort(([, a], [, b]) => {
+            if (b.points !== a.points) return b.points - a.points;
+            const goalDiffA = a.goalsFor - a.goalsAgainst;
+            const goalDiffB = b.goalsFor - b.goalsAgainst;
+            if (goalDiffB !== goalDiffA) return goalDiffB - goalDiffA;
+            return b.goalsFor - a.goalsFor;
+        });
+        
+        console.log(`League ${league.name} final table for season ${season}:`, sortedTable.map((t,i) => `${i+1}. ${t[0]}: ${t[1].points} pts`).join(", "));
+
+        // 2. Archive old data
+        const fixturesSnapshot = await db.collection("fixtures").where("leagueId", "==", league.id).get();
+        fixturesSnapshot.forEach(doc => {
+            const fixture = doc.data() as Fixture;
+            const archiveRef = db.collection("archive_fixtures").doc(doc.id);
+            batch.set(archiveRef, {...fixture, season});
+            batch.delete(doc.ref);
+        });
+
+        resultsSnapshot.forEach(doc => {
+            const result = doc.data() as MatchResult;
+            const archiveRef = db.collection("archive_match_results").doc(doc.id);
+            batch.set(archiveRef, {...result, season});
+            batch.delete(doc.ref);
+        });
+        
+        // 3. Promotion & Relegation
+        const clubsToPromote = sortedTable.slice(0, league.promotionSpots);
+        const clubsToRelegate = sortedTable.slice(-league.relegationSpots);
+
+        if (league.promotesTo) {
+            for (const [clubId] of clubsToPromote) {
+                console.log(`Promoting ${clubId} to ${league.promotesTo}`);
+                batch.update(db.collection("clubs").doc(clubId), { leagueId: league.promotesTo });
+            }
+        }
+        if (league.relegatesTo) {
+            for (const [clubId] of clubsToRelegate) {
+                console.log(`Relegating ${clubId} to ${league.relegatesTo}`);
+                batch.update(db.collection("clubs").doc(clubId), { leagueId: league.relegatesTo });
+            }
+        }
+
+        // 4. Generate new schedule
+        const newSeasonClubsSnapshot = await db.collection('clubs').where('leagueId', '==', league.id).get();
+        const clubIds = newSeasonClubsSnapshot.docs.map(doc => doc.id);
+        
+        console.log(`Generating schedule for ${clubIds.length} clubs in league ${league.id} for season ${season + 1}`);
+
+        if (clubIds.length > 1) {
+            const schedule = [];
+            const teams = [...clubIds];
+            if (teams.length % 2 !== 0) teams.push("dummy"); // Add a dummy team for odd numbers
+
+            const numMatchdays = teams.length - 1;
+            
+            for (let i = 0; i < numMatchdays; i++) {
+                // Hinrunde
+                for (let j = 0; j < teams.length / 2; j++) {
+                    const home = teams[j];
+                    const away = teams[teams.length - 1 - j];
+                    if (home !== "dummy" && away !== "dummy") {
+                        const matchDate = new Date();
+                        matchDate.setDate(3 + i); // Start on day 3
+                        schedule.push({ homeTeam: home, awayTeam: away, matchday: i + 1, date: matchDate.toISOString().split('T')[0], status: "scheduled", leagueId: league.id });
+                    }
+                }
+                
+                // Rückrunde
+                for (let j = 0; j < teams.length / 2; j++) {
+                    const home = teams[teams.length - 1 - j]; // Swap home/away
+                    const away = teams[j];
+                    if (home !== "dummy" && away !== "dummy") {
+                         const matchDate = new Date();
+                         matchDate.setDate(20 + i); // Start on day 20
+                         schedule.push({ homeTeam: home, awayTeam: away, matchday: i + 1 + numMatchdays, date: matchDate.toISOString().split('T')[0], status: "scheduled", leagueId: league.id });
+                    }
+                }
+
+                // Rotate teams
+                teams.splice(1, 0, teams.pop()!);
+            }
+
+            for (const fixture of schedule) {
+                const fixtureRef = db.collection("fixtures").doc();
+                batch.set(fixtureRef, fixture);
+            }
+        }
+        
+        // Update league season
+        batch.update(db.collection("leagues").doc(league.id), { season: season + 1 });
+        
+        await batch.commit();
+        console.log(`Finished processing for league: ${league.name}`);
+    }
+    console.log("New season generation complete.");
 });

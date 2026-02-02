@@ -186,7 +186,7 @@ export interface Club {
     activePlaystyleId?: PlaystyleID;
     logo?: ClubLogoData;
     motto?: string;
-    leagueName?: string;
+    leagueId: string;
 }
 
 export interface Fixture {
@@ -208,6 +208,7 @@ export interface MatchResult {
     homeScore: number;
     awayScore: number;
     events: string[];
+    leagueId: string;
 }
 
 export interface League {
@@ -215,6 +216,10 @@ export interface League {
     name: string;
     clubIds: string[];
     season: number;
+    promotionSpots: number;
+    relegationSpots: number;
+    promotesTo: string | null;
+    relegatesTo: string | null;
 }
 
 export interface LeagueStanding {
