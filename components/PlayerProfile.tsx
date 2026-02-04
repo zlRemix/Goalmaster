@@ -46,6 +46,16 @@ export const PlayerProfile: React.FC<PlayerProfileProps> = ({ player, club, onCl
     const overall = getOverall(player);
     const relevantSkills = getSkillsForPosition(player.position);
 
+    const sortedSkills = useMemo(() => {
+        return Object.entries(player.skills).sort(([aKey], [bKey]) => {
+            const aIsRelevant = relevantSkills.includes(aKey as SkillType);
+            const bIsRelevant = relevantSkills.includes(bKey as SkillType);
+            if (aIsRelevant === bIsRelevant) return aKey.localeCompare(bKey);
+            return aIsRelevant ? -1 : 1;
+        });
+    }, [player.skills, relevantSkills]);
+
+
     return (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 animate-in fade-in duration-300">
             <div className="bg-slate-900 border-2 border-slate-800 rounded-3xl p-6 max-w-md w-full m-auto relative shadow-2xl">
@@ -89,7 +99,7 @@ export const PlayerProfile: React.FC<PlayerProfileProps> = ({ player, club, onCl
                 <div>
                     <h3 className="text-lg font-bold text-white uppercase tracking-wider mb-3 text-center">Fähigkeiten</h3>
                     <div className="space-y-2">
-                        {Object.entries(player.skills).sort(([a], [b]) => relevantSkills.includes(b as SkillType) ? 1 : -1).map(([skill, value]) => {
+                        {sortedSkills.map(([skill, value]) => {
                             const isRelevant = relevantSkills.includes(skill as SkillType);
                             return (
                                 <div key={skill} className={`flex items-center justify-between p-2 rounded-lg ${isRelevant ? 'bg-slate-800' : 'bg-slate-800/50'}`}>
@@ -97,7 +107,7 @@ export const PlayerProfile: React.FC<PlayerProfileProps> = ({ player, club, onCl
                                         {isRelevant && <Star className="w-4 h-4 text-yellow-500" />}
                                         {skill.replace(/_/g, ' ')}
                                     </span>
-                                    <span className={`text-lg font-black ${getSkillRatingColor(value)}`}>{value}</span>
+                                    <span className={`text-lg font-black ${getSkillRatingColor(value as number)}`}>{value as number}</span>
                                 </div>
                             );
                         })}

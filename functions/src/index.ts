@@ -2,8 +2,8 @@
 import {onCall, HttpsError} from "firebase-functions/v2/https";
 import {onSchedule} from "firebase-functions/v2/scheduler";
 import * as admin from "firebase-admin";
-import {Player, Club, Fixture, Tactic, Playstyle, SkillType, MatchResult, League, EquipmentItem, SkillBonus, EquipmentSlot, PlayerMentality, PlaystyleID, TacticID, InfrastructureType, SpecializationID, PendingUpgrade} from "../../types";
-import { EQUIPMENT_ITEMS, INFRASTRUCTURE_SPECIALIZATIONS, INFRA_SPECIALIZATION_COST, INFRA_SPECIALIZATION_TIME } from "../../constants";
+import {Player, Club, Fixture, Tactic, Playstyle, SkillType, MatchResult, League, EquipmentItem, SkillBonus, EquipmentSlot, PlayerMentality, PlaystyleID, TacticID, InfrastructureType, SpecializationID, PendingUpgrade, PlayerPosition} from "../../types";
+import { EQUIPMENT_ITEMS, INFRASTRUCTURE_SPECIALIZATIONS, INFRA_SPECIALIZATION_COST, INFRA_SPECIALIZATION_TIME, TEAM_TRAININGS } from "../../constants";
 
 admin.initializeApp();
 const db = admin.firestore();
@@ -463,6 +463,79 @@ export const scheduledSeasonGenerator = onSchedule({schedule: "0 0 1 * *", timeZ
             console.error(`Error advancing season for league ${leagueName}:`, error);
         }
     }
+});
+
+export const scheduledTeamTrainingCompleter = onSchedule({schedule: "every 5 minutes", timeZone: "Europe/Berlin"}, async () => {
+    const now = Date.now();
+    const query = db.collection("clubs").where("activeTeamTraining", "!=", null);
+    const snapshot = await query.get();
+
+    if (snapshot.empty) {
+        return;
+    }
+
+    const promises = snapshot.docs.map(async (doc) => {
+        const club = doc.data() as Club;
+        const clubRef = doc.ref;
+        const activeTraining = club.activeTeamTraining;
+
+        if (!activeTraining) {
+            return;
+        }
+
+        const training = TEAM_TRAININGS.find(t => t.id === activeTraining.trainingId);
+
+        if (!training) {
+            console.error(`Training with id ${activeTraining.trainingId} not found for club ${club.id}`);
+            // Reset the training to avoid loops
+            await clubRef.update({ activeTeamTraining: null });
+            return;
+        }
+
+        const endTime = activeTraining.startTime + (training.durationSeconds * 1000);
+
+        if (now >= endTime) {
+            const players = await getPlayersForClub(club.id);
+            const batch = db.batch();
+
+            players.forEach(player => {
+                const playerRef = db.collection("players").doc(player.id);
+                const updates: { [key: string]: any } = {};
+
+                // 1. Apply XP
+                if (training.reward.xp) {
+                    updates.experience = admin.firestore.FieldValue.increment(training.reward.xp);
+                }
+
+                // 2. Apply Skill bonuses
+                const skillBonuses = training.reward.skills;
+                if (skillBonuses) {
+                    // Apply 'all' skills
+                    if (skillBonuses.all) {
+                        for (const skill in skillBonuses.all) {
+                            updates[`skills.${skill}`] = admin.firestore.FieldValue.increment(skillBonuses.all[skill as SkillType] || 0);
+                        }
+                    }
+                    // Apply position-specific skills
+                    const positionSkills = skillBonuses[player.position as PlayerPosition];
+                    if (positionSkills) {
+                        for (const skill in positionSkills) {
+                            updates[`skills.${skill}`] = admin.firestore.FieldValue.increment(positionSkills[skill as SkillType] || 0);
+                        }
+                    }
+                }
+                 batch.update(playerRef, updates);
+            });
+            
+            // 3. Reset club's training status
+            batch.update(clubRef, { activeTeamTraining: null });
+
+            await batch.commit();
+            console.log(`Completed training '${training.name}' for club ${club.name}`);
+        }
+    });
+
+    await Promise.all(promises);
 });
 
 

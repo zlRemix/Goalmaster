@@ -172,18 +172,67 @@ export const ACTIVITIES: Activity[] = [
 
 export const TEAM_TRAININGS: TeamTrainingSession[] = [
     {
-        id: 't_passing_1',
-        name: 'Passspiel-Grundlagen',
-        description: 'Verbessert das Passspiel aller Spieler im Team.',
-        durationSeconds: 3600, // 1 hour
-        reward: { xp: 50, skills: { passing: 1 } }
+        id: 't_tactic_1',
+        name: 'Taktikschulung: Ballbesitz',
+        description: 'Verbessert das Passspiel und die Spielintelligenz des Mittelfelds und die Ausdauer des gesamten Teams.',
+        durationSeconds: 3600, // 1 Stunde
+        reward: {
+            xp: 50,
+            skills: {
+                'Mittelfeld': { passing: 2, vision: 1 },
+                'all': { stamina: 1 }
+            }
+        }
     },
     {
-        id: 't_defensive_drills_1',
-        name: 'Abwehrübungen',
-        description: 'Verbessert die Verteidigungsfähigkeiten des gesamten Teams.',
-        durationSeconds: 7200, // 2 hours
-        reward: { xp: 100, skills: { tackling: 1, marking: 1 } }
+        id: 't_finishing_1',
+        name: 'Torabschluss',
+        description: 'Die Stürmer üben den Abschluss aus allen Lagen, während der Rest des Teams an der Unterstützung arbeitet.',
+        durationSeconds: 7200, // 2 Stunden
+        reward: {
+            xp: 100,
+            skills: {
+                'Stürmer': { finishing: 2, shot_power: 1 },
+                'Mittelfeld': { long_shots: 1 }
+            }
+        }
+    },
+    {
+        id: 't_defensive_wall_1',
+        name: 'Defensivverbund',
+        description: 'Verbessert das Stellungsspiel und die Zweikampfführung der Abwehr.',
+        durationSeconds: 7200, // 2 Stunden
+        reward: {
+            xp: 100,
+            skills: {
+                'Abwehr': { tackling: 2, marking: 1, interceptions: 1 },
+                'Torwart': { positioning: 1 }
+            }
+        }
+    },
+    {
+        id: 't_goalkeeping_1',
+        name: 'Torwarttraining',
+        description: 'Eine intensive Einheit für die Torhüter, um ihre Reflexe und ihr Stellungsspiel zu verbessern.',
+        durationSeconds: 3600, // 1 Stunde
+        reward: {
+            xp: 75,
+            skills: {
+                'Torwart': { reflexes: 2, handling: 1, diving: 1 }
+            }
+        }
+    },
+    {
+        id: 't_athletic_1',
+        name: 'Athletiktraining',
+        description: 'Verbessert die grundlegende Fitness und Schnelligkeit des gesamten Teams.',
+        durationSeconds: 10800, // 3 Stunden
+        reward: {
+            xp: 150,
+            skills: {
+                'all': { pace: 1, stamina: 1, strength: 1 }
+            }
+        }
     }
 ];
 

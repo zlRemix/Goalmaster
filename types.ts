@@ -20,6 +20,14 @@ export interface Reward {
     skills?: Partial<Record<SkillType, number>>;
 }
 
+export interface TeamReward {
+    xp?: number;
+    tp?: number;
+    skills?: Partial<Record<PlayerPosition, Partial<Record<SkillType, number>>>> & {
+        all?: Partial<Record<SkillType, number>>;
+    };
+}
+
 export interface Activity {
     id: string;
     name: string;
@@ -43,7 +51,7 @@ export interface TeamTrainingSession {
     name: string;
     description: string;
     durationSeconds: number;
-    reward: Omit<Reward, 'budgetGain' | 'euro'>; // Team trainings don't give budget or euro
+    reward: TeamReward;
 }
 
 export interface ActiveTeamTraining {

@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Club, Player, PlayerPosition } from '../types';
+import { Club, Player, PlayerPosition, TeamTrainingSession } from '../types';
 import { dataService } from '../services/dataService';
 import { getSkillsForPosition } from '../utils';
-import { MAX_CLUB_PLAYERS } from '../constants';
+import { MAX_CLUB_PLAYERS, TEAM_TRAININGS } from '../constants';
 import { Check, X, Plus, Minus, Ban, Info, Rocket, Users, Shield, Hand, Mail } from 'lucide-react';
 import { TacticSelection } from './TacticSelection';
 import { PlaystyleSelection } from './PlaystyleSelection';
@@ -81,6 +81,31 @@ const PlayerCard: React.FC<{
     </div>
 );
 
+const formatSkillBonuses = (skills: TeamTrainingSession['reward']['skills']) => {
+    if (!skills) return null;
+    
+    const skillEntries = Object.entries(skills).flatMap(([pos, skillBonus]) => 
+        Object.entries(skillBonus).map(([skill, bonus]) => ({ pos, skill, bonus }))
+    );
+
+    return (
+        <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 mt-2 text-xs">
+            {skillEntries.map(({pos, skill, bonus}) => (
+                <div key={`${pos}-${skill}`} className="flex items-center gap-2 bg-slate-800/50 rounded-md px-2 py-1">
+                     <span className="font-bold text-slate-400 capitalize text-[10px]">
+                        {pos === 'all' ? 'Alle' : pos}:
+                    </span>
+                    <span className="text-white font-semibold capitalize text-[10px]">
+                        {skill.replace(/_/g, ' ')}
+                    </span>
+                    <span className="ml-auto font-bold text-emerald-400">+{bonus}</span>
+                </div>
+            ))}
+        </div>
+    );
+};
+
+
 // --- HAUPTKOMPONENTE ---
 
 interface ClubManagementProps {
@@ -142,6 +167,35 @@ export const ClubManagement: React.FC<ClubManagementProps> = ({ club }) => {
             <TacticSelection club={club} />
             <PlaystyleSelection club={club} />
         </div>
+
+        {/* SEKTION: TEAMTRAINING */}
+        <section className="space-y-4">
+             <div className="flex items-center gap-4 px-2">
+                <h3 className="text-xl md:text-2xl font-black text-white italic uppercase tracking-tighter shrink-0">Teamtraining</h3>
+                <div className="h-[1px] w-full bg-gradient-to-r from-slate-800 to-transparent" />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {TEAM_TRAININGS.map(training => (
+                <div key={training.id} className="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-col">
+                    <h4 className="font-bold text-white text-lg mb-1">{training.name}</h4>
+                    <p className="text-slate-400 text-xs mb-3 flex-grow">{training.description}</p>
+                    
+                    <div className="border-t border-slate-800 pt-3 mt-auto">
+                        <div className='mb-2'>
+                            <span className="text-xs text-slate-500 uppercase font-bold">Belohnungen</span>
+                            {formatSkillBonuses(training.reward.skills)}
+                        </div>
+                       
+                        <div className="flex justify-between items-center text-xs mt-3">
+                            <span className="text-slate-500">Dauer: {training.durationSeconds / 60} Min.</span>
+                            <span className="text-yellow-400 font-bold">+{training.reward.xp} XP</span>
+                        </div>
+                    </div>
+                </div>
+            ))}
+        </div>
+        </section>
+
 
       {/* SEKTION: MEIN KADER */}
       <section className="space-y-4">
