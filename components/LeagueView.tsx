@@ -85,7 +85,7 @@ export const LeagueView: React.FC = () => {
     }, [selectedLeague]);
 
     const leagueClubs = useMemo(() =>
-        selectedLeague ? allClubs.filter(club => selectedLeague.clubIds.includes(club.id)) : [],
+        selectedLeague ? allClubs.filter(club => club.leagueId === selectedLeague.id) : [],
         [allClubs, selectedLeague]
     );
 

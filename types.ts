@@ -209,6 +209,7 @@ export interface MatchResult {
     awayScore: number;
     events: string[];
     leagueId: string;
+    season: number;
 }
 
 export interface League {

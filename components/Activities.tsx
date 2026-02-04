@@ -4,13 +4,12 @@ import { ACTIVITIES } from '../constants';
 import { useCountdown, formatDuration } from '../hooks/useTimers';
 import { dataService } from '../services/dataService';
 import { TrainingCenter } from './TrainingCenter';
-import Quiz from './Quiz';
 import { 
   ClipboardList, Mic, Footprints, Pizza, 
   Star, Briefcase, Euro, ShieldCheck, Zap, BrainCircuit, RefreshCw, X
 } from 'lucide-react';
 
-type ActivityTab = 'career' | 'personal' | 'training' | 'quiz';
+type ActivityTab = 'career' | 'personal' | 'training';
 
 const activityCategorization: Record<Activity['type'], { icon: ElementType; color: string; groupTitle: string; tab: ActivityTab }> = {
     training: { icon: Star, color: '#38BDF8', groupTitle: 'Training', tab: 'career' },
@@ -19,7 +18,7 @@ const activityCategorization: Record<Activity['type'], { icon: ElementType; colo
     pr: { icon: Mic, color: '#F472B6', groupTitle: 'Medien & PR', tab: 'career' },
     social: { icon: Pizza, color: '#FB7185', groupTitle: 'Team & Soziales', tab: 'career' },
     work: { icon: Briefcase, color: '#34D399', groupTitle: 'Arbeit & Finanzen', tab: 'personal' },
-    quiz: { icon: BrainCircuit, color: '#A78BFA', groupTitle: 'Wissen & Quiz', tab: 'quiz' },
+    quiz: { icon: BrainCircuit, color: '#A78BFA', groupTitle: 'Wissen & Quiz', tab: 'career' },
 };
 
 const ActivityGraphic: React.FC<{ type: Activity['type']; color: string }> = ({ type, color }) => {
@@ -129,7 +128,6 @@ const ChargeSelectionPopup: React.FC<{ activity: Activity, currentCharges: numbe
 export const Activities: React.FC<{ player: Player; onStart: (activityId: string, charges?: number) => void; onComplete: (activityId: string, correct?: boolean) => void; onReset: () => void; onTrain: (skill: SkillType) => void; }> = memo(({ player, onStart, onComplete, onReset, onTrain }) => {
     const [club, setClub] = useState<Club | null>(null);
     const [activeTab, setActiveTab] = useState<ActivityTab>('career');
-    const [isQuizActive, setIsQuizActive] = useState(false);
     const [selectingChargesFor, setSelectingChargesFor] = useState<{ activity: Activity; charges: number } | null>(null);
     const [, setTick] = useState(0);
 
@@ -147,18 +145,12 @@ export const Activities: React.FC<{ player: Player; onStart: (activityId: string
     const activeInstance = player.activeActivities?.[0];
     const activeDef = activeInstance ? ACTIVITIES.find(a => a.id === activeInstance.activityId) : undefined;
     
-    useEffect(() => {
-        if (activeDef?.type === 'quiz') {
-            setIsQuizActive(true);
-        }
-    }, [activeDef]);
-
     const medicalCenterLevel = club?.infrastructure?.medical_center?.level || 0;
     const durationReduction = medicalCenterLevel > 0 ? (medicalCenterLevel * 3) / 100 : 0;
     const tpBonusPercentage = (club?.infrastructure?.training_ground?.level || 0) * 0.02;
 
     useEffect(() => {
-        if (!activeInstance || !activeDef || activeDef.type === 'quiz') return;
+        if (!activeInstance || !activeDef) return;
         const effectiveDuration = activeDef.durationSeconds * (1 - durationReduction);
         const endTime = activeInstance.startTime + (effectiveDuration * 1000);
         const remaining = endTime - Date.now();
@@ -166,13 +158,6 @@ export const Activities: React.FC<{ player: Player; onStart: (activityId: string
         const timer = setTimeout(() => onComplete(activeDef.id), remaining);
         return () => clearTimeout(timer);
     }, [activeInstance?.activityId, onComplete, durationReduction]);
-
-    const handleQuizComplete = (correct: boolean) => {
-        if(activeDef) {
-            onComplete(activeDef.id, correct);
-        }
-        setIsQuizActive(false);
-    };
 
     const handleStartClick = (activity: Activity, currentCharges: number) => {
         if (activity.maxCharges && currentCharges > 0) {
@@ -198,10 +183,6 @@ export const Activities: React.FC<{ player: Player; onStart: (activityId: string
         }, {} as Record<Activity['type'], Activity[]>)
     , []);
 
-    if (isQuizActive) {
-        return <Quiz onComplete={handleQuizComplete} />;
-    }
-
     return (
         <div className="space-y-8 pb-24 px-2">
              {selectingChargesFor && (
@@ -223,13 +204,13 @@ export const Activities: React.FC<{ player: Player; onStart: (activityId: string
             )}
 
             <div className="flex gap-2 p-1 bg-slate-950/50 rounded-2xl border border-slate-800 w-fit">
-                 {(['career', 'training', 'personal', 'quiz'] as const).map((tab) => (
+                 {(['career', 'training', 'personal'] as const).map((tab) => (
                     <button 
                         key={tab} 
                         onClick={() => setActiveTab(tab)} 
                         className={`px-8 py-2.5 rounded-xl font-black uppercase text-xs transition-all ${activeTab === tab ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-500 hover:text-white'}`}
                     >
-                        {tab === 'career' ? 'Karriere' : tab === 'training' ? 'Trainingscenter' : tab === 'personal' ? 'Arbeiten' : 'Quiz'}
+                        {tab === 'career' ? 'Karriere' : tab === 'training' ? 'Trainingscenter' : 'Arbeiten'}
                     </button>
                 ))}
             </div>
@@ -246,15 +227,10 @@ export const Activities: React.FC<{ player: Player; onStart: (activityId: string
                             const activities = groupedActivities[type as Activity['type']] || [];
                             
                             return activities.map((activity) => {
-                                const isQuiz = activity.type === 'quiz';
-                                const lastQuizTaken = player.lastQuizTimestamp || 0;
-                                const isQuizOnCooldown = isQuiz && (Date.now() - lastQuizTaken) < 24 * 60 * 60 * 1000;
-
                                 const chargeInfo = player.activityCharges?.[activity.id];
                                 const maxCharges = activity.maxCharges || 0;
                                 const regenerationSeconds = activity.chargeRegenerationSeconds || 0;
                                 
-                                // SICHERE LADUNGSBERECHNUNG (Verhindert 4/3)
                                 let currentCharges = chargeInfo?.charges ?? maxCharges;
                                 let nextChargeInSeconds = 0;
 
@@ -275,14 +251,14 @@ export const Activities: React.FC<{ player: Player; onStart: (activityId: string
                                 }
 
                                 const hasCharges = currentCharges > 0;
-                                const isCompleted = !isQuiz && !maxCharges && player.completedActivityIds?.includes(activity.id);
-                                const canStart = !activeDef && !isCompleted && !isQuizOnCooldown && (maxCharges > 0 ? hasCharges : true);
+                                const isCompleted = !maxCharges && player.completedActivityIds?.includes(activity.id);
+                                const canStart = !activeDef && !isCompleted && (maxCharges > 0 ? hasCharges : true);
                                 const finalTp = activity.reward?.tp ? activity.reward.tp * (1 + (activity.type === 'training' ? tpBonusPercentage : 0)) : 0;
 
                                 return (
                                     <div 
                                         key={activity.id} 
-                                        className={`relative flex flex-col w-[170px] bg-slate-900 border-2 border-slate-800 rounded-[2.5rem] p-3 transition-all duration-300 ${(!canStart || isCompleted || isQuizOnCooldown) ? 'opacity-40 grayscale' : 'hover:border-slate-600 hover:-translate-y-1'}`}
+                                        className={`relative flex flex-col w-[170px] bg-slate-900 border-2 border-slate-800 rounded-[2.5rem] p-3 transition-all duration-300 ${(!canStart || isCompleted) ? 'opacity-40 grayscale' : 'hover:border-slate-600 hover:-translate-y-1'}`}
                                     >
                                         <div className="absolute -top-3 left-1/2 -translate-x-1/2 flex gap-1 z-10">
                                             {maxCharges > 0 && (
@@ -328,9 +304,9 @@ export const Activities: React.FC<{ player: Player; onStart: (activityId: string
                                         <button 
                                             onClick={() => handleStartClick(activity, currentCharges)} 
                                             disabled={!canStart} 
-                                            className={`w-full py-2.5 rounded-xl font-black uppercase tracking-widest text-[10px] transition-all ${(isCompleted || isQuizOnCooldown) ? 'bg-slate-800 text-slate-600' : canStart ? 'bg-blue-600 text-white hover:bg-blue-500 shadow-md' : 'bg-slate-800 text-slate-700'}`}
+                                            className={`w-full py-2.5 rounded-xl font-black uppercase tracking-widest text-[10px] transition-all ${(isCompleted) ? 'bg-slate-800 text-slate-600' : canStart ? 'bg-blue-600 text-white hover:bg-blue-500 shadow-md' : 'bg-slate-800 text-slate-700'}`}
                                         >
-                                            {isCompleted || isQuizOnCooldown ? <ShieldCheck className="w-4 h-4 mx-auto" /> : (maxCharges > 0 ? (hasCharges ? 'Starten' : 'Lädt auf') : 'Starten')}
+                                            {isCompleted ? <ShieldCheck className="w-4 h-4 mx-auto" /> : (maxCharges > 0 ? (hasCharges ? 'Starten' : 'Lädt auf') : 'Starten')}
                                         </button>
                                     </div>
                                 );

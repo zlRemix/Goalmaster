@@ -55,14 +55,6 @@ export const INFRA_LEVEL_BENEFITS: Record<InfrastructureType, string[]> = {
 
 export const ACTIVITIES: Activity[] = [
     {
-        id: 'daily_quiz_1',
-        name: 'Tägliches Fußball-Quiz',
-        description: 'Teste dein Wissen und verdiene Belohnungen. Nur einmal alle 24 Stunden verfügbar.',
-        durationSeconds: 60,
-        reward: { xp: 100, tp: 20 },
-        type: 'quiz',
-    },
-    {
         id: 'training_1',
         name: 'Passspiel-Drills',
         description: 'Eine intensive Einheit, um deine Passgenauigkeit und dein Stellungsspiel zu verbessern.',
