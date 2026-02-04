@@ -7,6 +7,7 @@ import { Medal, Rocket, Users, Shield, Hand, Trophy, Star, Crown } from 'lucide-
 import ClubLogo from './ClubLogo';
 import { createAvatar } from '@dicebear/core';
 import * as collections from '@dicebear/collection';
+import { PlayerProfile } from './PlayerProfile';
 
 // --- Hilfskomponenten ---
 
@@ -48,7 +49,7 @@ const getOverall = (player: Player): number => {
 
 // --- PLAYER LEADERBOARD --- 
 
-const PlayerLeaderboard: React.FC<{ players: Player[], clubs: Club[] }> = ({ players, clubs }) => {
+const PlayerLeaderboard: React.FC<{ players: Player[], clubs: Club[], onPlayerSelect: (player: Player) => void }> = ({ players, clubs, onPlayerSelect }) => {
     const rankedPlayers = useMemo(() => {
         const clubMap = new Map(clubs.map(c => [c.id, c.name]));
         return players.map(p => ({
@@ -69,7 +70,8 @@ const PlayerLeaderboard: React.FC<{ players: Player[], clubs: Club[] }> = ({ pla
                 return (
                     <div 
                         key={player.id} 
-                        className={`flex items-center gap-4 p-3 rounded-3xl bg-slate-900 border-2 ${rankInfo.border} transition-all hover:bg-slate-800 group shadow-lg`}
+                        onClick={() => onPlayerSelect(player)}
+                        className={`flex items-center gap-4 p-3 rounded-3xl bg-slate-900 border-2 ${rankInfo.border} transition-all hover:bg-slate-800 group shadow-lg cursor-pointer`}
                     >
                         {/* Rank Section */}
                         <div className={`w-12 h-12 rounded-2xl ${rankInfo.bg} flex flex-col items-center justify-center shrink-0 border border-white/5`}>
@@ -184,6 +186,7 @@ export const Leaderboard: React.FC = () => {
     const [view, setView] = useState<'players' | 'clubs'>('players');
     const [players, setPlayers] = useState<Player[]>([]);
     const [clubs, setClubs] = useState<Club[]>([]);
+    const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
 
     useEffect(() => {
         const unsubP = dataService.listenToAllPlayers(setPlayers);
@@ -191,8 +194,29 @@ export const Leaderboard: React.FC = () => {
         return () => { unsubP(); unsubC(); };
     }, []);
 
+    const handlePlayerSelect = (player: Player) => {
+        setSelectedPlayer(player);
+    };
+
+    const handleCloseProfile = () => {
+        setSelectedPlayer(null);
+    };
+    
+    const selectedPlayerClub = useMemo(() => {
+        if (!selectedPlayer || !selectedPlayer.clubId) return null;
+        return clubs.find(c => c.id === selectedPlayer.clubId) || null;
+    }, [selectedPlayer, clubs]);
+
+
     return (
         <div className="space-y-8 animate-in fade-in duration-500 pb-10">
+            {selectedPlayer && (
+                <PlayerProfile 
+                    player={selectedPlayer} 
+                    club={selectedPlayerClub}
+                    onClose={handleCloseProfile} 
+                />
+            )}
             <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
                 <div>
                     <h2 className="text-3xl md:text-5xl font-black text-white italic uppercase tracking-tighter">Hall of Fame</h2>
@@ -221,7 +245,7 @@ export const Leaderboard: React.FC = () => {
                 <div className="absolute bottom-0 left-0 w-64 h-64 bg-indigo-500/5 blur-[100px] -z-10" />
                 
                 {view === 'players' 
-                    ? <PlayerLeaderboard players={players} clubs={clubs} /> 
+                    ? <PlayerLeaderboard players={players} clubs={clubs} onPlayerSelect={handlePlayerSelect} /> 
                     : <ClubLeaderboard players={players} clubs={clubs} />
                 }
             </div>
