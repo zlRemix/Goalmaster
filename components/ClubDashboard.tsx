@@ -1,12 +1,12 @@
 import React, { useState, useEffect, ElementType, useId } from 'react';
-import { Club, Player, InfrastructureType, UserRole, ActiveTeamTraining, View, SpecializationID, PendingUpgrade } from '../types';
+import { Club, Player, InfrastructureType, UserRole, /*ActiveTeamTraining,*/ View, SpecializationID, PendingUpgrade } from '../types';
 import { dataService } from '../services/dataService';
 import { getSkillsForPosition, getTierInfo } from '../utils';
-import { INFRA_UPGRADE_COSTS, INFRA_UPGRADE_TIMES, INFRA_LEVEL_BENEFITS, TEAM_TRAININGS, MAX_CLUB_PLAYERS, INFRASTRUCTURE_SPECIALIZATIONS } from '../constants';
+import { INFRA_UPGRADE_COSTS, INFRA_UPGRADE_TIMES, INFRA_LEVEL_BENEFITS, /*TEAM_TRAININGS,*/ MAX_CLUB_PLAYERS, INFRASTRUCTURE_SPECIALIZATIONS } from '../constants';
 import { ClubManagement } from './ClubManagement';
 import LogoEditor from './LogoEditor';
 import ClubLogo from './ClubLogo';
-import { Timer, TrendingUp, Users, Zap, ShieldCheck, Euro, Building2, Star, ChevronDown, ChevronUp } from 'lucide-react';
+import { Timer, TrendingUp, Users, /*Zap,*/ ShieldCheck, Euro, Building2, Star, ChevronDown, ChevronUp } from 'lucide-react';
 import { EliteSpecialization } from './EliteSpecialization';
 
 const InfraVisual: React.FC<{ type: InfrastructureType; color: string; rarityId: string }> = ({ type, color, rarityId }) => {
@@ -236,6 +236,7 @@ const SquadList: React.FC<{ players: Player[] }> = ({ players }) => {
     );
 };
 
+/*
 const TeamTraining: React.FC<{club: Club, player: Player, onStart: (trainingId: string) => void}> = ({ club, player, onStart }) => {
     const isManager = player.roles.includes(UserRole.MANAGER);
     const activeTraining = club.activeTeamTraining;
@@ -248,8 +249,9 @@ const TeamTraining: React.FC<{club: Club, player: Player, onStart: (trainingId: 
         </div>
     );
 };
+*/
 
-type ClubNavView = 'infrastructure' | 'squad' | 'training' | 'management' | 'logo';
+type ClubNavView = 'infrastructure' | 'squad' | 'management' | 'logo';
 
 interface ClubDashboardProps {
     club: Club | null;
@@ -280,9 +282,9 @@ export const ClubDashboard: React.FC<ClubDashboardProps> = ({ club, player, onUp
             <header className="bg-slate-900 border-2 border-slate-800 p-6 rounded-[3rem] shadow-2xl flex flex-col md:flex-row items-center justify-between gap-6"><div className="flex items-center gap-6"><ClubLogo logo={club?.logo} size={100} /><div className="text-center md:text-left"><h1 className="text-3xl md:text-5xl font-black text-white italic uppercase tracking-tighter leading-none mb-2">{club?.name}</h1><span className="bg-blue-500/10 text-blue-400 text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest border border-blue-500/20">Profi-Club</span></div></div><div className="bg-slate-950 px-8 py-4 rounded-[2rem] border border-white/5 text-center shadow-inner"><p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] mb-1 flex items-center justify-center gap-2"><Euro className="w-3 h-3" /> Vereinsbudget</p><p className="text-3xl font-black text-white italic tabular-nums leading-none">{(club?.budget || 0).toLocaleString('de-DE')} €</p></div></header>
 
             <div className="flex flex-wrap gap-2 p-1.5 bg-slate-950 rounded-3xl border border-slate-800">
-                {(['infrastructure', 'squad', 'training', 'management', 'logo'] as ClubNavView[]).map((nav) => {
+                {(['infrastructure', 'squad', 'management', 'logo'] as ClubNavView[]).map((nav) => {
                     if ((nav === 'management' || nav === 'logo') && !isManager) return null;
-                    const labels: Record<string, string> = { infrastructure: 'Infrastruktur', squad: 'Kader', training: 'Training', management: 'Verwaltung', logo: 'Logo' };
+                    const labels: Record<string, string> = { infrastructure: 'Infrastruktur', squad: 'Kader', management: 'Verwaltung', logo: 'Logo' };
                     return <button key={nav} onClick={() => setClubNav(nav)} className={`flex-1 min-w-[120px] font-black uppercase text-[10px] tracking-widest py-3 rounded-2xl transition-all ${clubNav === nav ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}>{labels[nav]}</button>;
                 })}
             </div>
@@ -296,7 +298,7 @@ export const ClubDashboard: React.FC<ClubDashboardProps> = ({ club, player, onUp
                     </div>
                 )}
                 {clubNav === 'squad' && <SquadList players={squadPlayers} />}
-                {clubNav === 'training' && club && <TeamTraining club={club} player={player} onStart={(tid) => dataService.startTeamTraining(club.id, tid)} />}
+                {/* {clubNav === 'training' && club && <TeamTraining club={club} player={player} onStart={(tid) => dataService.startTeamTraining(club.id, tid)} />} */}
                 {clubNav === 'management' && isManager && club && <ClubManagement club={club} />}
                 {clubNav === 'logo' && isManager && club && <LogoEditor club={club} />}
             </div>
